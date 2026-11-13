@@ -4,7 +4,9 @@
 --
 -- Tap            client -> server   (tapCount: number)
 -- ClientReady    client -> server   ()  "my scripts are loaded, send me my state"
--- UseAbility     client -> server   (abilityId: string)
+-- UseAbility     client -> server   (abilityId: string)  must be equipped
+-- SetAbilitySlot client -> server   (slot: number, abilityId: string)  equip (swaps if it's in another slot)
+-- Crit           server -> client   (damage: BigNum)  some of your clicks just crit (for the big number)
 -- FightBoss      client -> server   ()  start the next boss now (only valid right before a boss)
 -- SetAutoAdvance client -> server   (enabled: boolean)
 -- StateSync      server -> client   (snapshot: Types.Snapshot)
@@ -53,6 +55,8 @@ local Remotes = {
 		Tap = "Tap",
 		ClientReady = "ClientReady",
 		UseAbility = "UseAbility",
+		SetAbilitySlot = "SetAbilitySlot",
+		Crit = "Crit",
 		FightBoss = "FightBoss",
 		SetAutoAdvance = "SetAutoAdvance",
 		StateSync = "StateSync",

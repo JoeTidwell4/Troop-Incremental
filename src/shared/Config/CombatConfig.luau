@@ -9,6 +9,10 @@ local CombatConfig = {
 	TICK_RATE = 5,
 
 	TAP_FLAT_DAMAGE = 1,
+	-- Critical clicks (Phase 13a): each click has CRIT_CHANCE to deal CRIT_MULTIPLIER x
+	-- damage, rolled on the server. On average that's +24% click damage.
+	CRIT_CHANCE = 0.08,
+	CRIT_MULTIPLIER = 4,
 	TAP_ARMY_DPS_FRACTION = 0.08,
 
 	-- Server-side tap cap. Taps above this rate are thrown away.

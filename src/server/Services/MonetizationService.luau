@@ -219,7 +219,8 @@ function MonetizationService.start()
 			task.wait(MonetizationConfig.AUTO_ABILITY_INTERVAL)
 			for _, player in Players:GetPlayers() do
 				if MonetizationService.isOn(player, "AutoAbilities") then
-					for _, abilityId in AbilityConfig.ORDER do
+					for _, abilityId in AbilityService.getLoadout(player) do
+						-- Fortify only works in boss fights; tryUse skips it otherwise.
 						AbilityService.tryUse(player, abilityId)
 					end
 				end

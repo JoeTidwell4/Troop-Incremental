@@ -28,6 +28,12 @@ local AudioConfig = {
 		Rally = { id = "", volume = 0.6 },
 		Barrage = { id = "", volume = 0.6 },
 		Plunder = { id = "", volume = 0.6 },
+		Frenzy = { id = "", volume = 0.6 },
+		ShieldWall = { id = "", volume = 0.6 },
+		Bounty = { id = "", volume = 0.6 },
+		Execute = { id = "", volume = 0.6 },
+		WarDrums = { id = "", volume = 0.6 },
+		Fortify = { id = "", volume = 0.6 },
 		Ascend = { id = "", volume = 0.8 },
 		RaidStart = { id = "", volume = 0.6 },
 		Purchase = { id = "", volume = 0.7 }, -- Robux purchase went through

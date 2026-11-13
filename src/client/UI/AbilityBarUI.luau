@@ -23,16 +23,9 @@ local BUTTON_SIZE = Layout.ABILITY_SIZE
 local GAP = 6
 local UPDATE_INTERVAL = 0.1
 
--- Number keys shown on the buttons.
-local KEY_LABELS: { [Enum.KeyCode]: string } = {
-	[Enum.KeyCode.One] = "1",
-	[Enum.KeyCode.Two] = "2",
-	[Enum.KeyCode.Three] = "3",
-	[Enum.KeyCode.Four] = "4",
-	[Enum.KeyCode.Five] = "5",
-}
 
 type Slot = {
+	abilityId: string, -- what's equipped in this slot right now
 	button: TextButton,
 	nameLabel: TextLabel,
 	timerLabel: TextLabel,
@@ -40,15 +33,16 @@ type Slot = {
 	stroke: UIStroke,
 }
 
-local slots: { [string]: Slot } = {}
+local slots: { Slot } = {}
 
 local AbilityBarUI = {}
 
-local function buildSlot(abilityId: string, order: number, parent: Instance): Slot
+local function buildSlot(order: number, parent: Instance): Slot
+	local abilityId = AbilityConfig.DEFAULT_LOADOUT[order]
 	local def = AbilityConfig.ABILITIES[abilityId]
 
 	local button = UIKit.button({
-		Name = abilityId,
+		Name = `Slot{order}`,
 		Text = "",
 		LayoutOrder = order,
 		BackgroundColor3 = Theme.PanelLight,
@@ -88,7 +82,7 @@ local function buildSlot(abilityId: string, order: number, parent: Instance): Sl
 		Parent = button,
 	})
 	UIKit.label({
-		Text = KEY_LABELS[def.key] or "",
+		Text = tostring(order),
 		TextColor3 = Theme.Muted,
 		TextSize = 11,
 		Position = UDim2.new(0, 4, 1, -16),
@@ -107,17 +101,20 @@ local function buildSlot(abilityId: string, order: number, parent: Instance): Sl
 		Parent = button,
 	})
 
+	local slot: Slot
 	button.Activated:Connect(function()
-		AbilityController.use(abilityId)
+		AbilityController.use(slot.abilityId)
 	end)
 
-	return {
+	slot = {
+		abilityId = abilityId,
 		button = button,
 		nameLabel = nameLabel,
 		timerLabel = timerLabel,
 		cooldownFill = cooldownFill,
 		stroke = stroke,
 	}
+	return slot
 end
 
 local function update()
@@ -127,8 +124,16 @@ local function update()
 	end
 	local now = workspace:GetServerTimeNow()
 
-	for abilityId, slot in slots do
+	for index, slot in slots do
+		-- Follow the loadout: the slot's ability can change (ARMY > Abilities).
+		local equippedId = snapshot.abilityLoadout[index] or slot.abilityId
+		if equippedId ~= slot.abilityId then
+			slot.abilityId = equippedId
+			Spotlight.register(`Ability:{equippedId}`, slot.button)
+		end
+		local abilityId = slot.abilityId
 		local def = AbilityConfig.ABILITIES[abilityId]
+		slot.nameLabel.Text = def.displayName
 		local timers = snapshot.abilities[abilityId]
 		local readyAt = if timers ~= nil then timers.readyAt else 0
 		local activeUntil = if timers ~= nil then timers.activeUntil else 0
@@ -146,7 +151,23 @@ local function update()
 			slot.nameLabel.TextColor3 = Theme.Text
 			slot.stroke.Enabled = active
 			slot.timerLabel.TextSize = 18
-			if remaining > 0 then
+			local waitsForBoss = def.bossOnly == true and snapshot.encounter ~= "Boss"
+			if abilityId == "Bounty" and snapshot.bountyLeft > 0 then
+				-- Bounty runs on kills, not time: show the kills left.
+				slot.stroke.Enabled = true
+				slot.button.BackgroundColor3 = Theme.PanelLight
+				slot.timerLabel.Text = `{snapshot.bountyLeft} kills`
+				slot.timerLabel.TextSize = 13
+				slot.timerLabel.TextColor3 = Theme.Gold
+				local cooldown = Formulas.abilityStats(abilityId, snapshot.abilityUpgrades).cooldown
+				slot.cooldownFill.Size = UDim2.new(1, 0, math.clamp(math.max(remaining, 0) / cooldown, 0, 1), 0)
+			elseif remaining <= 0 and waitsForBoss then
+				slot.button.BackgroundColor3 = Theme.PanelLight
+				slot.timerLabel.Text = "Boss only"
+				slot.timerLabel.TextSize = 12
+				slot.timerLabel.TextColor3 = Theme.Muted
+				slot.cooldownFill.Size = UDim2.new(1, 0, 0, 0)
+			elseif remaining > 0 then
 				slot.button.BackgroundColor3 = Theme.PanelLight
 				slot.timerLabel.Text = if active then `{math.ceil(activeUntil - now)}s` else `{math.ceil(remaining)}`
 				slot.timerLabel.TextColor3 = if active then Theme.Gold else Theme.Text
@@ -172,7 +193,7 @@ function AbilityBarUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	local count = #AbilityConfig.ORDER
+	local count = AbilityConfig.LOADOUT_SLOTS
 	local length = count * BUTTON_SIZE + (count - 1) * GAP
 	local bar = UIKit.create("Frame", {
 		Name = "Bar",
@@ -195,9 +216,10 @@ function AbilityBarUI.start()
 		}),
 	})
 
-	for order, abilityId in AbilityConfig.ORDER do
-		slots[abilityId] = buildSlot(abilityId, order, bar)
-		Spotlight.register(`Ability:{abilityId}`, slots[abilityId].button)
+	for order = 1, AbilityConfig.LOADOUT_SLOTS do
+		local slot = buildSlot(order, bar)
+		slots[order] = slot
+		Spotlight.register(`Ability:{slot.abilityId}`, slot.button)
 	end
 
 	local elapsed = 0

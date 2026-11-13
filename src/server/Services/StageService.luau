@@ -65,9 +65,11 @@ export type Encounter = {
 	introUntil: number, -- bosses: no damage either way until then (entrance)
 	weakened: number, -- bosses: HP taken off for failed attempts (0..WEAKEN_MAX)
 	raidBoss: string, -- raids: which RaidConfig.BOSSES boss ("" otherwise)
+	golden: boolean, -- normal stages: the current enemy is a golden one (StageConfig.GOLDEN_*)
 }
 
 local encounters: { [Player]: Encounter } = {}
+local random = Random.new()
 
 local StageService = {
 	-- Fires when a boss is beaten: (player, bossStage, firstClear).
@@ -79,6 +81,8 @@ local StageService = {
 	BossStarted = Signal.new() :: Signal.Signal<Player, number>,
 	-- Fires when a boss fight is lost: (player, bossStage, "OutOfTime" | "ArmyDefeated").
 	BossFailed = Signal.new() :: Signal.Signal<Player, number, string>,
+	-- Fires when a golden enemy dies (quests, achievements, sounds).
+	GoldenKilled = Signal.new() :: Signal.Signal<Player>,
 	-- Fires when a raid attack ends (time up, cap reached, or leaving): (player, damage).
 	RaidFinished = Signal.new() :: Signal.Signal<Player, BigNum>,
 }
@@ -119,6 +123,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 			minionHp = BigNum.ZERO,
 			minionMaxHp = BigNum.ZERO,
 			summoned = false,
+			golden = false,
 			kind = "Boss",
 			enemyHp = hp,
 			enemyMaxHp = hp,
@@ -141,6 +146,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 		minionHp = BigNum.ZERO,
 		minionMaxHp = BigNum.ZERO,
 		summoned = false,
+		golden = false,
 		kind = "Normal",
 		enemyHp = hp,
 		enemyMaxHp = hp,
@@ -175,8 +181,24 @@ function StageService.getBossHitRate(player: Player): BigNum
 	if encounter.enraged then
 		rate = BigNum.mulNumber(rate, BossConfig.ENRAGE_MULTIPLIER)
 	end
-	return rate
+	return BigNum.mulNumber(rate, ModifierService.get(player).bossDamage) -- Shield Wall
 end
+
+-- Fortify: heals the army by `fraction` of its max HP. Boss fights only; false otherwise.
+function StageService.healArmy(player: Player, fraction: number): boolean
+	local encounter = encounters[player]
+	if encounter == nil or encounter.kind ~= "Boss" then
+		return false
+	end
+	local heal = BigNum.mulNumber(CombatService.getMaxHp(player), fraction)
+	encounter.armyDamageTaken = BigNum.max(BigNum.sub(encounter.armyDamageTaken, heal), BigNum.ZERO)
+	DataService.markChanged(player)
+	return true
+end
+
+-- Bounty: AbilityService sets this. Given the kills about to be paid, returns how many
+-- extra kills' worth of gold to add (and uses up bounty charges).
+StageService.bountyHook = nil :: ((player: Player, kills: number) -> number)?
 
 -- Current army HP (only drops during boss fights).
 function StageService.getArmyHp(player: Player): BigNum
@@ -235,6 +257,7 @@ function StageService.startRaid(player: Player, seconds: number, maxDamage: BigN
 		minionHp = BigNum.ZERO,
 		minionMaxHp = BigNum.ZERO,
 		summoned = false,
+		golden = false,
 		kind = "Raid",
 		enemyHp = maxDamage,
 		enemyMaxHp = maxDamage,
@@ -344,25 +367,46 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	local enemiesLeft = enemiesThisStage - data.killsInStage - 1
 	local extraKills = 0
 	if enemiesLeft > 0 then
-		local fullKills = math.floor(BigNum.toNumber(BigNum.div(damage, encounter.enemyMaxHp)))
+		-- (the next enemies are normal ones, even if the one that just died was golden)
+		local perEnemy = Formulas.enemyHp(data.stage)
+		local fullKills = math.floor(BigNum.toNumber(BigNum.div(damage, perEnemy)))
 		extraKills = math.min(fullKills, enemiesLeft)
-		damage = BigNum.sub(damage, BigNum.mulNumber(encounter.enemyMaxHp, extraKills))
+		damage = BigNum.sub(damage, BigNum.mulNumber(perEnemy, extraKills))
 	end
 
 	local kills = 1 + extraKills
-	local gold = BigNum.mulNumber(encounter.goldPerKill, kills * goldMultiplier)
+	local wasGolden = encounter.golden
+	-- Gold is paid in "kills' worth": a golden enemy is worth GOLDEN_GOLD_KILLS on its own.
+	local goldKills = kills + (if wasGolden then StageConfig.GOLDEN_GOLD_KILLS - 1 else 0)
+	local hook = StageService.bountyHook
+	if hook ~= nil and encounter.kind == "Normal" then
+		goldKills += hook(player, kills)
+	end
+	local gold = BigNum.mulNumber(encounter.goldPerKill, goldKills * goldMultiplier)
 	data.gold = BigNum.add(data.gold, gold)
 	data.stats.lifetimeGold = BigNum.add(data.stats.lifetimeGold, gold)
 	data.stats.totalKills += kills
 	data.killsInStage += kills
 	StageService.Killed:Fire(player, data.stage, kills, encounter.kind == "Boss")
+	if wasGolden then
+		local pack = random:NextNumber() < StageConfig.GOLDEN_PACK_CHANCE
+		if pack then
+			data.packs.free += 1
+		end
+		notify(player, { kind = "Golden", stage = data.stage, gold = gold, packs = if pack then 1 else 0 })
+		StageService.GoldenKilled:Fire(player)
+	end
 
 	if data.killsInStage >= enemiesThisStage then
 		-- At most one stage clear per tick: leftover damage is discarded so a huge
 		-- spike (e.g. Barrage) can't skip many stages at once.
 		onStageCleared(player, data, encounter)
 	else
-		encounter.enemyHp = BigNum.sub(encounter.enemyMaxHp, damage)
+		-- The next enemy: sometimes a golden one (tougher, much richer).
+		local baseHp = Formulas.enemyHp(data.stage)
+		encounter.golden = encounter.kind == "Normal" and random:NextNumber() < StageConfig.GOLDEN_CHANCE
+		encounter.enemyMaxHp = if encounter.golden then BigNum.mulNumber(baseHp, StageConfig.GOLDEN_HP_MULTIPLIER) else baseHp
+		encounter.enemyHp = BigNum.max(BigNum.sub(encounter.enemyMaxHp, damage), BigNum.ONE)
 	end
 	return true
 end
@@ -485,6 +529,20 @@ function StageService.debugKill(player: Player)
 	encounter.introUntil = 0
 	applyDamage(player, data, BigNum.add(encounter.enemyHp, encounter.minionHp))
 	DataService.markChanged(player)
+end
+
+-- Turns the current normal enemy into a golden one.
+function StageService.debugGolden(player: Player): boolean
+	local data = DataService.get(player)
+	local encounter = encounters[player]
+	if data == nil or encounter == nil or encounter.kind ~= "Normal" then
+		return false
+	end
+	encounter.golden = true
+	encounter.enemyMaxHp = BigNum.mulNumber(Formulas.enemyHp(data.stage), StageConfig.GOLDEN_HP_MULTIPLIER)
+	encounter.enemyHp = encounter.enemyMaxHp
+	DataService.markChanged(player)
+	return true
 end
 
 -- Loses the current boss fight as if the timer ran out.

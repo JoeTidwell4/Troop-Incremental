@@ -499,13 +499,10 @@ end
 -- the player's abilityUpgrades (id -> level); nil = no upgrades.
 function Formulas.abilityStats(abilityId: string, upgrades: { [string]: number }?): Types.AbilityStats
 	local def = AbilityConfig.ABILITIES[abilityId]
-	local stats: { [string]: number? } = {
-		cooldown = def.cooldown,
-		duration = def.duration,
-		damageMultiplier = def.damageMultiplier,
-		goldMultiplier = def.goldMultiplier,
-		burstDpsSeconds = def.burstDpsSeconds,
-	}
+	local stats: { [string]: number? } = {}
+	for _, field in AbilityConfig.STAT_FIELDS do
+		stats[field] = (def :: any)[field]
+	end
 	if upgrades ~= nil then
 		for upgradeId, upgrade in AbilityConfig.UPGRADES do
 			local level = math.clamp(upgrades[upgradeId] or 0, 0, upgrade.maxLevel)
@@ -515,13 +512,7 @@ function Formulas.abilityStats(abilityId: string, upgrades: { [string]: number }
 			end
 		end
 	end
-	return {
-		cooldown = stats.cooldown :: number,
-		duration = stats.duration,
-		damageMultiplier = stats.damageMultiplier,
-		goldMultiplier = stats.goldMultiplier,
-		burstDpsSeconds = stats.burstDpsSeconds,
-	}
+	return (stats :: any) :: Types.AbilityStats
 end
 
 -- Honor cost of the next level of an ability upgrade.

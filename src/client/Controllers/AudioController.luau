@@ -154,9 +154,11 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	end
 
 	-- An ability was used when its readyAt time moves forward.
+	-- (Only abilities equipped before too: equipping one also moves its readyAt.)
 	for _, abilityId in AbilityConfig.ORDER do
 		local now, before = snapshot.abilities[abilityId], previous.abilities[abilityId]
-		if now ~= nil and (before == nil or now.readyAt > before.readyAt) then
+		local wasEquipped = table.find(previous.abilityLoadout, abilityId) ~= nil
+		if wasEquipped and now ~= nil and (before == nil or now.readyAt > before.readyAt) then
 			AudioController.play(abilityId)
 		end
 	end
@@ -192,7 +194,7 @@ function AudioController.start()
 			AudioController.play("BossWin")
 		elseif notice.kind == "BossFailed" then
 			AudioController.play("BossFail")
-		elseif notice.kind == "RaidRewards" or notice.kind == "ClanWarRewards" or notice.kind == "CommanderItem" or notice.kind == "ClanJoined" then
+		elseif notice.kind == "RaidRewards" or notice.kind == "ClanWarRewards" or notice.kind == "CommanderItem" or notice.kind == "ClanJoined" or notice.kind == "Golden" then
 			AudioController.play("Reward")
 		end
 	end)

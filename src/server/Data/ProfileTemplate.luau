@@ -31,6 +31,7 @@ local template: Types.PlayerData = {
 	honor = BigNum.ZERO,
 	honorUpgrades = {},
 	abilityUpgrades = {},
+	abilityLoadout = { "Rally", "Barrage", "Plunder" }, -- AbilityConfig.LOADOUT_SLOTS equipped abilities
 	lastSeen = 0,
 	faction = "",
 	factionChangedAt = 0,

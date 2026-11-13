@@ -133,7 +133,12 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	for _, abilityId in AbilityConfig.ORDER do
 		local def = AbilityConfig.ABILITIES[abilityId]
 		if previous.bestStage < def.unlockStage and snapshot.bestStage >= def.unlockStage then
-			NoticeUI.show(`New ability: {def.displayName}!`, def.description, Theme.Accent)
+			local equipped = table.find(snapshot.abilityLoadout, abilityId) ~= nil
+			NoticeUI.show(
+				`New ability: {def.displayName}!`,
+				if equipped then def.description else `{def.description}. Equip it in ARMY > Abilities.`,
+				Theme.Accent
+			)
 		end
 	end
 end

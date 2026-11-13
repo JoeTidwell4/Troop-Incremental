@@ -14,8 +14,13 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local BigNum = require(Shared:WaitForChild("BigNum"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
+local CombatConfig = require(Shared:WaitForChild("Config"):WaitForChild("CombatConfig"))
+local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local ModifierService = require(Services.ModifierService)
+
+local random = Random.new()
 
 type BigNum = BigNum.BigNum
 
@@ -97,7 +102,18 @@ function CombatService.applyTaps(player: Player, taps: number)
 	if data == nil or taps <= 0 then
 		return
 	end
-	CombatService.queueDamage(player, BigNum.mulNumber(CombatService.getTapDamage(player), taps))
+	-- Each click can crit. The crits' extra damage is sent to the client for a big number.
+	local crits = 0
+	for _ = 1, math.floor(taps) do
+		if random:NextNumber() < CombatConfig.CRIT_CHANCE then
+			crits += 1
+		end
+	end
+	local perTap = CombatService.getTapDamage(player)
+	CombatService.queueDamage(player, BigNum.mulNumber(perTap, taps + crits * (CombatConfig.CRIT_MULTIPLIER - 1)))
+	if crits > 0 then
+		RemoteService.fireClient(Remotes.Events.Crit, player, BigNum.mulNumber(perTap, CombatConfig.CRIT_MULTIPLIER))
+	end
 	data.stats.totalTaps += taps
 end
 

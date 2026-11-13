@@ -787,6 +787,38 @@ function BattlefieldController.start()
 
 	setupCamera()
 	StateController.Changed:Connect(onStateChanged)
+	-- Golden enemies: a gold glow and sparkles on whatever model is showing.
+	StateController.Changed:Connect(function(snapshot: Snapshot)
+		local model = enemyModel
+		if model == nil then
+			return
+		end
+		local golden = snapshot.enemyGolden and snapshot.encounter == "Normal"
+		local glow = model:FindFirstChild("GoldenGlow")
+		if golden and glow == nil then
+			local highlight = Instance.new("Highlight")
+			highlight.Name = "GoldenGlow"
+			highlight.FillColor = Color3.fromRGB(255, 200, 40)
+			highlight.FillTransparency = 0.35
+			highlight.OutlineColor = Color3.fromRGB(255, 240, 150)
+			highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+			highlight.Parent = model
+			local root = model.PrimaryPart
+			if root ~= nil then
+				local sparkles = Instance.new("Sparkles")
+				sparkles.Name = "GoldenSparkles"
+				sparkles.SparkleColor = Color3.fromRGB(255, 220, 80)
+				sparkles.Parent = root
+			end
+		elseif not golden and glow ~= nil then
+			glow:Destroy()
+			local root = model.PrimaryPart
+			local sparkles = if root ~= nil then root:FindFirstChild("GoldenSparkles") else nil
+			if sparkles ~= nil then
+				sparkles:Destroy()
+			end
+		end
+	end)
 	-- Graphics quality changed: throw away the world and troops and build them again.
 	Quality.Changed:Connect(function()
 		currentArea = -1

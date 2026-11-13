@@ -101,6 +101,7 @@ local DESKTOP_MENU: { [string]: Slot } = {
 	Top = { top = 280, index = 3, count = 3 },
 	Quests = { top = 326, index = 1, count = 2 },
 	Wardrobe = { top = 326, index = 2, count = 2 },
+	Army = { top = 372, index = 1, count = 2 }, -- Phase 13: ADVENTURE goes next to it
 }
 local COMPACT_MENU: { [string]: Slot } = {
 	Quests = { top = 126, index = 1, count = 2 },
@@ -109,7 +110,8 @@ local COMPACT_MENU: { [string]: Slot } = {
 	Clan = { top = 174, index = 2, count = 2 },
 	Top = { top = 222, index = 1, count = 2 },
 	Settings = { top = 222, index = 2, count = 2 },
-	Wardrobe = { top = 270, index = 1, count = 1 },
+	Wardrobe = { top = 270, index = 1, count = 2 },
+	Army = { top = 270, index = 2, count = 2 },
 }
 
 -- Position of something in the right column: `x` pixels from the column's left edge,

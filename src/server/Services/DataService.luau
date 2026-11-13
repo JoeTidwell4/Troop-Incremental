@@ -19,6 +19,7 @@ local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local GearConfig = require(Shared:WaitForChild("Config"):WaitForChild("GearConfig"))
 local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("FactionConfig"))
 local DailyConfig = require(Shared:WaitForChild("Config"):WaitForChild("DailyConfig"))
+local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -227,6 +228,30 @@ local function sanitize(data: PlayerData)
 	end
 	data.clanRequest.at = wholeNumber(data.clanRequest.at, 0, 0)
 	data.clanTokens = wholeNumber(data.clanTokens, 0, 0)
+	-- Ability loadout: exactly LOADOUT_SLOTS known, different abilities (else the default).
+	local loadout: { string } = {}
+	local seen: { [string]: boolean } = {}
+	if typeof(data.abilityLoadout) == "table" then
+		for _, abilityId in data.abilityLoadout do
+			if typeof(abilityId) == "string" and AbilityConfig.ABILITIES[abilityId] ~= nil and not seen[abilityId] then
+				seen[abilityId] = true
+				table.insert(loadout, abilityId)
+			end
+		end
+	end
+	for _, abilityId in AbilityConfig.DEFAULT_LOADOUT do
+		if #loadout >= AbilityConfig.LOADOUT_SLOTS then
+			break
+		end
+		if not seen[abilityId] then
+			seen[abilityId] = true
+			table.insert(loadout, abilityId)
+		end
+	end
+	while #loadout > AbilityConfig.LOADOUT_SLOTS do
+		table.remove(loadout)
+	end
+	data.abilityLoadout = loadout
 	local legacy = data.legacy
 	legacy.count = wholeNumber(legacy.count, 0, 0)
 	legacy.crowns = wholeNumber(legacy.crowns, 0, 0)

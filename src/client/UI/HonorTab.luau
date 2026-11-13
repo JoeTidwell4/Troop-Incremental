@@ -69,8 +69,12 @@ local function abilityEffectText(def: Types.AbilityUpgradeDef, level: number): s
 	local now = value(level)
 	local nextValue = if level < def.maxLevel then value(level + 1) else nil
 	local function show(v: number): string
-		if def.stat == "damageMultiplier" or def.stat == "goldMultiplier" then
+		if def.stat == "damageMultiplier" or def.stat == "goldMultiplier" or def.stat == "tapMultiplier" then
 			return `x{fmt(v)}`
+		elseif def.stat == "healFraction" then
+			return `{math.floor(v * 100 + 0.5)}%`
+		elseif def.stat == "bountyKills" then
+			return `{math.floor(v)}`
 		end
 		return `{fmt(v)}s`
 	end
@@ -80,6 +84,9 @@ local function abilityEffectText(def: Types.AbilityUpgradeDef, level: number): s
 		duration = "long",
 		cooldown = "cooldown",
 		burstDpsSeconds = "of army damage",
+		tapMultiplier = "clicks",
+		healFraction = "heal",
+		bountyKills = "kills",
 	} :: { [string]: string })[def.stat] or ""
 	if nextValue == nil then
 		return `{show(now)} {what} (max)`

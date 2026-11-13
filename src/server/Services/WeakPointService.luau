@@ -23,6 +23,7 @@ local RemoteService = require(Services.RemoteService)
 local CombatService = require(Services.CombatService)
 local StageService = require(Services.StageService)
 local ActivityService = require(Services.ActivityService)
+local AbilityService = require(Services.AbilityService)
 
 type WeakPointResult = Types.WeakPointResult
 
@@ -81,12 +82,18 @@ local function update(player: Player)
 		current.active = nil -- missed
 		current.streak = 0
 	end
+	-- War Drums just started: bring an already-scheduled weak point closer too.
+	local drums = AbilityService.weakPointGapScale(player)
+	if current.active == nil and drums < 1 then
+		current.nextAt = math.min(current.nextAt, time + WeakPointConfig.INTERVAL_MAX * drums)
+	end
 	if current.active == nil and time >= current.nextAt then
 		current.nextId += 1
 		local spawned: Active = { id = current.nextId, expiresAt = time + WeakPointConfig.WINDOW }
 		current.active = spawned
 		-- Some raid bosses show weak points more often (RaidConfig.BOSSES weakPointInterval).
 		local gapScale = if encounter.kind == "Raid" then Formulas.raidBossById(encounter.raidBoss).weakPointInterval else 1
+		gapScale *= AbilityService.weakPointGapScale(player) -- War Drums
 		current.nextAt = time + rng:NextNumber(WeakPointConfig.INTERVAL_MIN, WeakPointConfig.INTERVAL_MAX) * gapScale
 		RemoteService.fireClient(Remotes.Events.WeakPoint, player, {
 			kind = "Spawn",

@@ -71,6 +71,12 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 		StageService.debugKill(player)
 		return done("Killed it.")
 	end,
+	Golden = function(player)
+		if StageService.debugGolden(player) then
+			return done("Golden enemy!")
+		end
+		return failed("Only on normal stages.")
+	end,
 	FailBoss = function(player)
 		if StageService.debugFailBoss(player) then
 			return done("Boss lost.")

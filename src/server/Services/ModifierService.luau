@@ -12,6 +12,7 @@ export type Modifiers = {
 	gold: number, -- gold from kills
 	armyHp: number, -- army HP in boss fights
 	tap: number, -- click damage only (on top of damage)
+	bossDamage: number, -- damage bosses deal to your army (Shield Wall: 0.5)
 }
 
 export type PartialModifiers = {
@@ -19,6 +20,7 @@ export type PartialModifiers = {
 	gold: number?,
 	armyHp: number?,
 	tap: number?,
+	bossDamage: number?,
 }
 
 type Source = (player: Player) -> PartialModifiers?
@@ -32,7 +34,7 @@ function ModifierService.register(source: Source)
 end
 
 function ModifierService.get(player: Player): Modifiers
-	local result: Modifiers = { damage = 1, gold = 1, armyHp = 1, tap = 1 }
+	local result: Modifiers = { damage = 1, gold = 1, armyHp = 1, tap = 1, bossDamage = 1 }
 	for _, source in sources do
 		local partial = source(player)
 		if partial ~= nil then
@@ -40,6 +42,7 @@ function ModifierService.get(player: Player): Modifiers
 			result.gold *= partial.gold or 1
 			result.armyHp *= partial.armyHp or 1
 			result.tap *= partial.tap or 1
+			result.bossDamage *= partial.bossDamage or 1
 		end
 	end
 	return result

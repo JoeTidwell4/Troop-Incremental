@@ -6,7 +6,7 @@ local BigNum = require(script.Parent.BigNum)
 export type BigNum = BigNum.BigNum
 
 export type TroopId = "Swordsman" | "Archer" | "Knight" | "Mage" | "Cavalry" | "Siege"
-export type AbilityId = "Rally" | "Barrage" | "Plunder"
+export type AbilityId = "Rally" | "Barrage" | "Plunder" | "Frenzy" | "ShieldWall" | "Bounty" | "Execute" | "WarDrums" | "Fortify"
 export type EncounterKind = "Normal" | "Boss" | "Raid"
 export type GearSlot = "weapon" | "armor"
 
@@ -45,7 +45,15 @@ export type AbilityDef = {
 	damageMultiplier: number?,
 	goldMultiplier: number?,
 	burstDpsSeconds: number?, -- instant damage = army DPS * this
-	key: Enum.KeyCode, -- keyboard shortcut (visual/client only)
+	tapMultiplier: number?, -- click damage multiplied while active
+	bossDamageTaken: number?, -- boss damage to your army multiplied while active (0.5 = half)
+	executeThreshold: number?, -- burst x executeMultiplier if the enemy is below this HP fraction
+	executeMultiplier: number?,
+	healFraction: number?, -- boss fights only: heals this much of the army's max HP
+	bountyKills: number?, -- the next N kills drop bountyGoldMultiplier x gold
+	bountyGoldMultiplier: number?,
+	weakPointGapScale: number?, -- weak points come this much more often while active (0.4 = 2.5x)
+	bossOnly: boolean?, -- can only be used during a boss fight (it would be wasted otherwise)
 }
 
 -- Something the commander can wear (CommanderConfig.ITEMS).
@@ -81,7 +89,7 @@ export type AbilityUpgradeDef = {
 	id: string,
 	abilityId: string,
 	displayName: string,
-	stat: "damageMultiplier" | "goldMultiplier" | "duration" | "cooldown" | "burstDpsSeconds",
+	stat: string, -- any numeric AbilityStats field, e.g. "duration", "cooldown", "tapMultiplier"
 	perLevel: number, -- added to the stat per level (negative = lower, e.g. cooldown)
 	maxLevel: number,
 	baseCost: number, -- Honor
@@ -95,6 +103,14 @@ export type AbilityStats = {
 	damageMultiplier: number?,
 	goldMultiplier: number?,
 	burstDpsSeconds: number?,
+	tapMultiplier: number?,
+	bossDamageTaken: number?,
+	executeThreshold: number?,
+	executeMultiplier: number?,
+	healFraction: number?,
+	bountyKills: number?,
+	bountyGoldMultiplier: number?,
+	weakPointGapScale: number?,
 }
 
 export type RarityDef = {
@@ -394,6 +410,7 @@ export type PlayerData = {
 	clanWar: ClanWarRecord,
 	clanRequest: { clanId: string, at: number }, -- pending join request ("" = none)
 	clanTokens: number, -- Clan Tokens for the clan shop (kept on Ascend)
+	abilityLoadout: { string }, -- equipped abilities, one per slot (AbilityConfig.LOADOUT_SLOTS)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
@@ -461,6 +478,9 @@ export type Snapshot = {
 	abilityUpgrades: { [string]: number },
 	ascendHonor: BigNum, -- Honor you'd get for Ascending right now (zero if not allowed)
 	ascensions: number,
+	abilityLoadout: { string }, -- equipped abilities by slot (keys 1/2/3)
+	bountyLeft: number, -- kills left on an active Bounty
+	enemyGolden: boolean, -- the current enemy is a golden one
 	legacyCount: number,
 	crowns: number, -- unspent
 	crownUpgrades: { [string]: number },
@@ -487,7 +507,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)

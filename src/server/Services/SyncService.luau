@@ -77,6 +77,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		bossShieldUntil = encounter.shieldUntil,
 		minionHp = encounter.minionHp,
 		minionMaxHp = encounter.minionMaxHp,
+		enemyGolden = encounter.golden,
 
 		armyDps = CombatService.getDps(player),
 		tapDamage = CombatService.getTapDamage(player),
@@ -90,6 +91,8 @@ local function buildSnapshot(player: Player): Snapshot?
 		packs = data.packs,
 		packPrice = Formulas.packPrice(data.highestStage),
 		abilities = AbilityService.getTimers(player),
+		abilityLoadout = table.clone(data.abilityLoadout),
+		bountyLeft = AbilityService.getBountyLeft(player),
 		totalKills = data.stats.totalKills,
 
 		honor = data.honor,

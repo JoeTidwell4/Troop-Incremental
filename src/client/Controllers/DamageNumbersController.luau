@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
 local BigNum = require(Shared:WaitForChild("BigNum"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 local BattlefieldController = require(Controllers.BattlefieldController)
@@ -22,6 +23,8 @@ type Snapshot = Types.Snapshot
 local LIFETIME = 0.8
 local CLICK_COLOR = Color3.fromRGB(255, 255, 255)
 local GOLD_COLOR = Color3.fromRGB(255, 205, 70)
+local CRIT_COLOR = Color3.fromRGB(255, 140, 40)
+local PACK_COLOR = Color3.fromRGB(120, 200, 255)
 
 local active = 0
 local anchor: Part? = nil
@@ -88,6 +91,24 @@ spawnText = function(text: string, color: Color3, size: number)
 end
 
 function DamageNumbersController.start()
+	-- Critical clicks (rolled on the server): a big orange number.
+	Remotes.waitForEvent(Remotes.Events.Crit).OnClientEvent:Connect(function(damage: any)
+		if typeof(damage) == "table" then
+			spawnText(`CRIT! {NumberFormat.big(damage)}`, CRIT_COLOR, 30)
+		end
+	end)
+	-- Golden enemy down: floating text instead of a popup (they can come often late on).
+	StateController.Notice:Connect(function(notice: Types.Notice)
+		if notice.kind == "Golden" then
+			local gold = if notice.gold ~= nil then NumberFormat.big(notice.gold) else "?"
+			spawnText(`GOLDEN! +{gold} gold`, GOLD_COLOR, 32)
+			if (notice.packs or 0) > 0 then
+				task.delay(0.3, function()
+					spawnText("+1 free gear pack!", PACK_COLOR, 26)
+				end)
+			end
+		end
+	end)
 	InputController.Tapped:Connect(function()
 		local snapshot = StateController.get()
 		if snapshot ~= nil then

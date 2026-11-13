@@ -56,6 +56,8 @@ local AchievementConfig = {
 		{ id = "Packs10", name = "Treasure Hunter", description = "Open 10 gear packs", honor = 2, honorShare = 0.03, kind = "lifetime", key = "PackOpen", target = 10 },
 		{ id = "Packs100", name = "Hoarder", description = "Open 100 gear packs", honor = 6, honorShare = 0.1, kind = "lifetime", key = "PackOpen", target = 100 },
 		{ id = "Packs500", name = "Dragon's Hoard", description = "Open 500 gear packs", honor = 10, honorShare = 0.25, kind = "lifetime", key = "PackOpen", target = 500 },
+		{ id = "Golden10", name = "Gold Rush", description = "Defeat 10 golden enemies", honor = 3, honorShare = 0.05, kind = "lifetime", key = "GoldenKill", target = 10 },
+		{ id = "Golden100", name = "Midas Touch", description = "Defeat 100 golden enemies", honor = 8, honorShare = 0.2, kind = "lifetime", key = "GoldenKill", target = 100 },
 		{ id = "Legendary", name = "Legendary!", description = "Own a Legendary piece of gear", honor = 5, honorShare = 0.15, kind = "legendary", target = 1 },
 
 		{ id = "Faction", name = "Sworn", description = "Join a faction", honor = 1, honorShare = 0.02, kind = "faction", target = 1 },

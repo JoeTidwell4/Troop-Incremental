@@ -17,6 +17,7 @@ local DebugConfig = {
 				{ label = "Kill enemy / win boss", action = "Kill" },
 				{ label = "Lose boss", action = "FailBoss" },
 				{ label = "Next boss stage", action = "NextBoss" },
+				{ label = "Golden enemy", action = "Golden" },
 			},
 		},
 		{
