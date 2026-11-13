@@ -22,6 +22,7 @@ local RaidConfig = require(Shared.Config.RaidConfig)
 local LegacyConfig = require(Shared.Config.LegacyConfig)
 local SkillConfig = require(Shared.Config.SkillConfig)
 local GeneralConfig = require(Shared.Config.GeneralConfig)
+local RelicConfig = require(Shared.Config.RelicConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -585,6 +586,99 @@ function Formulas.generalSets(generals: Types.GeneralsData): { { houseId: string
 		end
 	end
 	return sets
+end
+
+---------------------------------------------------------------- relics
+
+-- One stat line's amount at a relic level (e.g. 0.05 x 1.2 x 1.3 = +7.8% damage).
+function Formulas.relicLineValue(line: Types.RelicLine, level: number): number
+	local stat = RelicConfig.STATS[line.stat]
+	if stat == nil then
+		return 0
+	end
+	return stat.value * line.roll * (1 + RelicConfig.LEVEL_STEP * level)
+end
+
+local function rarityOrder(rarity: string): number
+	local def = RelicConfig.RARITIES[rarity]
+	return if def ~= nil then def.order else 1
+end
+
+function Formulas.relicUpgradeCost(item: Types.RelicItem): number
+	return math.floor(RelicConfig.UPGRADE_BASE * RelicConfig.UPGRADE_GROWTH ^ item.level * rarityOrder(item.rarity) + 0.5)
+end
+
+function Formulas.relicRerollCost(item: Types.RelicItem): number
+	return RelicConfig.REROLL_BASE * rarityOrder(item.rarity)
+end
+
+function Formulas.relicSalvageDust(item: Types.RelicItem): number
+	local def = RelicConfig.RARITIES[item.rarity]
+	return (if def ~= nil then def.dust else 0) + item.level * RelicConfig.DUST_PER_LEVEL
+end
+
+-- Everything the EQUIPPED relics add up to, including set bonuses (2 / 4 / 6 pieces).
+function Formulas.relicBonuses(relics: Types.RelicsData?): Types.RelicBonuses
+	local sum: { [string]: number } = { damage = 0, armyHp = 0, gold = 0, tap = 0, bossDamageDealt = 0, critChance = 0, critMultiplier = 0, bossTime = 0, goldenChance = 0 }
+	local bossDamage = 1
+	local sets: { { setId: string, count: number } } = {}
+	if relics ~= nil then
+		local perSet: { [string]: number } = {}
+		for _, slot in RelicConfig.SLOTS do
+			local item = relics.items[relics.equipped[slot] or ""]
+			if item ~= nil and item.slot == slot then
+				for _, line in item.lines do
+					sum[line.stat] = (sum[line.stat] or 0) + Formulas.relicLineValue(line, item.level)
+				end
+				perSet[item.set] = (perSet[item.set] or 0) + 1
+			end
+		end
+		for _, setId in RelicConfig.SET_ORDER do
+			local count = perSet[setId] or 0
+			local def = RelicConfig.SETS[setId]
+			if count >= 2 then
+				table.insert(sets, { setId = setId, count = count })
+			end
+			for pieces, bonus in def.bonuses do
+				if count >= pieces then
+					for field, value in bonus.effects do
+						if field == "bossDamage" then
+							bossDamage *= math.max(0.1, 1 + value)
+						else
+							sum[field] = (sum[field] or 0) + value
+						end
+					end
+				end
+			end
+		end
+	end
+	return {
+		damage = 1 + sum.damage,
+		armyHp = 1 + sum.armyHp,
+		gold = 1 + sum.gold,
+		tap = 1 + sum.tap,
+		bossDamageDealt = 1 + sum.bossDamageDealt,
+		bossDamage = bossDamage,
+		critChance = sum.critChance,
+		critMultiplier = sum.critMultiplier,
+		bossTime = sum.bossTime,
+		goldenChance = sum.goldenChance,
+		sets = sets,
+	}
+end
+
+-- Crit chance / crit power / boss timer / golden enemy chance from skills + fielded
+-- Generals + equipped relics, added up. One place, so every system is counted the same.
+function Formulas.extras(skillRanks: { [string]: number }?, generals: Types.GeneralsData?, relics: Types.RelicsData?): Types.ExtraEffects
+	local skills = Formulas.skillEffects(skillRanks)
+	local gen = Formulas.generalBonuses(generals)
+	local rel = Formulas.relicBonuses(relics)
+	return {
+		critChance = skills.critChance + gen.critChance + rel.critChance,
+		critMultiplier = skills.critMultiplier + gen.critMultiplier + rel.critMultiplier,
+		bossTime = skills.bossTime + gen.bossTime + rel.bossTime,
+		goldenChance = skills.goldenChance + gen.goldenChance + rel.goldenChance,
+	}
 end
 
 ---------------------------------------------------------------- commander level + skills

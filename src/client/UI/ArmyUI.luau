@@ -20,6 +20,7 @@ local Layout = require(script.Parent.Layout)
 local Spotlight = require(script.Parent.Spotlight)
 local SkillsTab = require(script.Parent.SkillsTab)
 local GeneralsTab = require(script.Parent.GeneralsTab)
+local RelicsTab = require(script.Parent.RelicsTab)
 local StateController = require(Client.Controllers.StateController)
 local AbilityController = require(Client.Controllers.AbilityController)
 
@@ -287,7 +288,7 @@ function ArmyUI.start()
 		Parent = window,
 	}) :: Frame
 
-	local tabs: { Tab } = { buildAbilitiesTab(content), SkillsTab.build(content), GeneralsTab.build(content) }
+	local tabs: { Tab } = { buildAbilitiesTab(content), SkillsTab.build(content), GeneralsTab.build(content), RelicsTab.build(content) }
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
 

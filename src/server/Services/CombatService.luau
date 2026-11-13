@@ -104,9 +104,9 @@ function CombatService.applyTaps(player: Player, taps: number)
 		return
 	end
 	-- Each click can crit. The crits' extra damage is sent to the client for a big number.
-	local skills = Formulas.skillEffects(data.skills.ranks) -- Precision, Deadly Strikes
-	local chance = CombatConfig.CRIT_CHANCE + skills.critChance + Formulas.generalBonuses(data.generals).critChance -- + Thessa
-	local multiplier = CombatConfig.CRIT_MULTIPLIER + skills.critMultiplier + Formulas.generalBonuses(data.generals).critMultiplier
+	local extras = Formulas.extras(data.skills.ranks, data.generals, data.relics) -- skills, Generals, relics
+	local chance = CombatConfig.CRIT_CHANCE + extras.critChance
+	local multiplier = CombatConfig.CRIT_MULTIPLIER + extras.critMultiplier
 	local crits = 0
 	for _ = 1, math.floor(taps) do
 		if random:NextNumber() < chance then

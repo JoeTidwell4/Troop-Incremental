@@ -1,4 +1,4 @@
 --!strict
 -- Build identifier shown in Output on boot so you can tell Rojo synced the latest code.
 
-return "0.25.1-generals2"
+return "0.26.0-relics"

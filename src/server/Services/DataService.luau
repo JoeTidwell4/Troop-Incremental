@@ -22,6 +22,7 @@ local DailyConfig = require(Shared:WaitForChild("Config"):WaitForChild("DailyCon
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local SkillConfig = require(Shared:WaitForChild("Config"):WaitForChild("SkillConfig"))
 local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
+local RelicConfig = require(Shared:WaitForChild("Config"):WaitForChild("RelicConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -281,6 +282,50 @@ local function sanitize(data: PlayerData)
 	if typeof(generals.welcomed) ~= "boolean" then
 		generals.welcomed = false
 	end
+	-- Relics: known slot / set / rarity / stats only; equipped must point at a relic of
+	-- that slot; nextId above every id in use.
+	local relics = data.relics
+	local items: { [string]: Types.RelicItem } = {}
+	local highestId = 0
+	if typeof(relics.items) == "table" then
+		for id, item in relics.items do
+			if typeof(id) == "string" and typeof(item) == "table" and table.find(RelicConfig.SLOTS, item.slot) ~= nil
+				and RelicConfig.SETS[item.set] ~= nil and RelicConfig.RARITIES[item.rarity] ~= nil and typeof(item.lines) == "table"
+			then
+				local lines: { Types.RelicLine } = {}
+				for _, line in item.lines do
+					if typeof(line) == "table" and RelicConfig.STATS[line.stat] ~= nil and typeof(line.roll) == "number" and line.roll == line.roll and #lines < 4 then
+						table.insert(lines, { stat = line.stat, roll = math.clamp(line.roll, 0, 3) })
+					end
+				end
+				items[id] = {
+					id = id,
+					slot = item.slot,
+					set = item.set,
+					rarity = item.rarity,
+					level = math.clamp(wholeNumber(item.level, 0, 0), 0, RelicConfig.MAX_LEVEL),
+					lines = lines,
+					locked = item.locked == true,
+				}
+				highestId = math.max(highestId, tonumber(id) or 0)
+			end
+		end
+	end
+	relics.items = items
+	local equipped: { [string]: string } = {}
+	if typeof(relics.equipped) == "table" then
+		for _, slot in RelicConfig.SLOTS do
+			local id = relics.equipped[slot]
+			if typeof(id) == "string" and items[id] ~= nil and items[id].slot == slot then
+				equipped[slot] = id
+			end
+		end
+	end
+	relics.equipped = equipped
+	relics.dust = wholeNumber(relics.dust, 0, 0)
+	relics.nextId = math.max(wholeNumber(relics.nextId, 1, 1), highestId + 1)
+	relics.pity.sinceLegendary = wholeNumber(relics.pity.sinceLegendary, 0, 0)
+	relics.pity.sinceMythic = wholeNumber(relics.pity.sinceMythic, 0, 0)
 	-- Ability loadout: exactly as many known, different abilities as there are slots.
 	local loadout: { string } = {}
 	local seen: { [string]: boolean } = {}

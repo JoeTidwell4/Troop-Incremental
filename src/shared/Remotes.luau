@@ -42,6 +42,8 @@
 -- BuyCrownUpgrade client -> server, returns Types.BuyResult (upgradeId: string)  LegacyConfig.UPGRADES, paid in Crowns
 -- SkillRequest   client -> server, returns {ok, reason}  (action: "Learn" | "Respec", nodeId: string?)  SkillService
 -- GeneralRequest client -> server, returns {ok, reason, ...}  ("Recruit", 1|10) ("Field", slot, generalId|"") ("LevelUp", generalId, max)
+-- RelicRequest   client -> server, returns {ok, reason}  (action, arg, extra): Equip(id) Unequip(slot) Upgrade(id) Reroll(id, line) Salvage(id) SalvageBelow(rarityOrder) Lock(id)
+-- RelicSync      server -> client   (relics: Types.RelicsData)  the relic inventory, sent only when it changes
 -- DebugCommand   client -> server, returns {ok, message}  (action: string, arg: any)  STUDIO ONLY
 --                test panel (DebugConfig.ACTIONS); the server ignores it in the live game
 --                (Robux purchases are prompted on the client with MarketplaceService and
@@ -59,6 +61,7 @@ local Remotes = {
 		UseAbility = "UseAbility",
 		SetAbilitySlot = "SetAbilitySlot",
 		Crit = "Crit",
+		RelicSync = "RelicSync",
 		FightBoss = "FightBoss",
 		SetAutoAdvance = "SetAutoAdvance",
 		StateSync = "StateSync",
@@ -92,6 +95,7 @@ local Remotes = {
 		BuyCrownUpgrade = "BuyCrownUpgrade",
 		SkillRequest = "SkillRequest",
 		GeneralRequest = "GeneralRequest",
+		RelicRequest = "RelicRequest",
 		ChooseFaction = "ChooseFaction",
 		ClanRequest = "ClanRequest",
 		ProgressRequest = "ProgressRequest",

@@ -32,6 +32,8 @@ local DebugConfig = {
 				{ label = "+50 Crowns", action = "Crowns", arg = 50 },
 				{ label = "+5,000 Commander XP", action = "CommanderXp", arg = 5000 },
 				{ label = "+20 Recruit Scrolls", action = "Scrolls", arg = 20 },
+				{ label = "+10 relics", action = "Relics", arg = 10 },
+				{ label = "+1,000 Relic Dust", action = "Dust", arg = 1000 },
 				{ label = "+10 packs", action = "Packs", arg = 10 },
 				{ label = "+5 Hero Chests", action = "HeroChests", arg = 5 },
 				{ label = "+3 Epic Forge", action = "Forge", arg = 3 },

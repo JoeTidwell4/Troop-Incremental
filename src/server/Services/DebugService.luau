@@ -31,6 +31,7 @@ local RaidService = require(Services.RaidService)
 local ClanWarService = require(Services.ClanWarService)
 local ClanShopService = require(Services.ClanShopService)
 local SkillService = require(Services.SkillService)
+local RelicService = require(Services.RelicService)
 
 type PlayerData = Types.PlayerData
 type Result = { ok: boolean, message: string }
@@ -109,6 +110,20 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 	Forge = function(_player, data, arg)
 		data.packs.forge += arg or 3
 		return done(`+{arg} Epic Forge tokens.`)
+	end,
+	Relics = function(player, data, arg)
+		if data.bestStage < 30 then
+			return failed("Relics drop from best stage 30: jump to stage 31 first.")
+		end
+		for _ = 1, arg or 10 do
+			RelicService.drop(player, data)
+		end
+		return done(`+{arg} relics.`)
+	end,
+	Dust = function(_player, data, arg)
+		data.relics.dust += arg or 1000
+		RelicService.push(_player)
+		return done(`+{arg} Relic Dust.`)
 	end,
 	Scrolls = function(_player, data, arg)
 		data.generals.scrolls += arg or 20

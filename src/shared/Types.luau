@@ -413,6 +413,7 @@ export type PlayerData = {
 	abilityLoadout: { string }, -- equipped abilities, one per slot (Formulas.loadoutSlots)
 	commanderXp: number, -- Commander Level XP (never resets)
 	generals: GeneralsData, -- Generals roster (kept forever)
+	relics: RelicsData, -- relic inventory (kept on Ascend, turned to Dust on Legacy)
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
@@ -485,6 +486,7 @@ export type Snapshot = {
 	bountyLeft: number, -- kills left on an active Bounty
 	commanderXp: number,
 	generals: GeneralsData,
+	relicDust: number, -- (the relic inventory itself comes on RelicSync, only when it changes)
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
 	enemyGolden: boolean, -- the current enemy is a golden one
@@ -514,7 +516,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -538,6 +540,9 @@ export type Notice = {
 	heroChests: number?,
 	-- LevelUp only: the new Commander Level (stage = 0).
 	level: number?,
+	-- Relic only: what dropped, and whether it went straight to Dust (inventory full).
+	relic: RelicItem?,
+	dust: number?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"
@@ -590,6 +595,47 @@ export type GeneralDef = {
 	passive: { stat: string, value: number }, -- "damage" | "armyHp" | "gold" | "tap"
 	trait: { kind: string, troopId: string?, value: number, text: string },
 }
+
+-- Relics (RelicConfig).
+export type RelicSetDef = {
+	id: string,
+	name: string,
+	color: Color3,
+	bonuses: { [number]: { text: string, effects: { [string]: number } } }, -- at 2 / 4 / 6 pieces
+}
+export type RelicLine = { stat: string, roll: number } -- roll = the rarity range factor rolled
+export type RelicItem = {
+	id: string,
+	slot: string,
+	set: string,
+	rarity: string,
+	level: number,
+	lines: { RelicLine },
+	locked: boolean, -- locked relics can't be salvaged
+}
+export type RelicsData = {
+	items: { [string]: RelicItem },
+	equipped: { [string]: string }, -- slot -> relic id
+	dust: number,
+	nextId: number,
+	pity: { sinceLegendary: number, sinceMythic: number },
+}
+-- What the equipped relics add up to (Formulas.relicBonuses).
+export type RelicBonuses = {
+	damage: number, -- multipliers (1 = none)
+	armyHp: number,
+	gold: number,
+	tap: number,
+	bossDamageDealt: number, -- multiplier vs bosses and raids
+	bossDamage: number, -- multiplier on boss damage to you
+	critChance: number, -- added
+	critMultiplier: number,
+	bossTime: number,
+	goldenChance: number,
+	sets: { { setId: string, count: number } },
+}
+-- Crit / boss timer / golden enemy bonuses from skills + Generals + relics together.
+export type ExtraEffects = { critChance: number, critMultiplier: number, bossTime: number, goldenChance: number }
 
 -- A House: fielding 2-3 of its members gives a set bonus (GeneralConfig.HOUSES).
 export type GeneralHouseDef = {

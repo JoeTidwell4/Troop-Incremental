@@ -33,6 +33,7 @@ local template: Types.PlayerData = {
 	abilityUpgrades = {},
 	abilityLoadout = { "Rally", "Barrage", "Plunder" }, -- equipped abilities (Formulas.loadoutSlots)
 	commanderXp = 0, -- Commander Level (never resets)
+	relics = { items = {}, equipped = {}, dust = 0, nextId = 1, pity = { sinceLegendary = 0, sinceMythic = 0 } }, -- RelicConfig
 	generals = { -- Generals roster (GeneralConfig; kept forever)
 		owned = {},
 		fielded = { "", "", "" },

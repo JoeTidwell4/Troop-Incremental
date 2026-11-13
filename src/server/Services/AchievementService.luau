@@ -68,6 +68,25 @@ local function current(data: PlayerData, def: AchievementDef): number
 			best = math.max(best, state.stars)
 		end
 		return best
+	elseif kind == "relicsEquipped" then
+		local n = 0
+		for _ in data.relics.equipped do
+			n += 1
+		end
+		return n
+	elseif kind == "relicRarity" then
+		for _, item in data.relics.items do
+			if item.rarity == def.key then
+				return 1
+			end
+		end
+		return 0
+	elseif kind == "relicSet" then
+		local best = 0
+		for _, set in Formulas.relicBonuses(data.relics).sets do
+			best = math.max(best, set.count)
+		end
+		return best
 	elseif kind == "generalSet" then
 		local best = 0
 		for _, set in Formulas.generalSets(data.generals) do
