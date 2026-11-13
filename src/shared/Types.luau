@@ -5,7 +5,7 @@ local BigNum = require(script.Parent.BigNum)
 
 export type BigNum = BigNum.BigNum
 
-export type TroopId = "Swordsman" | "Archer" | "Knight"
+export type TroopId = "Swordsman" | "Archer" | "Knight" | "Mage" | "Cavalry" | "Siege"
 export type AbilityId = "Rally" | "Barrage" | "Plunder"
 export type EncounterKind = "Normal" | "Boss" | "Raid"
 export type GearSlot = "weapon" | "armor"
@@ -23,6 +23,16 @@ export type TroopDef = {
 	baseDps: number, -- damage per second per troop, before multipliers
 	baseHp: number, -- HP per troop (only matters in boss fights), before multipliers
 	color: Color3, -- visual only
+	unlockStage: number?, -- all-time best stage needed before it can be trained
+	bossMultiplier: number?, -- extra damage against bosses (and the raid boss)
+	normalMultiplier: number?, -- extra damage against normal enemies
+}
+
+-- An area's trait: one troop type deals less damage there.
+export type AreaTrait = {
+	name: string, -- e.g. "Armored"
+	troopId: string,
+	damageMultiplier: number, -- e.g. 0.7 = -30%
 }
 
 export type AbilityDef = {
@@ -228,6 +238,8 @@ export type AreaTheme = {
 	hazeColor: Color3,
 	hazeDensity: number,
 	particles: string,
+	trait: AreaTrait?,
+	bossMoves: { string }, -- "Enrage", "Shield", "Summon"
 }
 
 -- What gets saved for each player (ProfileStore Profile.Data).
@@ -289,7 +301,11 @@ export type Snapshot = {
 	enemyMaxHp: BigNum,
 	goldPerKill: BigNum, -- already includes gold multipliers
 	bossEndsAt: number, -- server time; 0 when not fighting a boss
-	bossDps: BigNum, -- zero when not fighting a boss
+	bossDps: BigNum, -- zero when not fighting a boss (already doubled while enraged)
+	bossEnraged: boolean,
+	bossShieldUntil: number, -- server time; troops can't hurt the boss until then
+	minionHp: BigNum, -- summoned minions' remaining HP (zero = none)
+	minionMaxHp: BigNum,
 
 	armyDps: BigNum, -- already includes damage multipliers
 	tapDamage: BigNum,

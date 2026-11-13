@@ -14,6 +14,7 @@ local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Areas = require(Shared:WaitForChild("Areas"))
+local TroopConfig = require(Shared:WaitForChild("Config"):WaitForChild("TroopConfig"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local UIKit = require(script.Parent.UIKit)
 local StateController = require(Client.Controllers.StateController)
@@ -32,6 +33,10 @@ local BOSS_HP_COLOR = Color3.fromRGB(170, 60, 220)
 local ARMY_HP_COLOR = Color3.fromRGB(60, 190, 90)
 local PANEL_HEIGHT_NORMAL = 96
 local PANEL_HEIGHT_BOSS = 120
+local PANEL_HEIGHT_BOSS_STATUS = 140
+local SHIELD_COLOR = Color3.fromRGB(120, 190, 255)
+local ENRAGE_COLOR = Color3.fromRGB(255, 70, 70)
+local MINION_COLOR = Color3.fromRGB(230, 200, 90)
 
 local Theme = UIKit.Theme
 local format = NumberFormat.big
@@ -43,6 +48,14 @@ local HudUI = {}
 local function tipFor(snapshot: Snapshot): string?
 	if snapshot.packs.free > 0 and snapshot.encounter == "Normal" then
 		return "You have a free gear pack! Open it in the Packs tab."
+	end
+	if snapshot.encounter == "Normal" then
+		for _, troopId in TroopConfig.ORDER do
+			local def = TroopConfig.TROOPS[troopId]
+			if def.unlockStage ~= nil and (snapshot.troops[troopId] or 0) == 0 and Formulas.troopUnlocked(troopId, snapshot.bestStage) then
+				return `New troop unlocked: {def.displayName}! Find it in the shop.`
+			end
+		end
 	end
 	if snapshot.ascensions > 0 or snapshot.bestStage >= 25 then
 		return nil -- experienced players don't need tips
@@ -243,6 +256,18 @@ function HudUI.start()
 		Parent = stagePanel,
 	})
 	local armyBack, armyFill, armyLabel = makeBar(stagePanel, 84, 18, ARMY_HP_COLOR)
+	-- Boss moves: shield / minions / enrage, one line under the army bar.
+	local statusLabel = UIKit.label({
+		Text = "",
+		RichText = true,
+		Font = Theme.FontBold,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.new(0, 0, 0, 106),
+		Size = UDim2.new(1, 0, 0, 16),
+		Visible = false,
+		Parent = stagePanel,
+	})
 
 	local stageButton = UIKit.button({
 		Name = "StageButton",
@@ -317,7 +342,15 @@ function HudUI.start()
 		end
 
 		local area = Areas.forStage(snapshot.stage)
-		areaLabel.Text = `Area {area.number}: {area.displayName}`
+		local trait = area.theme.trait
+		if trait ~= nil then
+			local troopName = TroopConfig.TROOPS[trait.troopId].displayName
+			local percent = math.floor((1 - trait.damageMultiplier) * 100 + 0.5)
+			areaLabel.Text = `Area {area.number}: {area.displayName}  |  {trait.name}: {troopName}s -{percent}%`
+		else
+			areaLabel.Text = `Area {area.number}: {area.displayName}`
+		end
+		statusLabel.Visible = false
 		hpFill.Size = UDim2.new(fraction(snapshot.enemyHp, snapshot.enemyMaxHp), 0, 1, 0)
 		hpLabel.Text = `{format(snapshot.enemyHp)} / {format(snapshot.enemyMaxHp)}`
 
@@ -341,7 +374,20 @@ function HudUI.start()
 			armyBack.Visible = true
 			armyFill.Size = UDim2.new(fraction(snapshot.armyHp, snapshot.armyMaxHp), 0, 1, 0)
 			armyLabel.Text = `Army HP {format(snapshot.armyHp)} / {format(snapshot.armyMaxHp)}`
-			stagePanel.Size = UDim2.new(0, 300, 0, PANEL_HEIGHT_BOSS)
+
+			local status: { string } = {}
+			if workspace:GetServerTimeNow() < snapshot.bossShieldUntil then
+				table.insert(status, `<font color="#{SHIELD_COLOR:ToHex()}">SHIELD: only clicks + abilities hurt!</font>`)
+			end
+			if not BigNum.isZero(snapshot.minionHp) then
+				table.insert(status, `<font color="#{MINION_COLOR:ToHex()}">Minions {format(snapshot.minionHp)} HP</font>`)
+			end
+			if snapshot.bossEnraged then
+				table.insert(status, `<font color="#{ENRAGE_COLOR:ToHex()}">ENRAGED</font>`)
+			end
+			statusLabel.Visible = #status > 0
+			statusLabel.Text = table.concat(status, "  ")
+			stagePanel.Size = UDim2.new(0, 300, 0, if #status > 0 then PANEL_HEIGHT_BOSS_STATUS else PANEL_HEIGHT_BOSS)
 		else
 			stageLabel.Text = `Stage {snapshot.stage}`
 			stageLabel.TextColor3 = Theme.Text

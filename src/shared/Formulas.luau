@@ -17,6 +17,7 @@ local EconomyConfig = require(Shared.Config.EconomyConfig)
 local FactionConfig = require(Shared.Config.FactionConfig)
 local ClanConfig = require(Shared.Config.ClanConfig)
 local RaidConfig = require(Shared.Config.RaidConfig)
+local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
 type TroopCounts = Types.TroopCounts
@@ -117,6 +118,28 @@ end
 
 -- Per-troop-type multipliers from your faction (damage and HP), e.g. { Swordsman = 1.5 }.
 export type TroopMultipliers = { [string]: number }
+
+function Formulas.troopUnlocked(troopId: string, bestStage: number): boolean
+	local def = TroopConfig.TROOPS[troopId]
+	return def ~= nil and bestStage >= (def.unlockStage or 0)
+end
+
+-- Per-troop DAMAGE multipliers for a fight: faction bonus x the area's trait x each
+-- troop's job (bosses vs normal enemies). HP only uses the faction bonus.
+function Formulas.fightDamageMultipliers(factionId: string, stage: number, vsBoss: boolean): TroopMultipliers
+	local result = Formulas.factionTroopMultipliers(factionId)
+	local trait = Areas.forStage(stage).theme.trait
+	for _, troopId in TroopConfig.ORDER do
+		local def = TroopConfig.TROOPS[troopId]
+		local multiplier = result[troopId] or 1
+		multiplier *= if vsBoss then def.bossMultiplier or 1 else def.normalMultiplier or 1
+		if trait ~= nil and trait.troopId == troopId then
+			multiplier *= trait.damageMultiplier
+		end
+		result[troopId] = multiplier
+	end
+	return result
+end
 
 function Formulas.factionTroopMultipliers(factionId: string): TroopMultipliers
 	local def = FactionConfig.FACTIONS[factionId]

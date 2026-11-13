@@ -44,6 +44,9 @@ local function upgrade(player: Player, request: UpgradeRequest): BuyResult
 	if troopGear == nil then
 		return fail("Rejected")
 	end
+	if not Formulas.troopUnlocked(request.troopId, data.bestStage) then
+		return fail("Locked")
+	end
 	local state: Types.GearSlotState = if request.slot == "weapon" then troopGear.weapon else troopGear.armor
 
 	local cap = GearConfig.MAX_LEVEL - state.level

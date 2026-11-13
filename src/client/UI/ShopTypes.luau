@@ -14,7 +14,7 @@ export type Context = {
 -- What each tab gives back to ShopUI.
 export type Tab = {
 	title: string,
-	frame: Frame,
+	frame: GuiObject,
 	modes: { string }, -- buy-mode buttons to show in the header for this tab (may be empty)
 	render: (snapshot: Types.Snapshot) -> (),
 }

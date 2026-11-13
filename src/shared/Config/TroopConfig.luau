@@ -12,7 +12,7 @@ type TroopDef = Types.TroopDef
 
 local TroopConfig = {
 	-- Display order in the shop and on the battlefield.
-	ORDER = { "Swordsman", "Archer", "Knight" } :: { TroopId },
+	ORDER = { "Swordsman", "Archer", "Knight", "Mage", "Cavalry", "Siege" } :: { TroopId },
 
 	TROOPS = {
 		Swordsman = {
@@ -44,6 +44,43 @@ local TroopConfig = {
 			baseDps = 110,
 			baseHp = 2600,
 			color = Color3.fromRGB(80, 120, 210),
+		},
+		-- Later troops unlock by all-time best stage and have a job against certain enemies.
+		Mage = {
+			id = "Mage",
+			displayName = "Mage",
+			role = "x2 damage to bosses. Very fragile.",
+			baseCost = 20000,
+			costGrowth = 1.10,
+			baseDps = 90,
+			baseHp = 60,
+			color = Color3.fromRGB(150, 90, 220),
+			unlockStage = 30,
+			bossMultiplier = 2,
+		},
+		Cavalry = {
+			id = "Cavalry",
+			displayName = "Cavalry",
+			role = "x1.5 damage to normal enemies. Sturdy.",
+			baseCost = 1500000,
+			costGrowth = 1.11,
+			baseDps = 4000,
+			baseHp = 30000,
+			color = Color3.fromRGB(190, 140, 70),
+			unlockStage = 60,
+			normalMultiplier = 1.5,
+		},
+		Siege = {
+			id = "Siege",
+			displayName = "Siege Engine",
+			role = "x3 damage to bosses. Almost no HP.",
+			baseCost = 100000000,
+			costGrowth = 1.12,
+			baseDps = 500000,
+			baseHp = 50,
+			color = Color3.fromRGB(120, 100, 85),
+			unlockStage = 100,
+			bossMultiplier = 3,
 		},
 	} :: { [string]: TroopDef },
 

@@ -1,7 +1,8 @@
 --!strict
 -- Shop tab: gear. One row per troop type with its Weapon and Armor slots.
 -- Each slot shows its name ("Rare Steel Bow", colored by rarity), level, multiplier, and
--- an upgrade button (x1 or Max, mode from ShopUI).
+-- an upgrade button (x1 or Max, mode from ShopUI). Locked troop types are hidden.
+-- Scrolls, since six troop rows don't fit in the shop at once.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -46,15 +47,23 @@ function GearTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 	local cells: { [string]: Cell } = {}
 	local pending: { [string]: boolean } = {}
 
-	local frame = UIKit.create("Frame", {
+	local rows: { [string]: Frame } = {}
+
+	local frame = UIKit.create("ScrollingFrame", {
 		Name = "Gear",
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 1, 0),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarThickness = 6,
 		Visible = false,
 		Parent = parent,
 	}, {
 		UIKit.create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-	}) :: Frame
+		UIKit.create("UIPadding", { PaddingRight = UDim.new(0, 10) }),
+	}) :: ScrollingFrame
 
 	local function onUpgrade(troopId: string, slot: GearSlot)
 		local key = troopId .. slot
@@ -82,6 +91,7 @@ function GearTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 			Size = UDim2.new(1, 0, 0, ROW_HEIGHT),
 			Parent = frame,
 		}, { UIKit.corner(8) }) :: Frame
+		rows[troopId] = row
 
 		UIKit.create("Frame", {
 			Name = "Swatch",
@@ -95,6 +105,7 @@ function GearTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 			Text = def.displayName,
 			Font = Theme.FontBold,
 			TextSize = 16,
+			TextWrapped = true,
 			Position = UDim2.new(0, 22, 0, 0),
 			Size = UDim2.new(0, NAME_WIDTH - 22, 1, 0),
 			Parent = row,
@@ -144,6 +155,11 @@ function GearTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 	local function render(snapshot: Snapshot)
 		local mode = context.getMode()
 		for _, troopId in TroopConfig.ORDER do
+			local unlocked = Formulas.troopUnlocked(troopId, snapshot.bestStage)
+			rows[troopId].Visible = unlocked
+			if not unlocked then
+				continue
+			end
 			for _, slot in GearConfig.SLOTS do
 				local cell = cells[troopId .. slot]
 				local state = slotState(snapshot, troopId, slot)

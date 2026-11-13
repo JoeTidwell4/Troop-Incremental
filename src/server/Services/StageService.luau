@@ -38,6 +38,7 @@ local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
 local ModifierService = require(Services.ModifierService)
+local Areas = require(Shared:WaitForChild("Areas"))
 
 type BigNum = BigNum.BigNum
 type PlayerData = Types.PlayerData
@@ -53,6 +54,14 @@ export type Encounter = {
 	bossDps: BigNum,
 	armyDamageTaken: BigNum, -- boss damage taken so far; army HP = max HP - this
 	raidDamage: BigNum, -- raid attacks only: damage dealt so far
+	-- Boss moves (see BossConfig / AreaConfig.bossMoves):
+	moves: { [string]: boolean },
+	enraged: boolean,
+	shieldUntil: number, -- server time; troops can't hurt the boss until then
+	nextShieldAt: number,
+	minionHp: BigNum, -- summoned minions soak damage before the boss takes any
+	minionMaxHp: BigNum,
+	summoned: boolean,
 }
 
 local encounters: { [Player]: Encounter } = {}
@@ -71,10 +80,25 @@ local function now(): number
 	return workspace:GetServerTimeNow()
 end
 
+local function noMoves(): { [string]: boolean }
+	return {}
+end
+
 local function newEncounter(stage: number): Encounter
 	if Formulas.isBossStage(stage) then
 		local hp = Formulas.bossHp(stage)
+		local moves: { [string]: boolean } = {}
+		for _, move in Areas.forStage(stage).theme.bossMoves do
+			moves[move] = true
+		end
 		return {
+			moves = moves,
+			enraged = false,
+			shieldUntil = 0,
+			nextShieldAt = if moves.Shield then now() + BossConfig.SHIELD_EVERY else math.huge,
+			minionHp = BigNum.ZERO,
+			minionMaxHp = BigNum.ZERO,
+			summoned = false,
 			kind = "Boss",
 			enemyHp = hp,
 			enemyMaxHp = hp,
@@ -87,6 +111,13 @@ local function newEncounter(stage: number): Encounter
 	end
 	local hp = Formulas.enemyHp(stage)
 	return {
+		moves = noMoves(),
+		enraged = false,
+		shieldUntil = 0,
+		nextShieldAt = math.huge,
+		minionHp = BigNum.ZERO,
+		minionMaxHp = BigNum.ZERO,
+		summoned = false,
 		kind = "Normal",
 		enemyHp = hp,
 		enemyMaxHp = hp,
@@ -117,12 +148,19 @@ function StageService.getArmyHp(player: Player): BigNum
 	return BigNum.sub(maxHp, encounter.armyDamageTaken)
 end
 
+-- Sets the player's current fight and tells CombatService what it's up against (area
+-- traits and boss-vs-normal troop bonuses depend on it).
+local function setEncounter(player: Player, data: PlayerData, encounter: Encounter)
+	encounters[player] = encounter
+	CombatService.setFightContext(player, data.stage, encounter.kind ~= "Normal")
+end
+
 local function goToStage(player: Player, data: PlayerData, stage: number)
 	data.stage = math.max(1, stage)
 	data.killsInStage = 0
 	data.highestStage = math.max(data.highestStage, data.stage)
 	data.bestStage = math.max(data.bestStage, data.highestStage)
-	encounters[player] = newEncounter(data.stage)
+	setEncounter(player, data, newEncounter(data.stage))
 end
 
 -- Ends a raid attack: reports the damage and goes back to the normal fight.
@@ -131,7 +169,7 @@ local function finishRaid(player: Player, data: PlayerData)
 	if encounter == nil or encounter.kind ~= "Raid" then
 		return
 	end
-	encounters[player] = newEncounter(data.stage)
+	setEncounter(player, data, newEncounter(data.stage))
 	StageService.RaidFinished:Fire(player, encounter.raidDamage)
 end
 
@@ -139,10 +177,18 @@ end
 -- the per-attack unit cap (`maxDamage`), which also ends the attack early.
 function StageService.startRaid(player: Player, seconds: number, maxDamage: BigNum): boolean
 	local encounter = encounters[player]
-	if encounter == nil or encounter.kind ~= "Normal" then
+	local data = DataService.get(player)
+	if encounter == nil or data == nil or encounter.kind ~= "Normal" then
 		return false
 	end
-	encounters[player] = {
+	setEncounter(player, data, {
+		moves = noMoves(),
+		enraged = false,
+		shieldUntil = 0,
+		nextShieldAt = math.huge,
+		minionHp = BigNum.ZERO,
+		minionMaxHp = BigNum.ZERO,
+		summoned = false,
 		kind = "Raid",
 		enemyHp = maxDamage,
 		enemyMaxHp = maxDamage,
@@ -151,7 +197,7 @@ function StageService.startRaid(player: Player, seconds: number, maxDamage: BigN
 		bossDps = BigNum.ZERO,
 		armyDamageTaken = BigNum.ZERO,
 		raidDamage = BigNum.ZERO,
-	}
+	})
 	DataService.markChanged(player)
 	return true
 end
@@ -164,7 +210,7 @@ function StageService.restart(player: Player)
 	end
 	finishRaid(player, data) -- an Ascend mid-raid still counts the damage dealt
 	CombatService.refreshArmy(player)
-	encounters[player] = newEncounter(data.stage)
+	setEncounter(player, data, newEncounter(data.stage))
 	DataService.markChanged(player)
 end
 
@@ -211,8 +257,28 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	local goldMultiplier = ModifierService.get(player).gold
 	local enemiesThisStage = if encounter.kind == "Boss" then 1 else StageConfig.ENEMIES_PER_STAGE
 
+	-- Summoned minions take the hits until they're all down.
+	if not BigNum.isZero(encounter.minionHp) then
+		if BigNum.lt(damage, encounter.minionHp) then
+			encounter.minionHp = BigNum.sub(encounter.minionHp, damage)
+			return true
+		end
+		damage = BigNum.sub(damage, encounter.minionHp)
+		encounter.minionHp = BigNum.ZERO
+		if BigNum.isZero(damage) then
+			return true
+		end
+	end
+
 	if BigNum.lt(damage, encounter.enemyHp) then
 		encounter.enemyHp = BigNum.sub(encounter.enemyHp, damage)
+		-- Summon: once, when the boss drops below SUMMON_AT_FRACTION of its HP.
+		local summonAt = BigNum.mulNumber(encounter.enemyMaxHp, BossConfig.SUMMON_AT_FRACTION)
+		if encounter.moves.Summon and not encounter.summoned and BigNum.lt(encounter.enemyHp, summonAt) then
+			encounter.summoned = true
+			encounter.minionMaxHp = BigNum.mulNumber(encounter.enemyMaxHp, BossConfig.SUMMON_HP_FRACTION)
+			encounter.minionHp = encounter.minionMaxHp
+		end
 		return true
 	end
 
@@ -256,7 +322,17 @@ local function updateBoss(player: Player, data: PlayerData, dt: number): boolean
 	if encounter == nil or encounter.kind ~= "Boss" then
 		return false
 	end
-	encounter.armyDamageTaken = BigNum.add(encounter.armyDamageTaken, BigNum.mulNumber(encounter.bossDps, dt))
+	local time = now()
+	-- Shield: up for SHIELD_SECONDS every SHIELD_EVERY seconds.
+	if encounter.moves.Shield and time >= encounter.nextShieldAt then
+		encounter.shieldUntil = time + BossConfig.SHIELD_SECONDS
+		encounter.nextShieldAt = time + BossConfig.SHIELD_EVERY
+	end
+	-- Enrage: hits harder once low on HP.
+	local enrageAt = BigNum.mulNumber(encounter.enemyMaxHp, BossConfig.ENRAGE_HP_FRACTION)
+	encounter.enraged = encounter.moves.Enrage == true and BigNum.lt(encounter.enemyHp, enrageAt)
+	local hitMultiplier = if encounter.enraged then BossConfig.ENRAGE_MULTIPLIER else 1
+	encounter.armyDamageTaken = BigNum.add(encounter.armyDamageTaken, BigNum.mulNumber(encounter.bossDps, dt * hitMultiplier))
 	if BigNum.gte(encounter.armyDamageTaken, CombatService.getMaxHp(player)) then
 		failBoss(player, data, "ArmyDefeated")
 	elseif now() >= encounter.bossEndsAt then
@@ -269,7 +345,9 @@ local function tick(dt: number)
 	for player in encounters do
 		local data = DataService.get(player)
 		if data ~= nil then
-			local damage = CombatService.takeDamage(player, dt)
+			local current = encounters[player]
+			local shielded = current ~= nil and current.kind == "Boss" and now() < current.shieldUntil
+			local damage = CombatService.takeDamage(player, dt, shielded)
 			local changed = applyDamage(player, data, damage)
 			-- Checked after damage so a kill on the last moment counts as a win.
 			changed = updateBoss(player, data, dt) or changed
@@ -288,7 +366,7 @@ local function onProfileLoaded(player: Player, data: PlayerData)
 	local lastBossBelow = ((data.highestStage - 1) // BossConfig.BOSS_EVERY) * BossConfig.BOSS_EVERY
 	data.highestBossDefeated = math.max(data.highestBossDefeated, lastBossBelow)
 	CombatService.refreshArmy(player)
-	encounters[player] = newEncounter(data.stage)
+	setEncounter(player, data, newEncounter(data.stage))
 	if Formulas.isBossStage(data.stage) then
 		data.killsInStage = 0
 	end

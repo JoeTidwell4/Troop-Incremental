@@ -16,6 +16,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Config = Shared:WaitForChild("Config")
 local CombatConfig = require(Config:WaitForChild("CombatConfig"))
 local StageConfig = require(Config:WaitForChild("StageConfig"))
+local BossConfig = require(Config:WaitForChild("BossConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local RateLimiter = require(Server.Util.RateLimiter)
@@ -70,7 +71,11 @@ local function buildSnapshot(player: Player): Snapshot?
 		enemyMaxHp = encounter.enemyMaxHp,
 		goldPerKill = BigNum.mulNumber(encounter.goldPerKill, modifiers.gold),
 		bossEndsAt = encounter.bossEndsAt,
-		bossDps = encounter.bossDps,
+		bossDps = if encounter.enraged then BigNum.mulNumber(encounter.bossDps, BossConfig.ENRAGE_MULTIPLIER) else encounter.bossDps,
+		bossEnraged = encounter.enraged,
+		bossShieldUntil = encounter.shieldUntil,
+		minionHp = encounter.minionHp,
+		minionMaxHp = encounter.minionMaxHp,
 
 		armyDps = CombatService.getDps(player),
 		tapDamage = CombatService.getTapDamage(player),

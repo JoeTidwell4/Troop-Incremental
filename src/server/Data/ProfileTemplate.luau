@@ -48,11 +48,17 @@ local template: Types.PlayerData = {
 		Swordsman = 0,
 		Archer = 0,
 		Knight = 0,
+		Mage = 0,
+		Cavalry = 0,
+		Siege = 0,
 	},
 	gear = {
 		Swordsman = newGear(),
 		Archer = newGear(),
 		Knight = newGear(),
+		Mage = newGear(),
+		Cavalry = newGear(),
+		Siege = newGear(),
 	},
 	packs = {
 		free = 0,

@@ -36,6 +36,9 @@ local AchievementConfig = {
 		{ id = "Swords100", name = "Shield Wall", description = "Own 100 Swordsmen", honor = 3, kind = "troop", key = "Swordsman", target = 100 },
 		{ id = "Archers100", name = "Rain of Arrows", description = "Own 100 Archers", honor = 3, kind = "troop", key = "Archer", target = 100 },
 		{ id = "Knights100", name = "Iron Cavalcade", description = "Own 100 Knights", honor = 3, kind = "troop", key = "Knight", target = 100 },
+		{ id = "Mages25", name = "Arcane Circle", description = "Own 25 Mages", honor = 4, kind = "troop", key = "Mage", target = 25 },
+		{ id = "Cavalry25", name = "Thundering Hooves", description = "Own 25 Cavalry", honor = 6, kind = "troop", key = "Cavalry", target = 25 },
+		{ id = "Siege10", name = "Wall Breaker", description = "Own 10 Siege Engines", honor = 10, kind = "troop", key = "Siege", target = 10 },
 
 		{ id = "Packs10", name = "Treasure Hunter", description = "Open 10 gear packs", honor = 2, kind = "lifetime", key = "PackOpen", target = 10 },
 		{ id = "Packs100", name = "Hoarder", description = "Open 100 gear packs", honor = 6, kind = "lifetime", key = "PackOpen", target = 100 },

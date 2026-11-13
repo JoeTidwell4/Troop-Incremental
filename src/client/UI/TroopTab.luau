@@ -1,6 +1,8 @@
 --!strict
 -- Shop tab: train troops. One row per troop type; buy x1 / x10 / Max (mode from ShopUI).
 -- Prices are calculated locally for display only; the server re-checks every purchase.
+-- Troops with an unlockStage show as locked rows until your best stage reaches it.
+-- Scrolls, since there are more troop types than fit in the shop at once.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
+local Areas = require(Shared:WaitForChild("Areas"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local TroopConfig = require(Shared:WaitForChild("Config"):WaitForChild("TroopConfig"))
 local UIKit = require(script.Parent.UIKit)
@@ -24,7 +27,7 @@ local format = NumberFormat.big
 
 local ROW_HEIGHT = 56
 
-type Row = { owned: TextLabel, info: TextLabel, button: TextButton }
+type Row = { frame: Frame, owned: TextLabel, info: TextLabel, button: TextButton }
 
 local TroopTab = {}
 
@@ -32,14 +35,20 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 	local rows: { [string]: Row } = {}
 	local pending: { [string]: boolean } = {}
 
-	local frame = UIKit.create("Frame", {
+	local frame = UIKit.create("ScrollingFrame", {
 		Name = "Troops",
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 1, 0),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarThickness = 6,
 		Parent = parent,
 	}, {
 		UIKit.create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
-	}) :: Frame
+		UIKit.create("UIPadding", { PaddingRight = UDim.new(0, 10) }),
+	}) :: ScrollingFrame
 
 	-- What the buy button would buy right now: (amount, cost, affordable).
 	local function preview(troopId: string, snapshot: Snapshot): (number, BigNum.BigNum, boolean)
@@ -119,6 +128,7 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		})
 		local info = UIKit.label({
 			Text = "",
+			RichText = true,
 			TextColor3 = Theme.Muted,
 			TextSize = 12,
 			Position = UDim2.new(0.3, 0, 0, 30),
@@ -137,19 +147,36 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		button.Activated:Connect(function()
 			onBuy(troopId)
 		end)
-		rows[troopId] = { owned = owned, info = info, button = button }
+		rows[troopId] = { frame = row, owned = owned, info = info, button = button }
 	end
 
 	local function render(snapshot: Snapshot)
+		-- DPS is shown for the current fight: faction, area trait, and boss/normal jobs.
+		local factionBonus = Formulas.factionTroopMultipliers(snapshot.faction)
+		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal")
+		local trait = Areas.forStage(snapshot.stage).theme.trait
 		for _, troopId in TroopConfig.ORDER do
 			local row = rows[troopId]
+			local def = TroopConfig.TROOPS[troopId]
+			if not Formulas.troopUnlocked(troopId, snapshot.bestStage) then
+				row.frame.BackgroundTransparency = 0.5
+				row.owned.Text = "LOCKED"
+				row.info.Text = `Reach stage {def.unlockStage} to unlock`
+				row.button.Text = `Unlocks at\nstage {def.unlockStage}`
+				row.button.BackgroundColor3 = Theme.Disabled
+				row.button.AutoButtonColor = false
+				continue
+			end
+			row.frame.BackgroundTransparency = 0
 			local count = snapshot.troops[troopId] or 0
 			row.owned.Text = `Owned: {count}`
-			local factionBonus = Formulas.factionTroopMultipliers(snapshot.faction)
-			local dps = format(Formulas.troopDps(troopId, count, snapshot.gear, factionBonus))
+			local dps = format(Formulas.troopDps(troopId, count, snapshot.gear, fightBonus))
 			local hp = format(Formulas.troopHp(troopId, count, snapshot.gear, factionBonus))
 			local nextMilestone = Formulas.nextMilestone(count)
-			row.info.Text = `DPS {dps}  |  HP {hp}  |  x{TroopConfig.MILESTONE_MULTIPLIER} at {nextMilestone}`
+			local weak = if trait ~= nil and trait.troopId == troopId
+				then `  <font color="#FF6E6E">({trait.name} area: -{math.floor((1 - trait.damageMultiplier) * 100 + 0.5)}%)</font>`
+				else ""
+			row.info.Text = `DPS {dps}  |  HP {hp}  |  x{TroopConfig.MILESTONE_MULTIPLIER} at {nextMilestone}{weak}`
 
 			local amount, cost, affordable = preview(troopId, snapshot)
 			row.button.Text = `Buy x{amount}\n{format(cost)} gold`

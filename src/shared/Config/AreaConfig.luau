@@ -1,5 +1,5 @@
 --!strict
--- Areas: every boss you beat moves you into the next area. Looks only, no gameplay effect.
+-- Areas: every boss you beat moves you into the next area.
 -- Area N covers stages (N-1)*10+1 to N*10 (the boss is the last stage of each area).
 -- After the last theme, they repeat with "II", "III", ... added to the name.
 --
@@ -8,6 +8,8 @@
 --   enemyKind  which creature model the enemies use (see Client/Visuals/EnemyModels)
 --   particles  floating ambient effect: "Fireflies", "Dust", "Snow", "Mist", "Embers", "Motes"
 --   haze*      Atmosphere color/density, which also hides the world's edges
+--   trait      (optional) one troop type deals less damage here, so a mixed army pays off
+--   bossMoves  special moves this area's boss uses (see BossConfig): Enrage, Shield, Summon
 
 local Types = require(script.Parent.Parent.Types)
 
@@ -30,6 +32,7 @@ local AreaConfig = {
 			hazeColor = Color3.fromRGB(200, 225, 210),
 			hazeDensity = 0.32,
 			particles = "Fireflies",
+			bossMoves = {},
 		},
 		{
 			name = "Sunscorch Dunes",
@@ -48,6 +51,8 @@ local AreaConfig = {
 			hazeColor = Color3.fromRGB(240, 215, 170),
 			hazeDensity = 0.38,
 			particles = "Dust",
+			trait = { name = "Armored", troopId = "Archer", damageMultiplier = 0.7 },
+			bossMoves = { "Shield" },
 		},
 		{
 			name = "Frozen Pass",
@@ -66,6 +71,8 @@ local AreaConfig = {
 			hazeColor = Color3.fromRGB(215, 230, 245),
 			hazeDensity = 0.42,
 			particles = "Snow",
+			trait = { name = "Swift", troopId = "Knight", damageMultiplier = 0.7 },
+			bossMoves = { "Enrage" },
 		},
 		{
 			name = "Mirefen Swamp",
@@ -84,6 +91,8 @@ local AreaConfig = {
 			hazeColor = Color3.fromRGB(150, 170, 140),
 			hazeDensity = 0.45,
 			particles = "Mist",
+			trait = { name = "Swarming", troopId = "Swordsman", damageMultiplier = 0.7 },
+			bossMoves = { "Summon" },
 		},
 		{
 			name = "Ember Peaks",
@@ -102,6 +111,8 @@ local AreaConfig = {
 			hazeColor = Color3.fromRGB(150, 90, 70),
 			hazeDensity = 0.42,
 			particles = "Embers",
+			trait = { name = "Armored", troopId = "Archer", damageMultiplier = 0.7 },
+			bossMoves = { "Enrage", "Shield" },
 		},
 		{
 			name = "Shadow Keep",
@@ -120,6 +131,8 @@ local AreaConfig = {
 			hazeColor = Color3.fromRGB(70, 60, 100),
 			hazeDensity = 0.45,
 			particles = "Motes",
+			trait = { name = "Swift", troopId = "Knight", damageMultiplier = 0.7 },
+			bossMoves = { "Enrage", "Shield", "Summon" },
 		},
 	} :: { Types.AreaTheme },
 }

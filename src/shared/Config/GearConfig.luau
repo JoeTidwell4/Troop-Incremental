@@ -19,8 +19,8 @@ local GearConfig = {
 
 	-- Item names per troop, used for display ("Rare Steel Bow").
 	ITEM_NAMES = {
-		weapon = { Swordsman = "Sword", Archer = "Bow", Knight = "Lance" },
-		armor = { Swordsman = "Mail", Archer = "Leathers", Knight = "Plate" },
+		weapon = { Swordsman = "Sword", Archer = "Bow", Knight = "Lance", Mage = "Staff", Cavalry = "Spear", Siege = "Catapult" },
+		armor = { Swordsman = "Mail", Archer = "Leathers", Knight = "Plate", Mage = "Robes", Cavalry = "Barding", Siege = "Frame" },
 	} :: { [string]: { [string]: string } },
 
 	BASE_COST_MULTIPLIER = 5,

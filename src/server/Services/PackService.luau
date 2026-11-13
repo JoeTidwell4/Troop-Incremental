@@ -99,7 +99,14 @@ local function openPack(player: Player, mode: PackMode): PackResult
 	end
 
 	-- Pick what the pack contains.
-	local troopId = TroopConfig.ORDER[rng:NextInteger(1, #TroopConfig.ORDER)]
+	-- Only troops you've unlocked, so packs never roll gear you can't use yet.
+	local unlocked: { string } = {}
+	for _, id in TroopConfig.ORDER do
+		if Formulas.troopUnlocked(id, data.bestStage) then
+			table.insert(unlocked, id)
+		end
+	end
+	local troopId = unlocked[rng:NextInteger(1, #unlocked)]
 	local slot = GearConfig.SLOTS[rng:NextInteger(1, #GearConfig.SLOTS)]
 	local pityDue = data.packs.sinceEpic + 1 >= PackConfig.PITY_EVERY
 	local guaranteed = pityDue or mode == "Hero"

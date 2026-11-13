@@ -135,6 +135,32 @@ function Effects.shatter(model: Model, maxPieces: number)
 	end
 end
 
+-- A round projectile (magic orb or catapult boulder) arcing from `from` to `to`.
+function Effects.orb(from: Vector3, to: Vector3, color: Color3, diameter: number, duration: number, glowing: boolean, onHit: (() -> ())?)
+	local target = folder
+	if target == nil then
+		return
+	end
+	local ball = Parts.ball(diameter, color, CFrame.new(from), target, {
+		material = if glowing then Enum.Material.Neon else Enum.Material.Slate,
+		name = "Projectile",
+	})
+	local progress = Instance.new("NumberValue")
+	local peak = (to - from).Magnitude * (if glowing then 0.08 else 0.35)
+	progress.Changed:Connect(function(t: number)
+		ball.CFrame = CFrame.new(from:Lerp(to, t) + Vector3.new(0, math.sin(t * math.pi) * peak, 0))
+	end)
+	local tween = TweenService:Create(progress, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Value = 1 })
+	tween.Completed:Connect(function()
+		ball:Destroy()
+		progress:Destroy()
+		if onHit ~= nil then
+			onHit()
+		end
+	end)
+	tween:Play()
+end
+
 -- An arrow (shaft + tip + glowing trail) flying from `from` to `to`.
 function Effects.arrow(from: Vector3, to: Vector3, color: Color3, duration: number, onHit: (() -> ())?)
 	local target = folder

@@ -36,6 +36,7 @@ local FAIL_MESSAGES: { [string]: string } = {
 	CantAffordHonor = "Not enough Honor",
 	TooEarly = "Reach the required stage first",
 	InRaid = "Finish your raid attack first",
+	Locked = "Unlock this troop first",
 	Rejected = "Slow down a little!",
 }
 

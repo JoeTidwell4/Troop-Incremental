@@ -79,10 +79,65 @@ local function knight(model: Model, at: CFrame, color: Color3)
 	Parts.block(Vector3.new(0.27, 0.8, 0.5) * s, color, at * CFrame.new(-1.16 * s, 1.85 * s, 0.3), model) -- shield crest
 end
 
+local function mage(model: Model, at: CFrame, color: Color3)
+	body(model, at, color, 0.95)
+	-- Long robe over the legs.
+	Parts.block(Vector3.new(1.35, 1.2, 0.8), color, at * CFrame.new(0, 0.6, 0), model, { material = Enum.Material.Fabric })
+	-- Pointed hat: stacked shrinking discs.
+	for i = 0, 3 do
+		Parts.cylinder(0.35, 1.4 - i * 0.32, color, at * CFrame.new(0, 3.25 + i * 0.32, 0) * CFrame.Angles(math.rad(-6 * i), 0, 0), model, {
+			material = Enum.Material.Fabric,
+		})
+	end
+	gear(Parts.cylinder(1.6, 1.6, Color3.fromRGB(70, 50, 100), at * CFrame.new(0, 3.2, 0), model, { material = Enum.Material.Fabric }), "armor") -- hat brim
+	gear(Parts.cylinder(3.6, 0.2, WOOD, at * CFrame.new(0.9, 1.9, 0.3), model, { material = Enum.Material.Wood }), "weapon") -- staff
+	Parts.ball(0.6, Color3.fromRGB(190, 140, 255), at * CFrame.new(0.9, 3.85, 0.3), model, { material = Enum.Material.Neon, name = "Orb" })
+end
+
+local function cavalry(model: Model, at: CFrame, color: Color3)
+	local horse = Color3.fromRGB(120, 85, 60)
+	-- Horse: body, legs, neck, head, tail.
+	Parts.block(Vector3.new(1.5, 1.4, 3.2), horse, at * CFrame.new(0, 2.1, 0), model)
+	for _, offset in { Vector3.new(-0.5, 0.7, 1.2), Vector3.new(0.5, 0.7, 1.2), Vector3.new(-0.5, 0.7, -1.2), Vector3.new(0.5, 0.7, -1.2) } do
+		Parts.block(Vector3.new(0.4, 1.4, 0.4), horse, at * CFrame.new(offset), model)
+	end
+	Parts.block(Vector3.new(0.8, 1.4, 0.8), horse, at * CFrame.new(0, 3, 1.6) * CFrame.Angles(math.rad(30), 0, 0), model)
+	Parts.block(Vector3.new(0.75, 0.75, 1.3), horse, at * CFrame.new(0, 3.6, 2.2), model)
+	Parts.block(Vector3.new(0.25, 1.1, 0.25), Color3.fromRGB(60, 40, 30), at * CFrame.new(0, 2.4, -1.75) * CFrame.Angles(math.rad(-30), 0, 0), model)
+	gear(Parts.block(Vector3.new(1.6, 0.25, 1.4), color, at * CFrame.new(0, 2.9, 0), model, { material = Enum.Material.Fabric }), "armor") -- saddle cloth
+	-- Rider (upper body only, sitting on the horse).
+	Parts.block(Vector3.new(1.1, 1.2, 0.7), color, at * CFrame.new(0, 3.65, -0.1), model)
+	Parts.ball(0.85, SKIN, at * CFrame.new(0, 4.65, -0.1), model)
+	gear(Parts.ball(0.92, STEEL, at * CFrame.new(0, 4.75, -0.12), model, { material = Enum.Material.Metal }), "armor") -- helmet
+	gear(Parts.cylinderZ(4.2, 0.18, WOOD, at * CFrame.new(0.75, 3.5, 1.3), model, { material = Enum.Material.Wood }), "weapon") -- spear
+	gear(Parts.wedge(Vector3.new(0.25, 0.5, 0.7), STEEL, at * CFrame.new(0.75, 3.5, 3.6), model, { material = Enum.Material.Metal }), "weapon")
+end
+
+local function siege(model: Model, at: CFrame, color: Color3)
+	local timber = Color3.fromRGB(125, 90, 55)
+	local wood = { material = Enum.Material.WoodPlanks }
+	-- Base frame and wheels.
+	Parts.block(Vector3.new(3.2, 0.6, 4.6), timber, at * CFrame.new(0, 1.2, 0), model, wood)
+	for _, x in { -1.75, 1.75 } do
+		for _, z in { -1.5, 1.5 } do
+			Parts.cylinder(0.4, 1.6, Color3.fromRGB(80, 60, 40), at * CFrame.new(x, 0.8, z) * CFrame.Angles(0, 0, math.rad(90)), model, wood)
+		end
+		Parts.block(Vector3.new(0.4, 2.6, 0.4), timber, at * CFrame.new(x * 0.7, 2.6, 0), model, wood) -- uprights
+	end
+	Parts.cylinder(2.6, 0.35, timber, at * CFrame.new(0, 3.6, 0) * CFrame.Angles(0, 0, math.rad(90)), model, wood) -- axle
+	-- Throwing arm with a counterweight and a loaded boulder.
+	gear(Parts.block(Vector3.new(0.45, 0.45, 5), timber, at * CFrame.new(0, 3.9, -0.4) * CFrame.Angles(math.rad(-25), 0, 0), model, wood), "weapon")
+	gear(Parts.block(Vector3.new(1.4, 1.2, 1.2), color, at * CFrame.new(0, 3.3, 1.7), model, { material = Enum.Material.Metal }), "armor")
+	Parts.ball(1.1, Color3.fromRGB(110, 105, 100), at * CFrame.new(0, 5.2, -2.6), model, { material = Enum.Material.Slate, name = "Boulder" })
+end
+
 local BUILDERS: { [string]: (Model, CFrame, Color3) -> () } = {
 	Swordsman = swordsman,
 	Archer = archer,
 	Knight = knight,
+	Mage = mage,
+	Cavalry = cavalry,
+	Siege = siege,
 }
 
 -- Builds one troop at `home` (feet position, facing +Z).

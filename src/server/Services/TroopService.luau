@@ -44,6 +44,9 @@ local function buy(player: Player, request: BuyRequest): BuyResult
 	end
 
 	local troopId = request.troopId
+	if not Formulas.troopUnlocked(troopId, data.bestStage) then
+		return fail("Locked")
+	end
 	local owned = data.troops[troopId] or 0
 	local cap = math.min(TroopConfig.MAX_BUY_PER_REQUEST, TroopConfig.MAX_PER_TYPE - owned)
 	if cap <= 0 then

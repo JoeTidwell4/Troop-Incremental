@@ -26,6 +26,9 @@ type Army = {
 }
 
 local armies: { [Player]: Army } = {}
+-- What the army is fighting right now (set by StageService): the stage (for area traits)
+-- and whether it's a boss (for troops that are better against bosses or normal enemies).
+local contexts: { [Player]: { stage: number, vsBoss: boolean } } = {}
 
 local CombatService = {}
 
@@ -41,9 +44,21 @@ function CombatService.refreshArmy(player: Player)
 		army = { baseDps = BigNum.ZERO, baseHp = BigNum.ZERO, pendingDamage = BigNum.ZERO }
 		armies[player] = army
 	end
-	local factionBonus = Formulas.factionTroopMultipliers(data.faction)
-	army.baseDps = Formulas.armyDps(data.troops, data.gear, factionBonus)
-	army.baseHp = Formulas.armyHp(data.troops, data.gear, factionBonus)
+	local context = contexts[player] or { stage = data.stage, vsBoss = false }
+	-- Damage: faction x area trait x each troop's job. HP: faction only.
+	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss)
+	army.baseDps = Formulas.armyDps(data.troops, data.gear, damageBonus)
+	army.baseHp = Formulas.armyHp(data.troops, data.gear, Formulas.factionTroopMultipliers(data.faction))
+end
+
+-- Called by StageService whenever the fight changes; recalculates the army's damage.
+function CombatService.setFightContext(player: Player, stage: number, vsBoss: boolean)
+	local current = contexts[player]
+	if current ~= nil and current.stage == stage and current.vsBoss == vsBoss then
+		return
+	end
+	contexts[player] = { stage = stage, vsBoss = vsBoss }
+	CombatService.refreshArmy(player)
 end
 
 -- Army DPS with all current multipliers applied.
@@ -87,12 +102,14 @@ function CombatService.applyTaps(player: Player, taps: number)
 end
 
 -- Returns all damage the army deals over `dt` seconds, plus queued damage (which is cleared).
-function CombatService.takeDamage(player: Player, dt: number): BigNum
+-- `troopsBlocked`: a boss shield is up, so only clicks and abilities (queued damage) count.
+function CombatService.takeDamage(player: Player, dt: number, troopsBlocked: boolean?): BigNum
 	local army = armies[player]
 	if army == nil then
 		return BigNum.ZERO
 	end
-	local damage = BigNum.add(BigNum.mulNumber(CombatService.getDps(player), dt), army.pendingDamage)
+	local troopDamage = if troopsBlocked then BigNum.ZERO else BigNum.mulNumber(CombatService.getDps(player), dt)
+	local damage = BigNum.add(troopDamage, army.pendingDamage)
 	army.pendingDamage = BigNum.ZERO
 	return damage
 end
@@ -100,9 +117,11 @@ end
 function CombatService.start()
 	DataService.ProfileReleasing:Connect(function(player: Player)
 		armies[player] = nil
+		contexts[player] = nil
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		armies[player] = nil
+		contexts[player] = nil
 	end)
 end
 

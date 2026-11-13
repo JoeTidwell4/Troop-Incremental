@@ -17,6 +17,7 @@ local Visuals = Client:WaitForChild("Visuals")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
+local BigNum = require(Shared:WaitForChild("BigNum"))
 local Areas = require(Shared:WaitForChild("Areas"))
 local Plots = require(Shared:WaitForChild("Plots"))
 local Config = Shared:WaitForChild("Config")
@@ -33,8 +34,19 @@ local InputController = require(Controllers.InputController)
 type Snapshot = Types.Snapshot
 
 -- Troop rows (distance toward the enemy) and how they attack.
-local ROW_Z: { [string]: number } = { Swordsman = 4, Knight = 0, Archer = -4 }
-local ATTACK_SPEED: { [string]: number } = { Swordsman = 6, Archer = 3, Knight = 4 }
+local ROW_Z: { [string]: number } = { Cavalry = 8, Swordsman = 4, Knight = 0, Archer = -4, Mage = -7.5, Siege = -12 }
+local ATTACK_SPEED: { [string]: number } = { Swordsman = 6, Archer = 3, Knight = 4, Mage = 2, Cavalry = 5, Siege = 1 }
+-- Fewer of the big units on screen, spaced further apart.
+local MAX_VISIBLE: { [string]: number } = { Mage = 6, Cavalry = 4, Siege = 2 }
+local SPACING: { [string]: number } = { Cavalry = 4.5, Siege = 8 }
+
+-- Ranged troops: what they shoot and how often (seconds, random between min and max).
+type RangedStyle = { kind: "Arrow" | "Orb" | "Boulder", color: Color3, interval: NumberRange, from: Vector3 }
+local RANGED: { [string]: RangedStyle } = {
+	Archer = { kind = "Arrow", color = Color3.fromRGB(255, 220, 120), interval = NumberRange.new(1.2, 2.2), from = Vector3.new(-0.9, 2, 1) },
+	Mage = { kind = "Orb", color = Color3.fromRGB(190, 140, 255), interval = NumberRange.new(1.5, 2.5), from = Vector3.new(0.9, 3.8, 0.3) },
+	Siege = { kind = "Boulder", color = Color3.fromRGB(110, 105, 100), interval = NumberRange.new(3, 4.5), from = Vector3.new(0, 5.2, -2.6) },
+}
 local UNIT_SPACING = 3
 local LUNGE_DISTANCE = 1.2
 local ARENA_TOP = 0.5
@@ -47,11 +59,9 @@ local BOSS_ATTACK_INTERVAL = 1.2
 local POP_SECONDS = 0.25
 local SHATTER_COOLDOWN = 0.25
 local BARRAGE_ARROWS = 14
-local ARCHER_SHOT_INTERVAL = NumberRange.new(1.2, 2.2)
 
 local HURT_COLOR = Color3.fromRGB(255, 60, 60)
 local RALLY_COLOR = Color3.fromRGB(255, 205, 70)
-local ARROW_COLOR = Color3.fromRGB(255, 220, 120)
 
 type Unit = {
 	troopId: string,
@@ -80,6 +90,10 @@ local lastShatter = 0
 local lungeStartedAt = -math.huge
 
 local enemyHighlight: Highlight
+local enrageHighlight: Highlight
+local shieldBubble: Part? = nil
+local minionModels: { Model } = {}
+local minionKind = ""
 local rallyHighlight: Highlight
 local hurtHighlight: Highlight
 local rallyAura: ParticleEmitter
@@ -95,10 +109,14 @@ local lastGear: Types.GearSet? = nil
 
 local BattlefieldController = {}
 
+-- Defined further down; declared here so the state handler can call them.
+local updateShield: (on: boolean) -> ()
+local updateMinions: (on: boolean, kind: string, color: Color3) -> ()
+
 ---------------------------------------------------------------- troops
 
 local function setVisibleCount(troopId: string, count: number, gear: Types.GearSet?)
-	local wanted = math.min(count, VisualConfig.MAX_VISIBLE_PER_TYPE)
+	local wanted = math.min(count, MAX_VISIBLE[troopId] or VisualConfig.MAX_VISIBLE_PER_TYPE)
 	if visibleCounts[troopId] == wanted then
 		return
 	end
@@ -110,7 +128,7 @@ local function setVisibleCount(troopId: string, count: number, gear: Types.GearS
 	local units: { Unit } = {}
 	local def = TroopConfig.TROOPS[troopId]
 	for index = 1, wanted do
-		local x = (index - (wanted + 1) / 2) * UNIT_SPACING
+		local x = (index - (wanted + 1) / 2) * (SPACING[troopId] or UNIT_SPACING)
 		local home = CFrame.new(origin + Vector3.new(x, ARENA_TOP, ROW_Z[troopId] or 0))
 		local model = TroopModels.build(troopId, def.color, home, troopsModel)
 		TroopModels.applyGear(model, if gear ~= nil then gear[troopId] else nil)
@@ -162,6 +180,53 @@ local function enemyCenter(): Vector3
 	return enemyHome.Position + Vector3.new(0, enemyHeight * 0.55, 0)
 end
 
+-- A see-through glowing bubble around the boss while its shield is up.
+updateShield = function(on: boolean)
+	if on and shieldBubble == nil and enemyModel ~= nil then
+		local bubble = Instance.new("Part")
+		bubble.Name = "ShieldBubble"
+		bubble.Shape = Enum.PartType.Ball
+		bubble.Size = Vector3.one * (enemyHeight * 1.5)
+		bubble.CFrame = CFrame.new(enemyCenter())
+		bubble.Material = Enum.Material.ForceField
+		bubble.Color = Color3.fromRGB(120, 190, 255)
+		bubble.Transparency = 0.2
+		bubble.Anchored = true
+		bubble.CanCollide = false
+		bubble.CanQuery = false
+		bubble.CanTouch = false
+		bubble.CastShadow = false
+		bubble.Parent = folder
+		shieldBubble = bubble
+	elseif not on and shieldBubble ~= nil then
+		shieldBubble:Destroy()
+		shieldBubble = nil
+	end
+end
+
+-- Small copies of the area's creature next to the boss while its minions are alive.
+updateMinions = function(on: boolean, kind: string, color: Color3)
+	if on and (#minionModels == 0 or minionKind ~= kind) then
+		for _, minion in minionModels do
+			minion:Destroy()
+		end
+		minionModels = {}
+		minionKind = kind
+		-- Two minions flanking the boss (kept clear of the Cavalry row in front).
+		for _, side in { -1, 1 } do
+			local offset = Vector3.new(side * 9, ARENA_TOP, ENEMY_Z - 2)
+			local minion = EnemyModels.build(kind, color, 0.7, false, CFrame.new(origin + offset), folder)
+			table.insert(minionModels, minion)
+		end
+	elseif not on and #minionModels > 0 then
+		for _, minion in minionModels do
+			Effects.shatter(minion, 6)
+			minion:Destroy()
+		end
+		minionModels = {}
+	end
+end
+
 local function setEnemy(kind: string, color: Color3, scale: number, crowned: boolean)
 	local key = `{kind}:{color:ToHex()}:{scale}:{crowned}`
 	if key == enemyKey and enemyModel ~= nil then
@@ -178,6 +243,7 @@ local function setEnemy(kind: string, color: Color3, scale: number, crowned: boo
 	enemyScale = scale
 	enemyFloats = kind == "Wraith"
 	enemyHighlight.Adornee = model
+	enrageHighlight.Adornee = model
 	popStartedAt = os.clock()
 end
 
@@ -274,6 +340,14 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	rallyHighlight.Enabled = rallying
 	rallyAura.Enabled = rallying
 
+	-- Boss moves: shield bubble, red enrage glow, summoned minions.
+	local serverNow = workspace:GetServerTimeNow()
+	local shielded = snapshot.encounter == "Boss" and serverNow < snapshot.bossShieldUntil
+	updateShield(shielded)
+	enrageHighlight.Enabled = snapshot.encounter == "Boss" and snapshot.bossEnraged
+	local minionsUp = snapshot.encounter == "Boss" and not BigNum.isZero(snapshot.minionHp)
+	updateMinions(minionsUp, area.theme.enemyKind, area.theme.enemyColor)
+
 	if previous ~= nil then
 		local before = previous.abilities.Barrage
 		local after = snapshot.abilities.Barrage
@@ -304,14 +378,22 @@ local function animate(dt: number)
 	-- Troops: melee units lunge, archers hold position and loose arrows.
 	for _, units in unitsByType do
 		for _, unit in units do
-			if unit.troopId == "Archer" then
+			local ranged = RANGED[unit.troopId]
+			if ranged ~= nil then
 				local recoil = math.max(0, 1 - (now - unit.lastShot) * 6) * 0.3
 				unit.model:PivotTo(unit.home * CFrame.new(0, 0, -recoil))
 				if now >= unit.nextShot then
 					unit.lastShot = now
-					unit.nextShot = now + math.random() * (ARCHER_SHOT_INTERVAL.Max - ARCHER_SHOT_INTERVAL.Min) + ARCHER_SHOT_INTERVAL.Min
+					unit.nextShot = now + math.random() * (ranged.interval.Max - ranged.interval.Min) + ranged.interval.Min
 					if enemyModel ~= nil then
-						Effects.arrow(unit.home.Position + Vector3.new(-0.9, 2, 1), enemyCenter(), ARROW_COLOR, 0.45, nil)
+						local from = unit.home.Position + ranged.from
+						if ranged.kind == "Arrow" then
+							Effects.arrow(from, enemyCenter(), ranged.color, 0.45, nil)
+						elseif ranged.kind == "Orb" then
+							Effects.orb(from, enemyCenter(), ranged.color, 0.7, 0.5, true, flashEnemy)
+						else
+							Effects.orb(from, enemyCenter(), ranged.color, 1.4, 0.9, false, flashEnemy)
+						end
 					end
 				end
 			else
@@ -424,6 +506,8 @@ function BattlefieldController.start()
 	-- Red flash on the army when a boss hits it; white flash on the enemy when you hit it.
 	hurtHighlight = makeHighlight(HURT_COLOR, 1, troopsModel)
 	enemyHighlight = makeHighlight(Color3.new(1, 1, 1), 1, nil)
+	enrageHighlight = makeHighlight(Color3.fromRGB(255, 40, 40), 0.55, nil)
+	enrageHighlight.Enabled = false
 
 	setupCamera()
 	StateController.Changed:Connect(onStateChanged)
