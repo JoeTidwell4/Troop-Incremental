@@ -20,14 +20,14 @@ local MonetizationConfig = {
 	PASSES = {
 		DoubleGold = {
 			key = "DoubleGold",
-			id = 0,
+			id = 2088398382,
 			displayName = "2x Gold",
 			description = "Double gold from every kill, forever.",
 			goldMultiplier = 2,
 		},
 		AutoAbilities = {
 			key = "AutoAbilities",
-			id = 0,
+			id = 2089262362, -- created on Roblox as "Auto Clicker"; should be renamed "Auto Abilities" there
 			displayName = "Auto Abilities",
 			description = "Rally, Barrage and Plunder fire on their own whenever ready. Can be toggled.",
 		},

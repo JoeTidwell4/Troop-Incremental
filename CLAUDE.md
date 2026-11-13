@@ -12,7 +12,7 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 3: done (owner confirmed in Studio).** Ascend + Honor shop + offline earnings.
 **Phase 4: done (owner confirmed in Studio).** Factions + faction war.
 **Phase 5: done (owner confirmed in Studio).** Clans (5a) + clan raid boss (5b), plus the first Phase 6 polish, audio system, and Robux store (all confirmed working).
-**Waiting on the owner:** audio asset IDs for `AudioConfig` and game pass / developer product IDs for `MonetizationConfig` (they'll send them in chat; we paste them in).
+**Waiting on the owner:** audio asset IDs for `AudioConfig`; Golden Sword pass + gold product IDs. Live pass IDs: DoubleGold 2088398382, AutoAbilities 2089262362 (owner created that one on Roblox named "Auto Clicker"; asked them to rename it "Auto Abilities" there, or say if they really want an auto clicker).
 **Next (proposed, waiting for OK):** rest of Phase 6: phone layout pass, analytics funnel, area modifiers, balance pass.
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
