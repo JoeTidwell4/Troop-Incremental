@@ -10,8 +10,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 - **2b: done (owner confirmed in Studio).** Gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
 
 **Phase 3: done (owner confirmed in Studio).** Ascend + Honor shop + offline earnings.
-**Phase 4 (code written, waiting for owner to test):** factions + faction war.
-Do not start Phase 5 until the owner confirms Phase 4 works. Phase 5 (clans) also needs a cross-server plan written up first.
+**Phase 4: done (owner confirmed in Studio).** Factions + faction war.
+**Phase 5 (cross-server plan proposed, waiting for OK):** clans + clan raid boss.
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
 Decisions made:
