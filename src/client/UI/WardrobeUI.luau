@@ -28,6 +28,15 @@ local ROW_HEIGHT = if Layout.compact then 50 else 44
 
 local WardrobeUI = {}
 
+local openTo: ((tab: string?) -> ())? = nil
+
+-- Opens the Wardrobe, optionally on a tab ("Helmet", "Cape", "Weapon", "Back", "Chests").
+function WardrobeUI.open(tab: string?)
+	if openTo ~= nil then
+		openTo(tab)
+	end
+end
+
 local function percent(multiplier: number): string
 	return `+{math.floor((multiplier - 1) * 100 + 0.5)}%`
 end
@@ -423,12 +432,18 @@ function WardrobeUI.start()
 		end)
 	end
 
-	menuButton.Activated:Connect(function()
+	openTo = function(tab: string?)
+		if tab ~= nil and slotButtons[tab] ~= nil then
+			selectedSlot = tab
+		end
 		local snapshot = StateController.get()
 		if snapshot ~= nil then
 			render(snapshot)
 		end
 		UIKit.openModal(overlay, window)
+	end
+	menuButton.Activated:Connect(function()
+		WardrobeUI.open(nil)
 	end)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false

@@ -22,6 +22,7 @@ local UIKit = require(script.Parent.UIKit)
 local ShopTypes = require(script.Parent.ShopTypes)
 local PackRevealUI = require(script.Parent.PackRevealUI)
 local ForgeUI = require(script.Parent.ForgeUI)
+local WardrobeUI = require(script.Parent.WardrobeUI)
 local ShopController = require(Client.Controllers.ShopController)
 local MonetizationController = require(Client.Controllers.MonetizationController)
 
@@ -57,19 +58,33 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		Parent = frame,
 	}, { UIKit.corner(8), UIKit.padding(8) }) :: Frame
 
+	-- Pack tiers, plus a shortcut to the Wardrobe Chests (commander gear) at the end.
 	local tierButtons: { [string]: TextButton } = {}
+	local columns = #PackConfig.TIER_ORDER + 1
 	for index, tierId in PackConfig.TIER_ORDER do
 		local button = UIKit.button({
 			Name = tierId,
 			Text = "",
-			TextSize = 13,
+			TextSize = 12,
 			BackgroundColor3 = Theme.Panel,
-			Position = UDim2.new((index - 1) / 3, if index == 1 then 0 else 2, 0, 0),
-			Size = UDim2.new(1 / 3, -4, 0, 30),
+			Position = UDim2.new((index - 1) / columns, if index == 1 then 0 else 2, 0, 0),
+			Size = UDim2.new(1 / columns, -4, 0, 30),
 			Parent = left,
 		})
 		tierButtons[tierId] = button
 	end
+	local chestsButton = UIKit.button({
+		Name = "WardrobeChests",
+		Text = "Wardrobe Chests",
+		TextSize = 12,
+		BackgroundColor3 = Color3.fromRGB(60, 140, 130),
+		Position = UDim2.new((columns - 1) / columns, 2, 0, 0),
+		Size = UDim2.new(1 / columns, -4, 0, 30),
+		Parent = left,
+	})
+	chestsButton.Activated:Connect(function()
+		WardrobeUI.open("Chests")
+	end)
 
 	-- Open (selected tier) | Free | Hero | Forge (Forge only when it's on sale or owned).
 	local function actionButton(index: number, name: string): TextButton
