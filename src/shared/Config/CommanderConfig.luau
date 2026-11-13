@@ -14,6 +14,14 @@
 --   "clanWar"     your clan finishes the weekly Clan War in the top `value` (granted by ClanWarService)
 --   "pass"        own the Robux pass `pass` (cosmetic items only)
 --   "clanShop"    bought in the clan shop (Phase 11d)
+--   "chest"       only from the Wardrobe Chest `chest` (see CHESTS below)
+--
+-- Wardrobe Chests: bought with GOLD only (never Robux: random rolls for stat items would
+-- be paid loot boxes and pay-to-win). The price uses your all-time BEST stage, not this
+-- run's, because wardrobe gear is kept on Ascend (otherwise chests would be dirt cheap
+-- right after every Ascend). A chest rolls a rarity by `odds`, then one of its items of
+-- that rarity; a duplicate gives back DUPLICATE_REFUND of the price. Every PITY_EVERY
+-- chests of a kind without a Legendary, the next one is Legendary.
 
 local Types = require(script.Parent.Parent.Types)
 
@@ -51,6 +59,24 @@ local CommanderConfig = {
 		"TowerShield",
 		"WarBanner",
 		"SeraphWings",
+		-- Armory Chest
+		"BronzeCap",
+		"ObsidianHelm",
+		"FrostfangHelm",
+		"StarlitCrown",
+		"BronzeSword",
+		"ObsidianEdge",
+		"VenomFang",
+		"StarfallBlade",
+		-- Regalia Chest
+		"RangerCloak",
+		"AzureCape",
+		"FrostMantle",
+		"VoidCape",
+		"HuntersQuiver",
+		"GildedShield",
+		"DragonBanner",
+		"EmberWings",
 	} :: { string },
 
 	ITEMS = {
@@ -75,7 +101,43 @@ local CommanderConfig = {
 		TowerShield = { id = "TowerShield", slot = "Back", displayName = "Tower Shield", rarity = 3, multiplier = 1.1, style = "Shield", color = Color3.fromRGB(90, 110, 170), unlock = { kind = "stage", value = 75 } },
 		WarBanner = { id = "WarBanner", slot = "Back", displayName = "War Banner", rarity = 4, multiplier = 1.2, style = "Banner", color = Color3.fromRGB(200, 60, 50), unlock = { kind = "clanWar", value = 10 } },
 		SeraphWings = { id = "SeraphWings", slot = "Back", displayName = "Seraph Wings", rarity = 5, multiplier = 1.35, style = "Wings", color = Color3.fromRGB(255, 245, 210), unlock = { kind = "clanWar", value = 1 } },
+
+		-- Armory Chest (helmets + weapons)
+		BronzeCap = { id = "BronzeCap", slot = "Helmet", displayName = "Bronze Cap", rarity = 1, multiplier = 1.05, style = "Cap", color = Color3.fromRGB(190, 120, 60), unlock = { kind = "chest", chest = "Armory" } },
+		ObsidianHelm = { id = "ObsidianHelm", slot = "Helmet", displayName = "Obsidian Helm", rarity = 3, multiplier = 1.1, style = "Helm", color = Color3.fromRGB(40, 35, 50), unlock = { kind = "chest", chest = "Armory" } },
+		FrostfangHelm = { id = "FrostfangHelm", slot = "Helmet", displayName = "Frostfang Helm", rarity = 4, multiplier = 1.2, style = "Horned", color = Color3.fromRGB(150, 210, 255), unlock = { kind = "chest", chest = "Armory" } },
+		StarlitCrown = { id = "StarlitCrown", slot = "Helmet", displayName = "Starlit Crown", rarity = 5, multiplier = 1.35, style = "Crown", color = Color3.fromRGB(150, 230, 255), unlock = { kind = "chest", chest = "Armory" } },
+		BronzeSword = { id = "BronzeSword", slot = "Weapon", displayName = "Bronze Sword", rarity = 1, multiplier = 1.05, style = "Blade", color = Color3.fromRGB(190, 120, 60), unlock = { kind = "chest", chest = "Armory" } },
+		ObsidianEdge = { id = "ObsidianEdge", slot = "Weapon", displayName = "Obsidian Edge", rarity = 3, multiplier = 1.15, style = "Blade", color = Color3.fromRGB(40, 35, 50), unlock = { kind = "chest", chest = "Armory" } },
+		VenomFang = { id = "VenomFang", slot = "Weapon", displayName = "Venom Fang", rarity = 4, multiplier = 1.3, style = "Glow", color = Color3.fromRGB(90, 230, 90), unlock = { kind = "chest", chest = "Armory" } },
+		StarfallBlade = { id = "StarfallBlade", slot = "Weapon", displayName = "Starfall Blade", rarity = 5, multiplier = 1.5, style = "Glow", color = Color3.fromRGB(180, 120, 255), unlock = { kind = "chest", chest = "Armory" } },
+		-- Regalia Chest (capes + back items)
+		RangerCloak = { id = "RangerCloak", slot = "Cape", displayName = "Ranger Cloak", rarity = 1, multiplier = 1.05, style = "Cloak", color = Color3.fromRGB(60, 100, 55), unlock = { kind = "chest", chest = "Regalia" } },
+		AzureCape = { id = "AzureCape", slot = "Cape", displayName = "Azure Cape", rarity = 3, multiplier = 1.1, style = "Cape", color = Color3.fromRGB(50, 110, 210), unlock = { kind = "chest", chest = "Regalia" } },
+		FrostMantle = { id = "FrostMantle", slot = "Cape", displayName = "Frost Mantle", rarity = 4, multiplier = 1.2, style = "Mantle", color = Color3.fromRGB(150, 200, 240), unlock = { kind = "chest", chest = "Regalia" } },
+		VoidCape = { id = "VoidCape", slot = "Cape", displayName = "Void Cape", rarity = 5, multiplier = 1.35, style = "Phoenix", color = Color3.fromRGB(45, 25, 70), unlock = { kind = "chest", chest = "Regalia" } },
+		HuntersQuiver = { id = "HuntersQuiver", slot = "Back", displayName = "Hunter's Quiver", rarity = 1, multiplier = 1.05, style = "Quiver", color = Color3.fromRGB(70, 50, 35), unlock = { kind = "chest", chest = "Regalia" } },
+		GildedShield = { id = "GildedShield", slot = "Back", displayName = "Gilded Shield", rarity = 3, multiplier = 1.1, style = "Shield", color = Color3.fromRGB(220, 170, 60), unlock = { kind = "chest", chest = "Regalia" } },
+		DragonBanner = { id = "DragonBanner", slot = "Back", displayName = "Dragon Banner", rarity = 4, multiplier = 1.2, style = "Banner", color = Color3.fromRGB(40, 30, 30), unlock = { kind = "chest", chest = "Regalia" } },
+		EmberWings = { id = "EmberWings", slot = "Back", displayName = "Ember Wings", rarity = 5, multiplier = 1.35, style = "Wings", color = Color3.fromRGB(255, 130, 40), unlock = { kind = "chest", chest = "Regalia" } },
 	} :: { [string]: Types.CommanderItemDef },
+
+	CHEST_ORDER = { "Armory", "Regalia" } :: { string },
+	CHESTS = {
+		Armory = { id = "Armory", displayName = "Armory Chest", description = "Helmets and weapons" },
+		Regalia = { id = "Regalia", displayName = "Regalia Chest", description = "Capes and back items" },
+	} :: { [string]: { id: string, displayName: string, description: string } },
+	-- Rarity rolled by a chest (rarity index -> percent). Items in each chest: one per
+	-- slot per rarity.
+	CHEST_ODDS = { { rarity = 1, chance = 50 }, { rarity = 3, chance = 30 }, { rarity = 4, chance = 15 }, { rarity = 5, chance = 5 } } :: {
+		{ rarity: number, chance: number }
+	},
+	CHEST_PRICE_IN_KILLS = 150, -- kills' worth of gold at your all-time best stage
+	CHEST_UNLOCK_STAGE = 20,
+	CHEST_PITY_EVERY = 30, -- a Legendary at least this often
+	CHEST_DUPLICATE_REFUND = 0.5,
+	CHEST_REQUESTS_BURST = 3,
+	CHEST_REQUESTS_PER_SECOND = 1,
 
 	EQUIP_REQUESTS_BURST = 6,
 	EQUIP_REQUESTS_PER_SECOND = 3,

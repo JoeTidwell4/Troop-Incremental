@@ -57,13 +57,23 @@ export type CommanderItemDef = {
 	multiplier: number?, -- bonus to the slot's stat while equipped (nil = looks only)
 	style: string, -- which look Visuals/CommanderGear builds
 	color: Color3,
-	unlock: { kind: string, value: number?, pass: string? },
+	unlock: { kind: string, value: number?, pass: string?, chest: string? },
+}
+
+-- Result of opening a Wardrobe Chest.
+export type ChestResult = {
+	ok: boolean,
+	reason: string?,
+	itemId: string?,
+	duplicate: boolean?, -- already owned: refund instead
+	refund: BigNum?,
 }
 
 -- The commander's wardrobe as the client sees it (snapshot field `commander`).
 export type CommanderView = {
 	owned: { [string]: boolean },
 	equipped: { [string]: string }, -- slot -> item id ("" = nothing)
+	pity: { [string]: number }, -- chest id -> chests opened since the last Legendary
 }
 
 -- One upgrade track of an ability (AbilityConfig.UPGRADES), bought with Honor.
@@ -360,7 +370,7 @@ export type PlayerData = {
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
 	bossWeaken: { stage: number, fails: number }, -- failed attempts in a row on that boss stage
-	commander: { owned: { [string]: boolean }, equipped: { [string]: string } }, -- commander gear (kept on Ascend)
+	commander: { owned: { [string]: boolean }, equipped: { [string]: string }, pity: { [string]: number } }, -- commander gear (kept on Ascend)
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,

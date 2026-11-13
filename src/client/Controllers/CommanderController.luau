@@ -198,6 +198,22 @@ local function swing()
 end
 
 local equipRemote: RemoteEvent? = nil
+local chestRemote: RemoteFunction? = nil
+
+-- Opens a Wardrobe Chest (gold). Yields for the server's roll. Never throws.
+function CommanderController.openChest(chestId: string): Types.ChestResult
+	local remote = chestRemote
+	if remote == nil then
+		return { ok = false, reason = "NotReady" }
+	end
+	local ok, result = pcall(function(): any
+		return remote:InvokeServer(chestId)
+	end)
+	if ok and typeof(result) == "table" then
+		return result :: Types.ChestResult
+	end
+	return { ok = false, reason = "NoResponse" }
+end
 
 -- Asks the server to wear an item in a slot ("" = take it off). The server checks you own it.
 function CommanderController.equip(slot: string, itemId: string)
@@ -209,6 +225,7 @@ end
 function CommanderController.start()
 	local player = Players.LocalPlayer
 	equipRemote = Remotes.waitForEvent(Remotes.Events.EquipCommander)
+	chestRemote = Remotes.waitForFunction(Remotes.Functions.OpenWardrobeChest)
 	-- Re-dress the commander whenever the equipped items change.
 	StateController.Changed:Connect(function(snapshot: Types.Snapshot)
 		local worn = snapshot.commander.equipped

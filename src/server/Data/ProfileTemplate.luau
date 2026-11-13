@@ -50,6 +50,7 @@ local template: Types.PlayerData = {
 	commander = {
 		owned = {},
 		equipped = { Helmet = "", Cape = "", Weapon = "IronSword", Back = "" },
+		pity = {},
 	},
 	clanWar = {
 		weekId = -1,

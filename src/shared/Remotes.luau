@@ -13,6 +13,7 @@
 -- UpgradeGear    client -> server, returns Types.BuyResult   (troopId: string, slot: GearSlot, mode: GearBuyMode)
 -- OpenPack       client -> server, returns Types.PackResult  (mode: "Gold" | "Elite" | "Royal" | "Free" | "Hero")
 -- UseForge       client -> server, returns Types.PackResult  (troopId: string, slot: GearSlot)  spends an Epic Forge token
+-- OpenWardrobeChest client -> server, returns Types.ChestResult (chestId: string)  gold only
 -- Ascend         client -> server, returns Types.AscendResult ()
 -- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
 -- BuyAbilityUpgrade client -> server, returns Types.BuyResult (upgradeId: string)  AbilityConfig.UPGRADES, paid in Honor
@@ -67,6 +68,7 @@ local Remotes = {
 		UpgradeGear = "UpgradeGear",
 		OpenPack = "OpenPack",
 		UseForge = "UseForge",
+		OpenWardrobeChest = "OpenWardrobeChest",
 		Ascend = "Ascend",
 		BuyHonorUpgrade = "BuyHonorUpgrade",
 		BuyAbilityUpgrade = "BuyAbilityUpgrade",

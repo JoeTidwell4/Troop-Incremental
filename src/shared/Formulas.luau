@@ -14,6 +14,7 @@ local PackConfig = require(Shared.Config.PackConfig)
 local AscendConfig = require(Shared.Config.AscendConfig)
 local HonorConfig = require(Shared.Config.HonorConfig)
 local AbilityConfig = require(Shared.Config.AbilityConfig)
+local CommanderConfig = require(Shared.Config.CommanderConfig)
 local EconomyConfig = require(Shared.Config.EconomyConfig)
 local FactionConfig = require(Shared.Config.FactionConfig)
 local ClanConfig = require(Shared.Config.ClanConfig)
@@ -109,6 +110,12 @@ function Formulas.gearMaxAffordable(troopId: string, level: number, gold: BigNum
 		count += 1
 	end
 	return count, total
+end
+
+-- Gold price of a Wardrobe Chest: priced at your all-time BEST stage (wardrobe gear is kept
+-- on Ascend, so this run's stage would make chests far too cheap after Ascending).
+function Formulas.wardrobeChestPrice(bestStage: number): BigNum
+	return BigNum.round(BigNum.mulNumber(Formulas.goldPerKill(bestStage), CommanderConfig.CHEST_PRICE_IN_KILLS))
 end
 
 -- Gold price of a pack tier ("Basic" | "Elite" | "Royal"; default Basic).

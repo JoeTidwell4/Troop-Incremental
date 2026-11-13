@@ -2,6 +2,7 @@
 -- "WARDROBE" menu button and window: commander gear (CommanderConfig). Pick a slot
 -- (Helmet / Cape / Weapon / Back), then wear or take off items. Locked items show how to
 -- earn them. The top line adds up the bonuses of everything you're wearing.
+-- The Chests tab opens Wardrobe Chests (gold only) for chest-exclusive items.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +11,9 @@ local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
 local GearInfo = require(Shared:WaitForChild("GearInfo"))
+local BigNum = require(Shared:WaitForChild("BigNum"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
+local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local CommanderConfig = require(Shared:WaitForChild("Config"):WaitForChild("CommanderConfig"))
 local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
@@ -44,6 +48,9 @@ local function howToGet(def: ItemDef): string
 		return "Robux pass in the Store (looks only)"
 	elseif unlock.kind == "clanShop" then
 		return "Buy in the clan shop"
+	elseif unlock.kind == "chest" then
+		local chest = CommanderConfig.CHESTS[unlock.chest or ""]
+		return `From the {if chest ~= nil then chest.displayName else "chest"}`
 	end
 	return ""
 end
@@ -125,11 +132,13 @@ function WardrobeUI.start()
 		Parent = window,
 	})
 
-	-- Slot tabs.
+	-- Slot tabs, plus "Chests".
 	local selectedSlot = "Helmet"
 	local slotButtons: { [string]: TextButton } = {}
-	local tabWidth = 1 / #CommanderConfig.SLOTS
-	for index, slot in CommanderConfig.SLOTS do
+	local tabNames = table.clone(CommanderConfig.SLOTS)
+	table.insert(tabNames, "Chests")
+	local tabWidth = 1 / #tabNames
+	for index, slot in tabNames do
 		local button = UIKit.button({
 			Text = slot,
 			TextSize = 14,
@@ -154,6 +163,143 @@ function WardrobeUI.start()
 		UIKit.create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 		UIKit.create("UIPadding", { PaddingRight = UDim.new(0, 10) }),
 	}) :: ScrollingFrame
+
+	---------------------------------------------------------------- chests
+	local chestPanel = UIKit.create("Frame", {
+		Name = "Chests",
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, 0, 0, 88),
+		Size = UDim2.new(1, 0, 1, -88),
+		Visible = false,
+		Parent = window,
+	}) :: Frame
+	local oddsParts: { string } = {}
+	for _, entry in CommanderConfig.CHEST_ODDS do
+		table.insert(oddsParts, `{GearInfo.rarity(entry.rarity).name} {entry.chance}%`)
+	end
+	local oddsText = table.concat(oddsParts, "  ")
+	type ChestCard = { button: TextButton, pity: TextLabel }
+	local chestCards: { [string]: ChestCard } = {}
+	local opening = false
+
+	-- Reveal: covers the chest panel for a moment with what you got.
+	local reveal = UIKit.create("Frame", {
+		Name = "Reveal",
+		BackgroundColor3 = Theme.Panel,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 1, 0),
+		Visible = false,
+		ZIndex = 5,
+		Parent = chestPanel,
+	}, { UIKit.corner(10) }) :: Frame
+	local revealTitle = UIKit.label({
+		Text = "",
+		Font = Theme.FontBold,
+		TextSize = 24,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.new(0, 0, 0.25, 0),
+		Size = UDim2.new(1, 0, 0, 30),
+		ZIndex = 6,
+		Parent = reveal,
+	})
+	local revealInfo = UIKit.label({
+		Text = "",
+		TextColor3 = Theme.Muted,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.new(0, 0, 0.25, 34),
+		Size = UDim2.new(1, 0, 0, 20),
+		ZIndex = 6,
+		Parent = reveal,
+	})
+	local revealOk = UIKit.button({
+		Text = "OK",
+		TextSize = 16,
+		BackgroundColor3 = Theme.Accent,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.25, 70),
+		Size = UDim2.new(0, 140, 0, 40),
+		ZIndex = 6,
+		Parent = reveal,
+	})
+	revealOk.Activated:Connect(function()
+		reveal.Visible = false
+	end)
+
+	local MESSAGES: { [string]: string } = {
+		CantAfford = "Not enough gold",
+		TooEarly = `Reach stage {CommanderConfig.CHEST_UNLOCK_STAGE} first`,
+	}
+	for index, chestId in CommanderConfig.CHEST_ORDER do
+		local chest = CommanderConfig.CHESTS[chestId]
+		local card = UIKit.create("Frame", {
+			Name = chestId,
+			BackgroundColor3 = Theme.PanelLight,
+			BorderSizePixel = 0,
+			Position = UDim2.new((index - 1) * 0.5, if index == 1 then 0 else 4, 0, 0),
+			Size = UDim2.new(0.5, -4, 1, 0),
+			Parent = chestPanel,
+		}, { UIKit.corner(10), UIKit.padding(10) }) :: Frame
+		UIKit.label({ Text = chest.displayName, Font = Theme.FontBold, TextSize = 18, TextColor3 = Theme.Gold, Size = UDim2.new(1, 0, 0, 22), Parent = card })
+		UIKit.label({ Text = chest.description, TextColor3 = Theme.Muted, TextSize = 13, Position = UDim2.new(0, 0, 0, 24), Size = UDim2.new(1, 0, 0, 16), Parent = card })
+		UIKit.label({
+			Text = oddsText,
+			TextSize = 11,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			Position = UDim2.new(0, 0, 0, 44),
+			Size = UDim2.new(1, 0, 0, 30),
+			Parent = card,
+		})
+		local pity = UIKit.label({
+			Text = "",
+			TextColor3 = GearInfo.rarity(5).color,
+			TextSize = 12,
+			Position = UDim2.new(0, 0, 0, 76),
+			Size = UDim2.new(1, 0, 0, 16),
+			Parent = card,
+		})
+		UIKit.label({
+			Text = `Duplicates give back {math.floor(CommanderConfig.CHEST_DUPLICATE_REFUND * 100)}% of the price.`,
+			TextColor3 = Theme.Muted,
+			TextSize = 11,
+			Position = UDim2.new(0, 0, 0, 94),
+			Size = UDim2.new(1, 0, 0, 14),
+			Parent = card,
+		})
+		local button = UIKit.button({
+			Text = "",
+			TextSize = 14,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 48),
+			Parent = card,
+		})
+		button.Activated:Connect(function()
+			if opening then
+				return
+			end
+			opening = true
+			task.spawn(function()
+				local result = CommanderController.openChest(chestId)
+				opening = false
+				local def = if result.itemId ~= nil then CommanderConfig.ITEMS[result.itemId] else nil
+				if result.ok and def ~= nil then
+					local rarity = GearInfo.rarity(def.rarity)
+					revealTitle.Text = `{rarity.name}: {def.displayName}`
+					revealTitle.TextColor3 = rarity.color
+					revealInfo.Text = if result.duplicate and result.refund ~= nil
+						then `Already owned: +{NumberFormat.big(result.refund)} gold back`
+						else `{statText(def)}  |  New! Wear it in the {def.slot} tab.`
+					reveal.Visible = true
+					UIKit.bump(revealTitle, 0.3)
+				else
+					bonusLabel.Text = MESSAGES[result.reason or ""] or "Couldn't open that, try again."
+				end
+			end)
+		end)
+		chestCards[chestId] = { button = button, pity = pity }
+	end
 
 	type Row = { frame: Frame, status: TextLabel, button: TextButton, def: ItemDef }
 	local rows: { Row } = {}
@@ -208,6 +354,21 @@ function WardrobeUI.start()
 		local view = snapshot.commander
 		for slot, button in slotButtons do
 			button.BackgroundColor3 = if slot == selectedSlot then Theme.Accent else Theme.PanelLight
+		end
+		local showChests = selectedSlot == "Chests"
+		chestPanel.Visible = showChests
+		list.Visible = not showChests
+		local unlocked = snapshot.bestStage >= CommanderConfig.CHEST_UNLOCK_STAGE
+		local price = Formulas.wardrobeChestPrice(snapshot.bestStage)
+		for chestId, card in chestCards do
+			local left = math.max(1, CommanderConfig.CHEST_PITY_EVERY - (view.pity[chestId] or 0))
+			card.pity.Text = `Legendary guaranteed within {left} chest{if left == 1 then "" else "s"}`
+			local affordable = unlocked and BigNum.gte(snapshot.gold, price)
+			card.button.Text = if unlocked
+				then `Open: {NumberFormat.big(price)} gold`
+				else `Reach stage {CommanderConfig.CHEST_UNLOCK_STAGE}`
+			card.button.BackgroundColor3 = if affordable then Theme.Good else Theme.Disabled
+			card.button.AutoButtonColor = affordable
 		end
 		-- Bonuses from everything worn.
 		local parts: { string } = {}

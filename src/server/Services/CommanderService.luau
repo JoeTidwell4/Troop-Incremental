@@ -4,6 +4,9 @@
 -- shop grant theirs through CommanderService.grant). Robux pass items are looks-only
 -- and owned while you own the pass. The equipped items' bonuses go into ModifierService.
 -- Everything here is kept on Ascend.
+--
+-- Wardrobe Chests (CommanderConfig.CHESTS): gold only, priced at your all-time best stage,
+-- rolled here with Random.new(). Pity per chest kind in data.commander.pity.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +15,9 @@ local Server = script.Parent.Parent
 local Services = script.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
+local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local CommanderConfig = require(Shared:WaitForChild("Config"):WaitForChild("CommanderConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
@@ -22,10 +27,16 @@ local DataService = require(Services.DataService)
 local SyncService = require(Services.SyncService)
 local ModifierService = require(Services.ModifierService)
 local MonetizationService = require(Services.MonetizationService)
+local ActivityService = require(Services.ActivityService)
 
 type PlayerData = Types.PlayerData
 type ItemDef = Types.CommanderItemDef
 type EquipRequest = { slot: string, itemId: string }
+type ChestResult = Types.ChestResult
+
+local LEGENDARY = 5
+local REJECTED: ChestResult = { ok = false, reason = "Rejected" }
+local rng = Random.new()
 
 local dirty: { [Player]: boolean } = {}
 
@@ -41,6 +52,14 @@ local function isOwned(player: Player, data: PlayerData, def: ItemDef): boolean
 	return data.commander.owned[def.id] == true
 end
 
+-- Adds an item to the save; wears it if that slot is empty.
+local function addItem(data: PlayerData, def: ItemDef)
+	data.commander.owned[def.id] = true
+	if (data.commander.equipped[def.slot] or "") == "" then
+		data.commander.equipped[def.slot] = def.id
+	end
+end
+
 -- Gives an item (no-op if already owned) and tells the player.
 function CommanderService.grant(player: Player, itemId: string)
 	local data = DataService.get(player)
@@ -48,13 +67,70 @@ function CommanderService.grant(player: Player, itemId: string)
 	if data == nil or def == nil or data.commander.owned[itemId] then
 		return
 	end
-	data.commander.owned[itemId] = true
-	-- Nothing in that slot yet: put it on right away.
-	if (data.commander.equipped[def.slot] or "") == "" then
-		data.commander.equipped[def.slot] = itemId
-	end
+	addItem(data, def) -- also wears it if that slot is empty
 	DataService.markChanged(player)
 	RemoteService.fireClient(Remotes.Events.Notice, player, { kind = "CommanderItem", stage = 0, itemName = def.displayName })
+end
+
+local function rollChestRarity(forceLegendary: boolean): number
+	if forceLegendary then
+		return LEGENDARY
+	end
+	local total = 0
+	for _, entry in CommanderConfig.CHEST_ODDS do
+		total += entry.chance
+	end
+	local roll = rng:NextNumber() * total
+	for _, entry in CommanderConfig.CHEST_ODDS do
+		roll -= entry.chance
+		if roll < 0 then
+			return entry.rarity
+		end
+	end
+	return LEGENDARY
+end
+
+local function openChest(player: Player, chestId: string): ChestResult
+	local data = DataService.get(player)
+	if data == nil then
+		return { ok = false, reason = "NotLoaded" }
+	end
+	if data.bestStage < CommanderConfig.CHEST_UNLOCK_STAGE then
+		return { ok = false, reason = "TooEarly" }
+	end
+	local price = Formulas.wardrobeChestPrice(data.bestStage)
+	if BigNum.lt(data.gold, price) then
+		return { ok = false, reason = "CantAfford" }
+	end
+	data.gold = BigNum.sub(data.gold, price)
+
+	local sinceLegendary = (data.commander.pity[chestId] or 0) + 1
+	local rarity = rollChestRarity(sinceLegendary >= CommanderConfig.CHEST_PITY_EVERY)
+	data.commander.pity[chestId] = if rarity >= LEGENDARY then 0 else sinceLegendary
+
+	local options: { ItemDef } = {}
+	for _, def in CommanderConfig.ITEMS do
+		if def.unlock.kind == "chest" and def.unlock.chest == chestId and def.rarity == rarity then
+			table.insert(options, def)
+		end
+	end
+	local def = options[rng:NextInteger(1, math.max(1, #options))]
+	ActivityService.record(player, "PackOpen", 1)
+	if def == nil then
+		-- Misconfigured chest: give the gold back rather than eat it.
+		data.gold = BigNum.add(data.gold, price)
+		DataService.markChanged(player)
+		return { ok = false, reason = "Rejected" }
+	end
+	if data.commander.owned[def.id] then
+		local refund = BigNum.round(BigNum.mulNumber(price, CommanderConfig.CHEST_DUPLICATE_REFUND))
+		data.gold = BigNum.add(data.gold, refund)
+		DataService.markChanged(player)
+		return { ok = true, itemId = def.id, duplicate = true, refund = refund }
+	end
+	addItem(data, def)
+	DataService.markChanged(player)
+	return { ok = true, itemId = def.id, duplicate = false }
 end
 
 -- Clan War results (ClanWarService): items for finishing in the top N.
@@ -87,6 +163,13 @@ local function clean(data: PlayerData)
 	for itemId, value in data.commander.owned do
 		if value ~= true or CommanderConfig.ITEMS[itemId] == nil then
 			data.commander.owned[itemId] = nil
+		end
+	end
+	for chestId, count in data.commander.pity do
+		if CommanderConfig.CHESTS[chestId] == nil or typeof(count) ~= "number" or count ~= count then
+			data.commander.pity[chestId] = nil
+		else
+			data.commander.pity[chestId] = math.clamp(math.floor(count), 0, CommanderConfig.CHEST_PITY_EVERY)
 		end
 	end
 	for _, slot in CommanderConfig.SLOTS do
@@ -123,7 +206,13 @@ function CommanderService.start()
 				owned[itemId] = true
 			end
 		end
-		return { commander = { owned = owned, equipped = table.clone(data.commander.equipped) } }
+		return {
+			commander = {
+				owned = owned,
+				equipped = table.clone(data.commander.equipped),
+				pity = table.clone(data.commander.pity),
+			},
+		}
 	end)
 
 	-- Equipped items' bonuses. An item stops counting if you lose it (e.g. a pass refund).
@@ -160,6 +249,16 @@ function CommanderService.start()
 			return { slot = validSlot, itemId = itemId :: string }
 		end,
 		equip
+	)
+
+	RemoteService.onInvoke(
+		Remotes.Functions.OpenWardrobeChest,
+		RateLimiter.new(CommanderConfig.CHEST_REQUESTS_BURST, CommanderConfig.CHEST_REQUESTS_PER_SECOND),
+		function(chestId: unknown): string?
+			return Validate.keyOf(chestId, CommanderConfig.CHESTS)
+		end,
+		openChest,
+		REJECTED
 	)
 
 	DataService.ProfileLoaded:Connect(function(player: Player, data: PlayerData)
