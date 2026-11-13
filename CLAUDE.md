@@ -6,9 +6,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 
 **Phase 1: done (owner confirmed in Studio).**
 **Phase 2 is split in two:**
-- **2a (code written, waiting for owner to test):** bosses that hit back, troop HP, areas, abilities (Rally/Barrage/Plunder).
-- **2b (next, not started):** gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
-Do not start 2b until the owner confirms 2a works.
+- **2a: done (owner confirmed in Studio).** Bosses that hit back, troop HP, areas, abilities (Rally/Barrage/Plunder).
+- **2b (next, plan proposed, waiting for OK):** gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
 
 Decisions made:
 - No Wally. ProfileStore is vendored at `src/server/Packages/ProfileStore.luau` (unmodified, Apache 2.0, license in `third_party/ProfileStore/`, upstream commit 45c9847). It's the one file without `--!strict`; DataService wraps it with local types.
