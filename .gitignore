@@ -1,0 +1,12 @@
+# Built place files (Rojo build output, local Studio saves)
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+*.lock
+
+# Editor / tooling
+sourcemap.json
+.vscode/
+.DS_Store
+Thumbs.db
