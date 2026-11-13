@@ -13,6 +13,7 @@ local Config = Shared:WaitForChild("Config")
 local LeaderboardConfig = require(Config:WaitForChild("LeaderboardConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Layout = require(script.Parent.Layout)
 
 type Leaderboards = Types.Leaderboards
 
@@ -30,17 +31,16 @@ function LeaderboardUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	local abilityCount = #AbilityConfig.ORDER
+	-- Left column, menu row (War | Clan | Top).
+	local topPosition, topSize = Layout.rowSlot(Layout.ROW2_TOP, 3, 3)
 	local topButton = UIKit.button({
 		Name = "TopButton",
 		Text = "TOP",
 		TextSize = 15,
 		BackgroundColor3 = Theme.Gold,
 		TextColor3 = Theme.Panel,
-		AnchorPoint = Vector2.new(1, 0),
-		-- Same row as the WAR button, just to its left.
-		Position = UDim2.new(1, -12 - 66 - 6, 0, 12 + abilityCount * 66 + (abilityCount - 1) * 6 + 10),
-		Size = UDim2.new(0, 56, 0, 40),
+		Position = topPosition,
+		Size = topSize,
 		Parent = gui,
 	})
 
@@ -137,7 +137,7 @@ function LeaderboardUI.start()
 	end)
 
 	topButton.Activated:Connect(function()
-		overlay.Visible = true
+		UIKit.openModal(overlay, window)
 	end)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false

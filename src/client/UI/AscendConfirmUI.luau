@@ -26,7 +26,7 @@ end
 function AscendConfirmUI.show(honor: BigNum.BigNum, confirm: () -> ())
 	honorLabel.Text = `+{NumberFormat.big(honor)} Honor`
 	onConfirm = confirm
-	overlay.Visible = true
+	UIKit.openModal(overlay, overlay:FindFirstChild("Card") :: Frame)
 end
 
 function AscendConfirmUI.start()

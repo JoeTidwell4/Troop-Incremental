@@ -20,6 +20,7 @@ local FactionConfig = require(Config:WaitForChild("FactionConfig"))
 local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Layout = require(script.Parent.Layout)
 local StateController = require(Client.Controllers.StateController)
 local FactionController = require(Client.Controllers.FactionController)
 
@@ -70,15 +71,14 @@ function FactionUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- "WAR" button under the ability bar (3 buttons of 66px + gaps, starting at y=12).
-	local abilityCount = #AbilityConfig.ORDER
+	-- "WAR" button: left column, menu row (War | Clan | Top).
+	local warPosition, warSize = Layout.rowSlot(Layout.ROW2_TOP, 1, 3)
 	local warButton = UIKit.button({
 		Name = "WarButton",
 		Text = "WAR",
 		TextSize = 15,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12 + abilityCount * 66 + (abilityCount - 1) * 6 + 10),
-		Size = UDim2.new(0, 66, 0, 40),
+		Position = warPosition,
+		Size = warSize,
 		BackgroundColor3 = Theme.HpFill,
 		Parent = gui,
 	})
@@ -496,7 +496,7 @@ function FactionUI.start()
 
 	local function open(which: "Picker" | "War")
 		view = which
-		overlay.Visible = true
+		UIKit.openModal(overlay, window)
 		render()
 	end
 

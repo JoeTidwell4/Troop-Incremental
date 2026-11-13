@@ -11,12 +11,13 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Layout = require(script.Parent.Layout)
 local StateController = require(Client.Controllers.StateController)
 local AbilityController = require(Client.Controllers.AbilityController)
 
 local Theme = UIKit.Theme
 
-local BUTTON_SIZE = 66
+local BUTTON_SIZE = Layout.ABILITY_SIZE
 local GAP = 6
 local UPDATE_INTERVAL = 0.1
 
@@ -172,13 +173,15 @@ function AbilityBarUI.start()
 	local bar = UIKit.create("Frame", {
 		Name = "Bar",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12),
-		Size = UDim2.new(0, BUTTON_SIZE, 0, count * BUTTON_SIZE + (count - 1) * GAP),
+		-- A row centred just above the shop panel.
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -(Layout.SHOP_HEIGHT + Layout.SHOP_BOTTOM_MARGIN + 8)),
+		Size = UDim2.new(0, count * BUTTON_SIZE + (count - 1) * GAP, 0, BUTTON_SIZE),
 		Parent = gui,
 	}, {
 		UIKit.create("UIListLayout", {
 			Padding = UDim.new(0, GAP),
+			FillDirection = Enum.FillDirection.Horizontal,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})

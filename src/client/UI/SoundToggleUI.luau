@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 
 local Client = script.Parent.Parent
 local UIKit = require(script.Parent.UIKit)
+local Layout = require(script.Parent.Layout)
 local AudioController = require(Client.Controllers.AudioController)
 
 local Theme = UIKit.Theme
@@ -25,14 +26,15 @@ function SoundToggleUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- Below the gold panel (12 + 134) and the Ascend button slot (6 + 34).
+	-- Left column, first menu row (Sound | Store).
+	local position, size = Layout.rowSlot(Layout.ROW1_TOP, 1, 2)
 	local button = UIKit.button({
 		Name = "Sound",
 		Text = LABELS[AudioController.getMode()],
-		TextSize = 12,
+		TextSize = 13,
 		BackgroundColor3 = Theme.PanelLight,
-		Position = UDim2.new(0, 12, 0, 12 + 134 + 6 + 34 + 6),
-		Size = UDim2.new(0, 102, 0, 26),
+		Position = position,
+		Size = size,
 		Parent = gui,
 	})
 	button.Activated:Connect(function()

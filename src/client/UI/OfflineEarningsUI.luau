@@ -123,7 +123,7 @@ function OfflineEarningsUI.start()
 		goldLabel.Text = `+{NumberFormat.big(notice.gold)} gold`
 		local capped = if counted < away then ` (capped at {duration(counted)})` else ""
 		detailLabel.Text = `Your army kept fighting on stage {notice.stage}{capped}.`
-		overlay.Visible = true
+		UIKit.openModal(overlay, card)
 	end)
 
 	gui.Parent = playerGui

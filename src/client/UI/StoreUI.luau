@@ -13,6 +13,7 @@ local BigNum = require(Shared:WaitForChild("BigNum"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local MonetizationConfig = require(Shared:WaitForChild("Config"):WaitForChild("MonetizationConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Layout = require(script.Parent.Layout)
 local StateController = require(Client.Controllers.StateController)
 local MonetizationController = require(Client.Controllers.MonetizationController)
 
@@ -33,14 +34,15 @@ function StoreUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- Under the sound button on the left.
+	-- Left column, first menu row (Sound | Store).
+	local storePosition, storeSize = Layout.rowSlot(Layout.ROW1_TOP, 2, 2)
 	local storeButton = UIKit.button({
 		Name = "StoreButton",
 		Text = "STORE",
-		TextSize = 14,
+		TextSize = 15,
 		BackgroundColor3 = ROBUX_GREEN,
-		Position = UDim2.new(0, 12, 0, 12 + 134 + 6 + 34 + 6 + 26 + 6),
-		Size = UDim2.new(0, 102, 0, 30),
+		Position = storePosition,
+		Size = storeSize,
 		Parent = gui,
 	})
 
@@ -250,7 +252,7 @@ function StoreUI.start()
 	end
 
 	storeButton.Activated:Connect(function()
-		overlay.Visible = true
+		UIKit.openModal(overlay, window)
 		refreshAll()
 	end)
 	closeButton.Activated:Connect(function()

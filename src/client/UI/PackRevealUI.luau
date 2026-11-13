@@ -53,7 +53,7 @@ function PackRevealUI.show(result: PackResult)
 	showToken += 1
 	local token = showToken
 
-	overlay.Visible = true
+	UIKit.openModal(overlay, card)
 	AudioController.play("PackOpen")
 	itemLabel.Text = "Opening..."
 	detailLabel.Text = ""

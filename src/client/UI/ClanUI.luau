@@ -16,6 +16,7 @@ local ClanConfig = require(Config:WaitForChild("ClanConfig"))
 local FactionConfig = require(Config:WaitForChild("FactionConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Layout = require(script.Parent.Layout)
 local ClanTypes = require(script.Parent.ClanTypes)
 local ClanMembersTab = require(script.Parent.ClanMembersTab)
 local ClanBankTab = require(script.Parent.ClanBankTab)
@@ -67,15 +68,14 @@ function ClanUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- "CLAN" button under the WAR button.
-	local abilityCount = #AbilityConfig.ORDER
+	-- "CLAN" button: left column, menu row (War | Clan | Top).
+	local clanPosition, clanSize = Layout.rowSlot(Layout.ROW2_TOP, 2, 3)
 	local clanButton = UIKit.button({
 		Name = "ClanButton",
 		Text = "CLAN",
 		TextSize = 15,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12 + abilityCount * 66 + (abilityCount - 1) * 6 + 10 + 46),
-		Size = UDim2.new(0, 66, 0, 40),
+		Position = clanPosition,
+		Size = clanSize,
 		BackgroundColor3 = Theme.Accent,
 		Parent = gui,
 	})
@@ -472,7 +472,7 @@ function ClanUI.start()
 	end)
 
 	clanButton.Activated:Connect(function()
-		overlay.Visible = true
+		UIKit.openModal(overlay, window)
 		render()
 		local view = ClanController.get()
 		if view == nil or not view.inClan then

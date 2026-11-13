@@ -2,7 +2,9 @@
 -- Top-of-screen info: gold, army damage, area + stage, enemy/boss health, boss timer,
 -- army HP during boss fights, and the Fight Boss / auto-advance button.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Client = script.Parent.Parent
@@ -17,6 +19,8 @@ local UIKit = require(script.Parent.UIKit)
 local StateController = require(Client.Controllers.StateController)
 local BattleController = require(Client.Controllers.BattleController)
 local ShopUI = require(script.Parent.ShopUI)
+local Layout = require(script.Parent.Layout)
+local BattlefieldController = require(Client.Controllers.BattlefieldController)
 local RaidConfig = require(Shared:WaitForChild("Config"):WaitForChild("RaidConfig"))
 
 type Snapshot = Types.Snapshot
@@ -180,8 +184,8 @@ function HudUI.start()
 		TextSize = 14,
 		BackgroundColor3 = Theme.Gold,
 		TextColor3 = Theme.Panel,
-		Position = UDim2.new(0, 12, 0, 12 + 134 + 6),
-		Size = UDim2.new(0, 210, 0, 34),
+		Position = UDim2.new(0, Layout.LEFT, 0, Layout.ASCEND_TOP),
+		Size = UDim2.new(0, Layout.COLUMN_WIDTH, 0, Layout.ASCEND_HEIGHT),
 		Visible = false,
 		Parent = gui,
 	})
@@ -357,6 +361,60 @@ function HudUI.start()
 	end
 
 	StateController.Changed:Connect(render)
+
+	-- Gold coins fly from a defeated enemy into the gold counter, which pops when they land.
+	-- Separate full-screen layer without UI scaling, so screen positions line up exactly.
+	local coinLayer = Instance.new("ScreenGui")
+	coinLayer.Name = "CoinFly"
+	coinLayer.IgnoreGuiInset = true
+	coinLayer.ResetOnSpawn = false
+	coinLayer.DisplayOrder = 5
+	coinLayer.Parent = playerGui
+	local lastCoins = 0
+
+	local function flyCoins()
+		local now = os.clock()
+		local camera = workspace.CurrentCamera
+		local enemyPosition = BattlefieldController.getEnemyPosition()
+		if now - lastCoins < 0.3 or camera == nil or enemyPosition == nil then
+			return
+		end
+		lastCoins = now
+		local screen, onScreen = camera:WorldToViewportPoint(enemyPosition)
+		if not onScreen then
+			return
+		end
+		local inset = GuiService:GetGuiInset()
+		local target = goldLabel.AbsolutePosition + inset + Vector2.new(30, goldLabel.AbsoluteSize.Y / 2)
+		for i = 1, 4 do
+			local coin = Instance.new("Frame")
+			coin.AnchorPoint = Vector2.new(0.5, 0.5)
+			coin.Size = UDim2.fromOffset(14, 14)
+			coin.BackgroundColor3 = Theme.Gold
+			coin.Position = UDim2.fromOffset(screen.X + math.random(-25, 25), screen.Y + math.random(-15, 15))
+			UIKit.create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = coin })
+			UIKit.create("UIStroke", { Color = Color3.fromRGB(180, 120, 20), Thickness = 2, Parent = coin })
+			coin.Parent = coinLayer
+			local tween = TweenService:Create(
+				coin,
+				TweenInfo.new(0.45 + i * 0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Position = UDim2.fromOffset(target.X, target.Y), Size = UDim2.fromOffset(8, 8) }
+			)
+			tween.Completed:Connect(function()
+				coin:Destroy()
+				if i == 1 then
+					UIKit.bump(goldLabel, 0.15)
+				end
+			end)
+			tween:Play()
+		end
+	end
+
+	StateController.Changed:Connect(function(snapshot: Snapshot, previous: Snapshot?)
+		if previous ~= nil and snapshot.totalKills > previous.totalKills then
+			flyCoins()
+		end
+	end)
 	local current = StateController.get()
 	if current ~= nil then
 		render(current)
