@@ -394,6 +394,7 @@ export type PlayerData = {
 	clanWar: ClanWarRecord,
 	clanRequest: { clanId: string, at: number }, -- pending join request ("" = none)
 	clanTokens: number, -- Clan Tokens for the clan shop (kept on Ascend)
+	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
@@ -460,6 +461,11 @@ export type Snapshot = {
 	abilityUpgrades: { [string]: number },
 	ascendHonor: BigNum, -- Honor you'd get for Ascending right now (zero if not allowed)
 	ascensions: number,
+	legacyCount: number,
+	crowns: number, -- unspent
+	crownUpgrades: { [string]: number },
+	legacyBest: number, -- best stage this Legacy
+	legacyCrowns: number, -- Crowns a Legacy right now would give (0 if not allowed yet)
 
 	faction: string,
 	factionSwitchIn: number, -- seconds until you may switch (0 = now)
@@ -544,6 +550,33 @@ export type PackResult = {
 export type FactionResult = {
 	ok: boolean,
 	reason: string?,
+}
+
+export type CrownUpgradeDef = {
+	id: string,
+	displayName: string,
+	description: string,
+	baseCost: number, -- Crowns
+	costGrowth: number,
+	maxLevel: number?,
+	stat: string, -- "damage" | "armyHp" | "gold" | "ascendHonor"
+	multiplier: number, -- per level
+}
+
+-- What a player keeps across Legacies (and what this Legacy has done so far).
+export type LegacyState = {
+	count: number, -- Legacies done
+	crowns: number, -- unspent
+	crownsEarned: number, -- all-time
+	upgrades: { [string]: number }, -- Crown upgrade levels
+	best: number, -- best stage reached during this Legacy (needs LegacyConfig.MIN_STAGE)
+	honorAtStart: BigNum, -- stats.honorEarned when this Legacy began
+}
+
+export type LegacyResult = {
+	ok: boolean,
+	reason: string?,
+	crowns: number?, -- Crowns gained
 }
 
 export type AscendResult = {

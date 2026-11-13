@@ -23,6 +23,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local InputController = require(Controllers.InputController)
 local StateController = require(Controllers.StateController)
 local CommanderGear = require(Controllers.Parent:WaitForChild("Visuals"):WaitForChild("CommanderGear"))
+local LegacyAura = require(Controllers.Parent:WaitForChild("Visuals"):WaitForChild("LegacyAura"))
 
 local SWING_COOLDOWN = 0.3
 local SWORD_COLOR = Color3.fromRGB(200, 205, 215)
@@ -47,6 +48,7 @@ local currentSword: BasePart? = nil
 
 local equipped: { [string]: string } = {}
 local equippedKey = ""
+local legacyCount = 0
 
 -- The sword takes the look of the equipped Weapon item ("Glow" styles are neon).
 local function styleSword()
@@ -70,6 +72,7 @@ local function applyGear()
 	local character = Players.LocalPlayer.Character
 	if character ~= nil then
 		CommanderGear.apply(character, equipped, CommanderConfig.ITEMS)
+		LegacyAura.apply(character, legacyCount)
 	end
 end
 local lastSwing = 0
@@ -233,9 +236,10 @@ function CommanderController.start()
 		for _, slot in CommanderConfig.SLOTS do
 			key ..= (worn[slot] or "") .. "|"
 		end
-		if key ~= equippedKey then
+		if key ~= equippedKey or snapshot.legacyCount ~= legacyCount then
 			equippedKey = key
 			equipped = worn
+			legacyCount = snapshot.legacyCount
 			applyGear()
 		end
 	end)

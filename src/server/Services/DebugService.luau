@@ -103,6 +103,10 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 		data.packs.forge += arg or 3
 		return done(`+{arg} Epic Forge tokens.`)
 	end,
+	Crowns = function(_player, data, arg)
+		data.legacy.crowns += arg or 50
+		return done(`+{arg} Crowns.`)
+	end,
 	ClanTokens = function(player, _data, arg)
 		ClanShopService.addTokens(player, arg or 200)
 		return done(`+{arg} Clan Tokens.`)

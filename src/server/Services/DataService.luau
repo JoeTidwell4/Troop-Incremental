@@ -227,6 +227,20 @@ local function sanitize(data: PlayerData)
 	end
 	data.clanRequest.at = wholeNumber(data.clanRequest.at, 0, 0)
 	data.clanTokens = wholeNumber(data.clanTokens, 0, 0)
+	local legacy = data.legacy
+	legacy.count = wholeNumber(legacy.count, 0, 0)
+	legacy.crowns = wholeNumber(legacy.crowns, 0, 0)
+	legacy.crownsEarned = wholeNumber(legacy.crownsEarned, 0, 0)
+	legacy.honorAtStart = BigNum.sanitize(legacy.honorAtStart)
+	for upgradeId, level in legacy.upgrades do
+		legacy.upgrades[upgradeId] = wholeNumber(level, 0, 0)
+	end
+	-- Before any Legacy, everything played so far counts as the first one.
+	legacy.best = wholeNumber(legacy.best, 1, 1)
+	if legacy.count == 0 then
+		legacy.best = math.max(legacy.best, data.bestStage)
+	end
+	legacy.best = math.max(legacy.best, data.highestStage)
 	data.clanQuestClaims.weekId = wholeNumber(data.clanQuestClaims.weekId, -1, -1)
 	data.bossWeaken.stage = wholeNumber(data.bossWeaken.stage, 0, 0)
 	data.bossWeaken.fails = wholeNumber(data.bossWeaken.fails, 0, 0)

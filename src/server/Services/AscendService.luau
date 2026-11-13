@@ -33,11 +33,13 @@ local AscendService = {}
 
 -- Honor the player would get for Ascending right now (zero if not allowed yet).
 function AscendService.preview(data: PlayerData): BigNum.BigNum
-	return Formulas.honorForStage(data.highestStage)
+	return Formulas.ascendHonor(data.highestStage, data.legacy.upgrades)
 end
 
--- Wipes everything that belongs to a single run.
-local function resetRun(data: PlayerData)
+-- Wipes everything that belongs to a single run (LegacyService uses it too).
+function AscendService.resetRun(data: PlayerData)
+	-- This run's best still counts toward unlocking the next Legacy.
+	data.legacy.best = math.max(data.legacy.best, data.highestStage)
 	data.gold = Formulas.startingGold(data.honorUpgrades)
 	data.stage = 1
 	data.highestStage = 1
@@ -74,7 +76,7 @@ local function ascend(player: Player, _payload: boolean): AscendResult
 	data.stats.ascensions += 1
 	Analytics.ascended(player, data.highestStage, data.stats.ascensions)
 	Analytics.honor(player, "Source", honor, data.honor, "Ascend")
-	resetRun(data)
+	AscendService.resetRun(data)
 
 	StageService.restart(player) -- also recalculates the (now empty) army
 	return { ok = true, honor = honor }

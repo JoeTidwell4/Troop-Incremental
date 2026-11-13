@@ -203,6 +203,15 @@ function Analytics.ascended(player: Player, stage: number, ascensions: number)
 	end)
 end
 
+-- A Legacy (second prestige): value = best stage this Legacy, field = how many so far.
+function Analytics.legacy(player: Player, stage: number, count: number, crowns: number)
+	send(player, `legacy #{count} at stage {stage} for {crowns} Crowns`, function()
+		AnalyticsService:LogCustomEvent(player, "Legacy", stage, {
+			[FIELD_1] = `legacy {math.min(count, 10)}`,
+		})
+	end)
+end
+
 ---------------------------------------------------------------- start
 
 function Analytics.start()

@@ -36,6 +36,8 @@
 -- ClanChatSend   client -> server   (text: string)  a clan chat message
 -- ClanChat       server -> client   (messages: { Types.ClanChatMessage }, replace: boolean)  new messages / history
 -- HitWeakPoint   client -> server, returns Types.WeakPointResult (id: number)
+-- Legacy         client -> server, returns Types.LegacyResult ()  the second prestige (LegacyService)
+-- BuyCrownUpgrade client -> server, returns Types.BuyResult (upgradeId: string)  LegacyConfig.UPGRADES, paid in Crowns
 -- DebugCommand   client -> server, returns {ok, message}  (action: string, arg: any)  STUDIO ONLY
 --                test panel (DebugConfig.ACTIONS); the server ignores it in the live game
 --                (Robux purchases are prompted on the client with MarketplaceService and
@@ -80,6 +82,8 @@ local Remotes = {
 		BuyAbilityUpgrade = "BuyAbilityUpgrade",
 		HitWeakPoint = "HitWeakPoint",
 		DebugCommand = "DebugCommand",
+		Legacy = "Legacy",
+		BuyCrownUpgrade = "BuyCrownUpgrade",
 		ChooseFaction = "ChooseFaction",
 		ClanRequest = "ClanRequest",
 		ProgressRequest = "ProgressRequest",

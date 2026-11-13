@@ -36,6 +36,12 @@ def config(old=False):
         boss_mode="clamp",  # "clamp" = current game: drain clamped to [min, max] of army max HP / s
         might=("mult", 1.5, 999),  # ("mult", x per level, max level) or ("add", +x per level, max level)
         might_cost=(2, 1.5),
+        # Legacy (LegacyConfig). `python tools/balance_v2.py legacy [hours] [idle]`.
+        # Shipped: first Legacy ~stage 200 (~27 Crowns) for an active player, back past the
+        # old best in ~1h45m, then +40-50 stages per Legacy. scale 1 / x1.5 took ~4 h.
+        legacy=dict(min_stage=150, unit=1e5, exp=0.5, scale=3,
+                    armory=1.6, guard=1.6, treasury=1.6, glory=1.25,
+                    cost=dict(Armory=(1, 1.6), Guard=(1, 1.6), Treasury=(1, 1.6), Glory=(2, 1.7))),
     )
     if not old:
         c.update(NEW)
@@ -69,8 +75,9 @@ FACTION = "Knight"
 
 
 class Run:
-    def __init__(s, c, honor_up, ability_up, best, active=True, seed=1):
+    def __init__(s, c, honor_up, ability_up, best, active=True, seed=1, crowns=None):
         s.c = c; s.H = honor_up; s.A = ability_up; s.best = best; s.active = active
+        s.C = crowns or {}
         s.rng = random.Random(seed)
         s.ids = [t[0] for t in c["troops"]]
         s.T = {t[0]: t for t in c["troops"]}
@@ -101,6 +108,10 @@ class Run:
         g = 1.2 ** H.get("WarChest", 0) * (SOCIAL["gold"] if social else 1)
         kind, x, cap = s.c["might"]; L = min(H.get("Might", 0), cap)
         tap = (x ** L if kind == "mult" else 1 + x * L) * (SOCIAL["tap"] if social else 1)
+        C = s.C; lg = s.c["legacy"]
+        d *= lg["armory"] ** C.get("Armory", 0)
+        hp *= lg["guard"] ** C.get("Guard", 0)
+        g *= lg["treasury"] ** C.get("Treasury", 0)
         return d, hp, g, tap
     def troop_dps(s, i, n=None, wl=None, wr=None, boss=False, stage=None):
         n = s.count[i] if n is None else n
@@ -345,6 +356,51 @@ def campaign(c, hours=6, active=True, verbose=True):
     return rows
 
 
+def crowns_for(c, honor_this_legacy):
+    lg = c["legacy"]
+    return int(lg["scale"] * (honor_this_legacy / lg["unit"]) ** lg["exp"])
+
+
+def spend_crowns(c, C, crowns):
+    cost = c["legacy"]["cost"]
+    while True:
+        k = min(cost, key=lambda k: cost[k][0] * cost[k][1] ** C.get(k, 0))
+        price = cost[k][0] * cost[k][1] ** C.get(k, 0)
+        if price > crowns: return crowns
+        crowns -= price; C[k] = C.get(k, 0) + 1
+
+
+def legacy_campaign(c, hours=30, active=True, stall_runs=4):
+    # Plays Ascend runs; Legacies once past the unlock stage and 'stall_runs' runs in a row
+    # brought no new best for this Legacy. Prints one line per Legacy.
+    C = {}; bank = 0; total = 0.0; legacies = 0; all_best = 1
+    lg = c["legacy"]
+    while total < hours * 60:
+        H, A = {}, {}; honor = 0; best_this = 1; earned = 0; stall = 0; start = total
+        regained_at = None; old_best = all_best
+        while total < hours * 60:
+            r = Run(c, H, A, max(all_best, best_this), active=active, seed=int(total) + 1, crowns=C)
+            r.play(min(hours * 60 - total, 240))
+            total += r.t / 60
+            gain = int(honor_for(c, r.highest) * lg["glory"] ** C.get("Glory", 0))
+            earned += gain
+            if r.highest > best_this:
+                best_this = r.highest; stall = 0
+            else:
+                stall += 1
+            if regained_at is None and legacies > 0 and best_this >= old_best:
+                regained_at = total - start
+            honor = spend_honor(H, A, honor + gain, max(all_best, best_this), c)
+            if best_this >= lg["min_stage"] and stall >= stall_runs:
+                break
+        all_best = max(all_best, best_this)
+        crowns = crowns_for(c, earned)
+        legacies += 1
+        bank = spend_crowns(c, C, bank + crowns)
+        back = f"regained old best {old_best} after {regained_at:.0f} min" if regained_at is not None else ("first Legacy" if legacies == 1 else f"did NOT regain {old_best}")
+        print(f"legacy {legacies:2d} at {total:5.0f} min: best this Legacy {best_this:4d}, honor {earned:.2e}, +{crowns} Crowns, upgrades {C}  ({back})")
+
+
 def report(c, rows):
     for run_no, total, highest, gain, r in rows:
         print(f"run {run_no:2d}: ended at {total:4d} min, reached stage {highest:4d}, +{gain:,} Honor")
@@ -360,5 +416,9 @@ def report(c, rows):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    if "legacy" in args:
+        c = config(old="old" in args)
+        legacy_campaign(c, hours=float(next((a for a in args if a.replace('.', '').isdigit()), 30)), active="idle" not in args)
+        sys.exit()
     c = config(old="old" in args)
     campaign(c, hours=float(next((a for a in args if a.replace('.', '').isdigit()), 6)), active="idle" not in args)

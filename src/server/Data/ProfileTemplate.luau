@@ -39,6 +39,7 @@ local template: Types.PlayerData = {
 	clanId = "",
 	clanRequest = { clanId = "", at = 0 },
 	clanTokens = 0,
+	legacy = { count = 0, crowns = 0, crownsEarned = 0, upgrades = {}, best = 1, honorAtStart = BigNum.ZERO },
 	clanQuestClaims = { weekId = -1, claimed = {} },
 	clanDonation = { dayId = -1, amount = 0 },
 	purchases = {},

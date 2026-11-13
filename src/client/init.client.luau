@@ -41,6 +41,7 @@ local QuestsUI = require(UI.QuestsUI)
 local ForgeUI = require(UI.ForgeUI)
 local WeakPointUI = require(UI.WeakPointUI)
 local WardrobeUI = require(UI.WardrobeUI)
+local LegacyUI = require(UI.LegacyUI)
 local DebugPanelUI = require(UI.DebugPanelUI)
 
 ShopController.start()
@@ -74,6 +75,7 @@ QuestsUI.start()
 ForgeUI.start()
 WeakPointUI.start()
 WardrobeUI.start()
+LegacyUI.start()
 DebugPanelUI.start() -- Studio only; does nothing in the live game
 StateController.start() -- last: asks the server for state once everything is listening
 

@@ -69,6 +69,16 @@ function ShopController.buyHonorUpgrade(upgradeId: string): BuyResult
 	return if result ~= nil then result :: BuyResult else { ok = false, bought = 0, reason = "NoResponse" }
 end
 
+function ShopController.legacy(): Types.LegacyResult
+	local result = invoke(Remotes.Functions.Legacy)
+	return if result ~= nil then result :: Types.LegacyResult else { ok = false, reason = "NoResponse" }
+end
+
+function ShopController.buyCrownUpgrade(upgradeId: string): Types.BuyResult
+	local result = invoke(Remotes.Functions.BuyCrownUpgrade, upgradeId)
+	return if result ~= nil then result :: Types.BuyResult else { ok = false, bought = 0, reason = "NoResponse" }
+end
+
 function ShopController.ascend(): Types.AscendResult
 	local result = invoke(Remotes.Functions.Ascend)
 	return if result ~= nil then result :: Types.AscendResult else { ok = false, reason = "NoResponse" }

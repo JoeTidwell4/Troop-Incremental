@@ -19,6 +19,7 @@ local EconomyConfig = require(Shared.Config.EconomyConfig)
 local FactionConfig = require(Shared.Config.FactionConfig)
 local ClanConfig = require(Shared.Config.ClanConfig)
 local RaidConfig = require(Shared.Config.RaidConfig)
+local LegacyConfig = require(Shared.Config.LegacyConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -416,6 +417,60 @@ function Formulas.honorForStage(stage: number): BigNum
 		AscendConfig.HONOR_BASE
 	)
 	return BigNum.floor(raw)
+end
+
+---------------------------------------------------------------- legacy
+
+-- Total multiplier from one Crown upgrade stat ("damage", "armyHp", "gold", "ascendHonor").
+function Formulas.crownMultiplier(upgrades: { [string]: number }?, stat: string): number
+	local result = 1
+	if upgrades == nil then
+		return result
+	end
+	for upgradeId, level in upgrades do
+		local def = LegacyConfig.UPGRADES[upgradeId]
+		if def ~= nil and def.stat == stat and level > 0 then
+			result *= def.multiplier ^ math.min(level, def.maxLevel or level)
+		end
+	end
+	return result
+end
+
+-- Crown price of the next level of a Crown upgrade (whole Crowns).
+function Formulas.crownUpgradeCost(upgradeId: string, level: number): number
+	local def = LegacyConfig.UPGRADES[upgradeId]
+	if def == nil then
+		return math.huge
+	end
+	return math.floor(def.baseCost * def.costGrowth ^ level + 0.5)
+end
+
+-- The Legacy rank (commander aura) for a number of Legacies done; nil before the first.
+function Formulas.legacyRank(count: number): { count: number, name: string, color: Color3 }?
+	local rank = nil
+	for _, def in LegacyConfig.RANKS do
+		if count >= def.count then
+			rank = def
+		end
+	end
+	return rank
+end
+
+-- Crowns for the Honor earned during a Legacy.
+function Formulas.legacyCrowns(honorThisLegacy: BigNum): number
+	if BigNum.isZero(honorThisLegacy) then
+		return 0
+	end
+	-- log space so huge Honor numbers can't overflow
+	local log = (BigNum.log10(honorThisLegacy) - math.log10(LegacyConfig.CROWN_HONOR_UNIT)) * LegacyConfig.CROWN_EXPONENT
+	local crowns = LegacyConfig.CROWN_SCALE * 10 ^ log
+	return if crowns ~= crowns or crowns == math.huge then 0 else math.floor(crowns)
+end
+
+-- Honor for Ascending now, including Crown upgrades (Eternal Glory).
+function Formulas.ascendHonor(highestStage: number, crownUpgrades: { [string]: number }?): BigNum
+	local base = Formulas.honorForStage(highestStage)
+	return BigNum.floor(BigNum.mulNumber(base, Formulas.crownMultiplier(crownUpgrades, "ascendHonor")))
 end
 
 -- An Honor reward that stays worth something at every stage: `share` of what an Ascend

@@ -19,6 +19,7 @@ local AscendConfig = require(Config:WaitForChild("AscendConfig"))
 local UIKit = require(script.Parent.UIKit)
 local ShopTypes = require(script.Parent.ShopTypes)
 local AscendConfirmUI = require(script.Parent.AscendConfirmUI)
+local LegacyUI = require(script.Parent.LegacyUI)
 local NoticeUI = require(script.Parent.NoticeUI)
 local ShopController = require(Client.Controllers.ShopController)
 
@@ -114,9 +115,25 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		Font = Theme.FontBold,
 		TextSize = 18,
 		TextColor3 = HONOR_COLOR,
-		Size = UDim2.new(1, 0, 0, 22),
+		Size = UDim2.new(1, -76, 0, 22),
 		Parent = left,
 	})
+	-- Opens the Legacy window (shown once you're getting close to it, or after your first).
+	local legacyButton = UIKit.button({
+		Name = "LegacyButton",
+		Text = "LEGACY",
+		TextSize = 12,
+		BackgroundColor3 = Color3.fromRGB(255, 200, 60),
+		TextColor3 = Theme.Panel,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.new(0, 72, 0, 22),
+		Visible = false,
+		Parent = left,
+	})
+	legacyButton.Activated:Connect(function()
+		LegacyUI.open()
+	end)
 	local runLabel = UIKit.label({
 		Text = "",
 		TextColor3 = Theme.Muted,
@@ -346,12 +363,14 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		renderAbilityRows(snapshot)
 		latest = snapshot
 		honorLabel.Text = `Honor: {format(snapshot.honor)}`
+		legacyButton.Visible = LegacyUI.visibleFor(snapshot)
+		legacyButton.Text = if snapshot.legacyCrowns > 0 then "LEGACY!" else "LEGACY"
 		runLabel.Text = `Best this run: stage {snapshot.highestStage}  |  Ascensions: {snapshot.ascensions}`
 
 		local canAscend = not BigNum.isZero(snapshot.ascendHonor)
 		if canAscend then
 			local nextStage = Formulas.nextHonorStage(snapshot.highestStage)
-			local nextHonor = Formulas.honorForStage(nextStage)
+			local nextHonor = Formulas.ascendHonor(nextStage, snapshot.crownUpgrades)
 			previewLabel.Text = `Ascend now for +{format(snapshot.ascendHonor)} Honor.\n`
 				.. `Reach stage {nextStage} for +{format(nextHonor)}.`
 			previewLabel.TextColor3 = Theme.Text

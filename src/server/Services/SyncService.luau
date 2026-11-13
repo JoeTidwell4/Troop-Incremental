@@ -95,7 +95,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		honor = data.honor,
 		honorUpgrades = data.honorUpgrades,
 		abilityUpgrades = data.abilityUpgrades,
-		ascendHonor = Formulas.honorForStage(data.highestStage),
+		ascendHonor = Formulas.ascendHonor(data.highestStage, data.legacy.upgrades),
 		ascensions = data.stats.ascensions,
 
 		-- Filled in by FactionService below; defaults keep the shape complete.
