@@ -1,7 +1,8 @@
 --!strict
 -- Client side of the Robux store: opens Roblox's purchase prompts and reads which passes
 -- you own (the server sets "Pass_<key>" attributes on your Player). The client never
--- grants anything itself.
+-- grants anything itself. It also shows the Auto Clicker's clicks (sword swings, hit
+-- flashes); the real auto clicks happen on the server.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -9,9 +10,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local StateController = require(script.Parent.StateController)
+local InputController = require(script.Parent.InputController)
 local MonetizationConfig = require(Shared:WaitForChild("Config"):WaitForChild("MonetizationConfig"))
 
-local autoRemote: RemoteEvent? = nil
+local toggleRemote: RemoteEvent? = nil
 local priceCache: { [string]: number } = {}
 
 local MonetizationController = {}
@@ -52,14 +55,34 @@ function MonetizationController.getPrice(kind: "Pass" | "Product", id: number): 
 	return nil
 end
 
-function MonetizationController.setAutoAbilities(enabled: boolean)
-	if autoRemote ~= nil then
-		autoRemote:FireServer(enabled)
+-- True if you own this toggleable pass and have it switched on.
+function MonetizationController.isOn(passKey: string): boolean
+	local snapshot = StateController.get()
+	return MonetizationController.owns(passKey) and snapshot ~= nil and snapshot.passToggles[passKey] ~= false
+end
+
+function MonetizationController.setToggle(passKey: string, enabled: boolean)
+	if toggleRemote ~= nil then
+		toggleRemote:FireServer(passKey, enabled)
 	end
 end
 
 function MonetizationController.start()
-	autoRemote = Remotes.waitForEvent(Remotes.Events.SetAutoAbilities)
+	toggleRemote = Remotes.waitForEvent(Remotes.Events.SetPassToggle)
+
+	-- Show the Auto Clicker working: same visuals as a real click, no message to the server.
+	local rate = MonetizationConfig.PASSES.AutoClicker.autoClicksPerSecond or 0
+	if rate > 0 then
+		task.spawn(function()
+			while true do
+				task.wait(1 / rate)
+				local snapshot = StateController.get()
+				if snapshot ~= nil and snapshot.encounter ~= nil and MonetizationController.isOn("AutoClicker") then
+					InputController.Tapped:Fire()
+				end
+			end
+		end)
+	end
 end
 
 return MonetizationController

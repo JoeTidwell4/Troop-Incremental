@@ -22,7 +22,7 @@
 -- ClanSync       server -> client   (view: Types.ClanView)
 -- RaidSync       server -> client   (view: Types.RaidView)  your clan's raid progress
 -- LeaderboardSync server -> client  (boards: Types.Leaderboards)  global top lists
--- SetAutoAbilities client -> server  (enabled: boolean)  only matters if you own the pass
+-- SetPassToggle  client -> server   (passKey: string, enabled: boolean)  Auto Clicker / Auto Abilities on/off
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
 --                (raid attacks use ClanRequest action "RaidAttack")
@@ -44,7 +44,7 @@ local Remotes = {
 		ClanSync = "ClanSync",
 		RaidSync = "RaidSync",
 		LeaderboardSync = "LeaderboardSync",
-		SetAutoAbilities = "SetAutoAbilities",
+		SetPassToggle = "SetPassToggle",
 	}),
 
 	Functions = table.freeze({

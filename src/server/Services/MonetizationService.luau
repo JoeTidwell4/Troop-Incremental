@@ -35,9 +35,11 @@ local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
 local ModifierService = require(Services.ModifierService)
 local AbilityService = require(Services.AbilityService)
+local TapService = require(Services.TapService)
 
 type PlayerData = Types.PlayerData
 type ProductDef = Types.ProductDef
+type ToggleRequest = { passKey: string, enabled: boolean }
 
 local owned: { [Player]: { [string]: boolean } } = {}
 local passByid: { [number]: string } = {}
@@ -48,6 +50,12 @@ local MonetizationService = {}
 function MonetizationService.owns(player: Player, passKey: string): boolean
 	local set = owned[player]
 	return set ~= nil and set[passKey] == true
+end
+
+-- Owns a toggleable pass AND has it switched on.
+function MonetizationService.isOn(player: Player, passKey: string): boolean
+	local data = DataService.get(player)
+	return MonetizationService.owns(player, passKey) and data ~= nil and data.passToggles[passKey] ~= false
 end
 
 local function setOwned(player: Player, passKey: string)
@@ -182,26 +190,48 @@ function MonetizationService.start()
 		owned[player] = nil
 	end)
 
-	RemoteService.onEvent(Remotes.Events.SetAutoAbilities, RateLimiter.new(4, 2), function(enabled: unknown): boolean?
-		return Validate.boolean(enabled)
-	end, function(player: Player, enabled: boolean)
-		local data = DataService.get(player)
-		if data ~= nil then
-			data.autoAbilities = enabled
-			DataService.markChanged(player)
+	RemoteService.onEvent(
+		Remotes.Events.SetPassToggle,
+		RateLimiter.new(4, 2),
+		function(passKey: unknown, enabled: unknown): ToggleRequest?
+			local key = Validate.keyOf(passKey, MonetizationConfig.PASSES)
+			local flag = Validate.boolean(enabled)
+			if key == nil or flag == nil or not MonetizationConfig.PASSES[key].toggleable then
+				return nil
+			end
+			return { passKey = key, enabled = flag }
+		end,
+		function(player: Player, request: ToggleRequest)
+			local data = DataService.get(player)
+			if data ~= nil then
+				data.passToggles[request.passKey] = if request.enabled then nil else false
+				DataService.markChanged(player)
+			end
 		end
-	end)
+	)
 
 	-- Auto Abilities pass: fire whatever is ready (same checks as pressing the button).
 	task.spawn(function()
 		while true do
 			task.wait(MonetizationConfig.AUTO_ABILITY_INTERVAL)
 			for _, player in Players:GetPlayers() do
-				local data = DataService.get(player)
-				if data ~= nil and data.autoAbilities and MonetizationService.owns(player, "AutoAbilities") then
+				if MonetizationService.isOn(player, "AutoAbilities") then
 					for _, abilityId in AbilityConfig.ORDER do
 						AbilityService.tryUse(player, abilityId)
 					end
+				end
+			end
+		end
+	end)
+
+	-- Auto Clicker pass: clicks on the server at a human pace, sharing the normal click cap.
+	local clicksPerSecond = MonetizationConfig.PASSES.AutoClicker.autoClicksPerSecond or 0
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, player in Players:GetPlayers() do
+				if clicksPerSecond > 0 and MonetizationService.isOn(player, "AutoClicker") then
+					TapService.addTaps(player, clicksPerSecond)
 				end
 			end
 		end

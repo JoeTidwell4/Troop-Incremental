@@ -38,7 +38,7 @@ local template: Types.PlayerData = {
 	clanId = "",
 	clanDonation = { dayId = -1, amount = 0 },
 	purchases = {},
-	autoAbilities = true,
+	passToggles = {},
 	raid = { weekId = -1, clanId = "", attacks = 0, units = 0, dayId = -1, attacksToday = 0, claimedWeek = -1 },
 	troops = {
 		Swordsman = 0,

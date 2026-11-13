@@ -22,17 +22,25 @@ local CombatService = require(Services.CombatService)
 
 local TapService = {}
 
+-- One click budget per player, shared by real clicks and the Auto Clicker pass, so the
+-- total can never go over TAP_MAX_PER_SECOND.
+local tapLimiter = RateLimiter.new(CombatConfig.TAP_BURST, CombatConfig.TAP_MAX_PER_SECOND)
+
+-- Adds clicks from the server side (Auto Clicker), within the same per-second cap.
+function TapService.addTaps(player: Player, count: number)
+	local granted = tapLimiter:take(player, count)
+	if granted > 0 then
+		CombatService.applyTaps(player, granted)
+	end
+end
+
 function TapService.start()
 	local packetLimiter = RateLimiter.new(CombatConfig.TAP_PACKETS_BURST, CombatConfig.TAP_PACKETS_PER_SECOND)
-	local tapLimiter = RateLimiter.new(CombatConfig.TAP_BURST, CombatConfig.TAP_MAX_PER_SECOND)
 
 	RemoteService.onEvent(Remotes.Events.Tap, packetLimiter, function(count: unknown): number?
 		return Validate.integer(count, 1, CombatConfig.TAP_MAX_PER_PACKET)
 	end, function(player: Player, count: number)
-		local granted = tapLimiter:take(player, count)
-		if granted > 0 then
-			CombatService.applyTaps(player, granted)
-		end
+		TapService.addTaps(player, count)
 	end)
 end
 

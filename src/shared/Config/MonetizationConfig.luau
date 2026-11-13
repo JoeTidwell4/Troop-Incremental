@@ -10,13 +10,14 @@
 -- Design rules (keep these when adding items):
 --   * Nothing random for Robux (no paid packs): Roblox requires odds disclosure for paid
 --     random items and some countries restrict them.
---   * No auto-clicker: it would bypass the click rate limit everyone else plays under.
+--   * The Auto Clicker clicks at a human pace (AUTO_CLICKS_PER_SECOND) and shares the same
+--     per-second click cap as manual clicking, so it's convenience, not a way past the cap.
 --   * Sell convenience, speed, and looks, not things that let payers win the faction war.
 
 local Types = require(script.Parent.Parent.Types)
 
 local MonetizationConfig = {
-	PASS_ORDER = { "DoubleGold", "AutoAbilities", "GoldenSword" } :: { string },
+	PASS_ORDER = { "DoubleGold", "AutoClicker", "AutoAbilities", "GoldenSword" } :: { string },
 	PASSES = {
 		DoubleGold = {
 			key = "DoubleGold",
@@ -25,11 +26,20 @@ local MonetizationConfig = {
 			description = "Double gold from every kill, forever.",
 			goldMultiplier = 2,
 		},
+		AutoClicker = {
+			key = "AutoClicker",
+			id = 2089262362,
+			displayName = "Auto Clicker",
+			description = "Clicks the enemy for you 5 times a second. Can be toggled.",
+			toggleable = true,
+			autoClicksPerSecond = 5,
+		},
 		AutoAbilities = {
 			key = "AutoAbilities",
-			id = 2089262362, -- created on Roblox as "Auto Clicker"; should be renamed "Auto Abilities" there
+			id = 0,
 			displayName = "Auto Abilities",
 			description = "Rally, Barrage and Plunder fire on their own whenever ready. Can be toggled.",
+			toggleable = true,
 		},
 		GoldenSword = {
 			key = "GoldenSword",

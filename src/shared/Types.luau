@@ -242,7 +242,7 @@ export type PlayerData = {
 	clanDonation: { dayId: number, amount: number }, -- Supplies donated today
 	raid: RaidRecord, -- this player's clan raid week
 	purchases: { string }, -- recent Robux purchase ids already granted (newest last)
-	autoAbilities: boolean, -- Auto Abilities pass: on/off
+	passToggles: { [string]: boolean }, -- toggleable passes switched OFF (missing = on)
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -309,7 +309,7 @@ export type Snapshot = {
 	raidUnitsWeek: number, -- your contribution this raid week
 	raidUnitsLive: number, -- units so far in the raid attack you're doing right now
 
-	autoAbilities: boolean,
+	passToggles: { [string]: boolean },
 }
 
 -- One-off messages from the server, shown as banners.
@@ -377,6 +377,8 @@ export type PassDef = {
 	displayName: string,
 	description: string,
 	goldMultiplier: number?,
+	toggleable: boolean?, -- owner can switch the effect on/off in the store
+	autoClicksPerSecond: number?,
 }
 
 export type ProductDef = {

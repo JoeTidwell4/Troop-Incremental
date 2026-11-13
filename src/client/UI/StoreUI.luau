@@ -172,11 +172,10 @@ function StoreUI.start()
 			local extra, button = itemRow(def.displayName, def.description)
 			local function refresh()
 				local ownsIt = MonetizationController.owns(passKey)
-				local snapshot = StateController.get()
-				if ownsIt and passKey == "AutoAbilities" then
-					local on = snapshot ~= nil and snapshot.autoAbilities
+				if ownsIt and def.toggleable then
+					local on = MonetizationController.isOn(passKey)
 					extra.Text = "Owned"
-					button.Text = if on then "Auto: ON" else "Auto: OFF"
+					button.Text = if on then "ON" else "OFF"
 					button.BackgroundColor3 = if on then Theme.Good else Theme.Disabled
 				elseif ownsIt then
 					extra.Text = "Owned"
@@ -191,9 +190,8 @@ function StoreUI.start()
 			end
 			button.Activated:Connect(function()
 				if MonetizationController.owns(passKey) then
-					if passKey == "AutoAbilities" then
-						local snapshot = StateController.get()
-						MonetizationController.setAutoAbilities(not (snapshot ~= nil and snapshot.autoAbilities))
+					if def.toggleable then
+						MonetizationController.setToggle(passKey, not MonetizationController.isOn(passKey))
 					end
 					return
 				end

@@ -117,8 +117,15 @@ local function sanitize(data: PlayerData)
 	end
 	data.clanDonation.dayId = wholeNumber(data.clanDonation.dayId, -1, -1)
 	data.clanDonation.amount = wholeNumber(data.clanDonation.amount, 0, 0)
-	if typeof(data.autoAbilities) ~= "boolean" then
-		data.autoAbilities = true
+	-- Older saves had a single autoAbilities flag; carry an "off" setting over.
+	local legacy = (data :: any).autoAbilities
+	if legacy == false and data.passToggles.AutoAbilities == nil then
+		data.passToggles.AutoAbilities = false
+	end
+	for key, value in data.passToggles do
+		if typeof(value) ~= "boolean" then
+			data.passToggles[key] = nil
+		end
 	end
 	local cleanPurchases: { string } = {}
 	for _, purchaseId in data.purchases do
