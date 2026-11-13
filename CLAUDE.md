@@ -14,8 +14,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 5: done (owner confirmed in Studio).** Clans (5a) + clan raid boss (5b), plus the first Phase 6 polish, audio system, and Robux store (all confirmed working).
 **Waiting on the owner:** audio asset IDs for `AudioConfig`; Golden Sword pass + gold product IDs. Live pass IDs: DoubleGold 2088398382, AutoClicker 2089262362 (owner chose a real, fair auto clicker for this pass). AutoAbilities and GoldenSword passes exist in code with id 0 (hidden).
 **Phase 7: done (owner confirmed in Studio).** Themed world, real unit/enemy models, effects, UI layout + style pass. Owner wants the game fleshed out a lot before going public.
-**Phase 8a (code written, NOT yet tested in Studio):** daily login calendar, daily quests, achievements. Owner approved all picks (missing a day resets to day 1).
-**Phase 8b (approved plan, not started; do after 8a is confirmed):** Mage (stage 30, x2 vs bosses, fragile), Cavalry (stage 60, big vs normal enemies), Siege (stage 100, x3 vs bosses, almost no HP); area traits (each area -30% damage to one troop type); boss moves (enrage below 30% HP, shield phase where only clicks hurt, summoned minions).
+**Phase 8a: done (owner confirmed in Studio).** Daily login calendar, daily quests, achievements (missing a day resets to day 1).
+**Phase 8b (approved, in progress):** Mage (stage 30, x2 vs bosses, fragile), Cavalry (stage 60, big vs normal enemies), Siege (stage 100, x3 vs bosses, almost no HP); area traits (each area -30% damage to one troop type); boss moves (enrage below 30% HP, shield phase where only clicks hurt, summoned minions).
 **After that (proposed):** Phase 8 content (daily rewards/quests, achievements, new troop types, area modifiers, boss mechanics), analytics funnel, balance pass with real data.
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
