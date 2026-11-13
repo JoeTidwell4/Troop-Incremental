@@ -11,7 +11,9 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 
 **Phase 3: done (owner confirmed in Studio).** Ascend + Honor shop + offline earnings.
 **Phase 4: done (owner confirmed in Studio).** Factions + faction war.
-**Phase 5 (code written, NOT yet tested in Studio):** clans (5a) + clan raid boss (5b). The owner approved the plan and then said to keep building without waiting for OKs ("go crazy, tell me what you changed at the end"), so Phase 5 and some Phase 6 polish were built back to back without Studio confirmation in between. Expect the owner to test it all at once.
+**Phase 5: done (owner confirmed in Studio).** Clans (5a) + clan raid boss (5b), plus the first Phase 6 polish, audio system, and Robux store (all confirmed working).
+**Waiting on the owner:** audio asset IDs for `AudioConfig` and game pass / developer product IDs for `MonetizationConfig` (they'll send them in chat; we paste them in).
+**Next (proposed, waiting for OK):** rest of Phase 6: phone layout pass, analytics funnel, area modifiers, balance pass.
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
 Decisions made:
@@ -100,13 +102,13 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - `RaidService` + StageService "Raid" encounter: 3 attacks/day, 30s, boss doesn't hit back, no gold/kills, damage totalled; HP bar sized so emptying it = unit cap (ends early). Attack counted at start. Result saved with UpdateAsync into the clan's raid record (failed saves retried on poll). Rewards: after the raid week ends, next login reads the clan total and grants 2 Honor per tier + 1 free pack per 2 tiers; `data.raid.claimedWeek` in the session-locked save prevents double claims. Leaving or Ascending mid-raid still records the damage. Studio test mode: 10-minute raid weeks, 2-minute raid days.
 - Client: `ClanController` (ClanRequest, ClanSync, RaidSync), `ClanUI` (CLAN button under WAR; create/browse/search when not in a clan; header + tabs `ClanMembersTab`, `ClanBankTab`, `ClanRaidTab` when in one; closes itself when a raid attack starts). HUD + Battlefield have a Raid mode; NoticeUI shows RaidResult / RaidRewards.
 
-### Phase 6 polish done so far (built without Studio testing, alongside Phase 5)
+### Phase 6 polish done so far (owner confirmed in Studio)
 - `LeaderboardService` + `LeaderboardConfig`: Roblox player list `leaderstats` (Best = bestStage, Honor = lifetime Honor formatted), global OrderedDataStores "TopBestStage" and "TopHonor" (key = userId; each player writes only their own key; saved every 5 min if changed and on leave; top 10 read every 2 min, sent via `LeaderboardSync`). Client `LeaderboardUI` = TOP button left of WAR.
 - `DamageNumbersController`: floating click damage and "+gold" on kills above the enemy (max 12 at once), using `BattlefieldController.getEnemyPosition()`.
 - Starter tips: `HudUI` `tipFor(snapshot)` replaces the old single click hint (click, buy a Swordsman, boss advice, Fight Boss, Rally, Gear tab, Barrage, free packs). Off after the first Ascend or best stage 25, except the free-pack reminder.
 - Still to do in Phase 6: balancing pass with real play data, area modifiers (e.g. armored enemies vs Archers) to make troop roles matter more, sound, mobile layout pass (right-side button column gets tall on small screens), faction leaderboard already exists (WarService).
 
-### Audio + monetization (built after Phase 5, not yet tested in Studio)
+### Audio + monetization (owner confirmed in Studio; still needs real IDs)
 - Audio: `AudioConfig` lists every sound/music slot with an empty `id` (silent until the owner picks assets; owner will send IDs in chat and we paste them in). `AudioController` plays SFX by watching snapshot diffs (kills, buys, gear, ability readyAt, encounter changes, ascensions), notices (boss win/fail, purchase), taps, pack reveal, and every UIKit button (via `UIKit.hooks.onButtonClick`). Music tracks Main/Boss/Raid crossfade by encounter. `SoundToggleUI` cycles All / Music off / Off (session only).
 - Monetization: `MonetizationConfig` with ids = 0 (hidden) until the owner creates items on create.roblox.com and sends IDs. Passes: DoubleGold (x2 gold via ModifierService), AutoAbilities (server fires ready abilities every 1s via `AbilityService.tryUse`; toggle `data.autoAbilities` via SetAutoAbilities remote), GoldenSword (cosmetic; server sets Player attribute `Pass_<key>`, CommanderController restyles the sword). Products: GoldSmall/GoldLarge = 30 min / 4 h of army gold at 100% (Formulas.offlineGold at offlineStage), min 100.
 - `MonetizationService`: passes checked with UserOwnsGamePassAsync on load + PromptGamePassPurchaseFinished. ProcessReceipt: wait for profile, grant once per PurchaseId (`data.purchases`, last 50), then `DataService.saveAndWait` until `LastSavedData.purchases` contains the id; only then PurchaseGranted, else NotProcessedYet. Design rules in the config: nothing random for Robux, no auto-clicker, no faction-war pay-to-win. Client `MonetizationController` + `StoreUI` (STORE button left side; live prices via GetProductInfo).
