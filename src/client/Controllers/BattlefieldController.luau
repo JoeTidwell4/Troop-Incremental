@@ -150,6 +150,14 @@ local function shapeRotation(shape: Enum.PartType): CFrame
 	return CFrame.identity
 end
 
+-- Top of the current enemy, for floating numbers. Nil before the battlefield exists.
+function BattlefieldController.getEnemyPosition(): Vector3?
+	if (enemy :: Part?) == nil then
+		return nil -- start() hasn't run yet
+	end
+	return enemyHome.Position + Vector3.new(0, enemyBaseSize.Y / 2, 0)
+end
+
 local function setEnemyLook(shape: Enum.PartType, size: number, color: Color3)
 	if enemyColorTween ~= nil then
 		enemyColorTween:Cancel()

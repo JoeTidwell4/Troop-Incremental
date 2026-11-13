@@ -23,7 +23,7 @@ type Snapshot = Types.Snapshot
 type BigNum = BigNum.BigNum
 
 -- The "click to attack" hint disappears after this many total kills.
-local HINT_UNTIL_KILLS = 15
+local HINT_UNTIL_KILLS = 15 -- the first tip ("click to attack") shows until this many kills
 local BOSS_HP_COLOR = Color3.fromRGB(170, 60, 220)
 local ARMY_HP_COLOR = Color3.fromRGB(60, 190, 90)
 local PANEL_HEIGHT_NORMAL = 96
@@ -33,6 +33,49 @@ local Theme = UIKit.Theme
 local format = NumberFormat.big
 
 local HudUI = {}
+
+-- Starter tips: walks a new player through the first minutes, one tip at a time.
+-- Returns nil when there's nothing useful to say.
+local function tipFor(snapshot: Snapshot): string?
+	if snapshot.packs.free > 0 and snapshot.encounter == "Normal" then
+		return "You have a free gear pack! Open it in the Packs tab."
+	end
+	if snapshot.ascensions > 0 or snapshot.bestStage >= 25 then
+		return nil -- experienced players don't need tips
+	end
+	if snapshot.totalKills < HINT_UNTIL_KILLS then
+		return "Click anywhere on the battlefield to attack!"
+	end
+	local troops = 0
+	for _, count in snapshot.troops do
+		troops += count
+	end
+	if troops == 0 then
+		return "Buy a Swordsman in the shop below. Troops fight for you!"
+	end
+	if snapshot.encounter == "Boss" then
+		return "Boss fight! Beat it before time runs out. Knights soak up hits."
+	end
+	if not snapshot.autoAdvance and Formulas.isBossStage(snapshot.stage + 1) then
+		return "Got stronger? Press FIGHT BOSS to try again."
+	end
+	if snapshot.bestStage >= 5 and snapshot.bestStage < 10 then
+		return "Press 1 to Rally: double damage for 10 seconds."
+	end
+	local geared = false
+	for _, troopGear in snapshot.gear do
+		if troopGear.weapon.level > 0 or troopGear.armor.level > 0 then
+			geared = true
+		end
+	end
+	if snapshot.bestStage >= 12 and not geared then
+		return "Open the Gear tab: weapons and armor make each troop type stronger."
+	end
+	if snapshot.bestStage >= 15 and snapshot.bestStage < 20 then
+		return "Press 2 for Barrage: a huge burst of damage."
+	end
+	return nil
+end
 
 local function fraction(value: BigNum, max: BigNum): number
 	if BigNum.isZero(max) then
@@ -306,7 +349,11 @@ function HudUI.start()
 		end
 
 		renderStageButton(snapshot)
-		hint.Visible = snapshot.totalKills < HINT_UNTIL_KILLS
+		local tip = tipFor(snapshot)
+		hint.Visible = tip ~= nil
+		if tip ~= nil then
+			hint.Text = tip
+		end
 	end
 
 	StateController.Changed:Connect(render)

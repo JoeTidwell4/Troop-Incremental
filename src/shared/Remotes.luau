@@ -21,6 +21,7 @@
 --                Demote(userId) SetOpen(bool) Browse Search(name) Donate(supplies) BuyPerk(perkId)
 -- ClanSync       server -> client   (view: Types.ClanView)
 -- RaidSync       server -> client   (view: Types.RaidView)  your clan's raid progress
+-- LeaderboardSync server -> client  (boards: Types.Leaderboards)  global top lists
 --                (raid attacks use ClanRequest action "RaidAttack")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -39,6 +40,7 @@ local Remotes = {
 		WarSync = "WarSync",
 		ClanSync = "ClanSync",
 		RaidSync = "RaidSync",
+		LeaderboardSync = "LeaderboardSync",
 	}),
 
 	Functions = table.freeze({

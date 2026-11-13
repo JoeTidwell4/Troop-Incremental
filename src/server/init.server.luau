@@ -25,6 +25,7 @@ local FactionService = require(Services.FactionService)
 local ClanService = require(Services.ClanService)
 local ClanBankService = require(Services.ClanBankService)
 local RaidService = require(Services.RaidService)
+local LeaderboardService = require(Services.LeaderboardService)
 
 RemoteService.start() -- first: creates the remotes everything else listens to
 PlotService.start() -- gives each player a battlefield spot and places their avatar
@@ -44,6 +45,7 @@ FactionService.start()
 ClanService.start() -- clan membership (cross-server via DataStore + MessagingService)
 ClanBankService.start() -- donations and perks
 RaidService.start() -- weekly clan raid boss
+LeaderboardService.start() -- global top lists + player list stats
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)

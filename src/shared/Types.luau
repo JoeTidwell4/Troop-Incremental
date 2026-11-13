@@ -355,5 +355,13 @@ export type AscendResult = {
 	honor: BigNum?, -- Honor gained
 }
 
+export type LeaderboardEntry = { name: string, value: number }
+
+-- Global top lists (LeaderboardSync remote).
+export type Leaderboards = {
+	bestStage: { LeaderboardEntry },
+	honor: { LeaderboardEntry },
+}
+
 -- ModuleScripts must return a value; this module only exists for its types.
 return {}
