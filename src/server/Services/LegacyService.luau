@@ -27,6 +27,7 @@ local ModifierService = require(Services.ModifierService)
 local StageService = require(Services.StageService)
 local AscendService = require(Services.AscendService)
 local Analytics = require(Services.AnalyticsService)
+local ActivityService = require(Services.ActivityService)
 
 type PlayerData = Types.PlayerData
 type LegacyResult = Types.LegacyResult
@@ -80,6 +81,7 @@ local function doLegacy(player: Player, _payload: boolean): LegacyResult
 	legacy.best = 1
 	legacy.honorAtStart = data.stats.honorEarned
 	Analytics.legacy(player, stage, legacy.count, crowns)
+	ActivityService.record(player, "Legacy", 1) -- Recruit Scrolls (GeneralService)
 
 	StageService.restart(player) -- also recalculates the (now empty) army
 	return { ok = true, crowns = crowns }

@@ -12,6 +12,9 @@
 --   "legendary"   any gear slot is Legendary
 --   "clan" / "faction"  in a clan / picked a faction
 --   "warWin"      currently enjoying a faction war victory bonus
+--   "generals"    own >= target different Generals
+--   "generalStars" any General at >= target stars
+--   "generalRarity" own a General of rarity `key`
 
 local Types = require(script.Parent.Parent.Types)
 
@@ -56,6 +59,11 @@ local AchievementConfig = {
 		{ id = "Packs10", name = "Treasure Hunter", description = "Open 10 gear packs", honor = 2, honorShare = 0.03, kind = "lifetime", key = "PackOpen", target = 10 },
 		{ id = "Packs100", name = "Hoarder", description = "Open 100 gear packs", honor = 6, honorShare = 0.1, kind = "lifetime", key = "PackOpen", target = 100 },
 		{ id = "Packs500", name = "Dragon's Hoard", description = "Open 500 gear packs", honor = 10, honorShare = 0.25, kind = "lifetime", key = "PackOpen", target = 500 },
+		{ id = "Generals3", name = "War Council", description = "Recruit 3 different Generals", honor = 3, honorShare = 0.05, kind = "generals", target = 3 },
+		{ id = "Generals8", name = "Hall of Heroes", description = "Recruit 8 different Generals", honor = 8, honorShare = 0.2, kind = "generals", target = 8 },
+		{ id = "Generals12", name = "Every Banner", description = "Recruit all 12 Generals", honor = 20, honorShare = 0.5, kind = "generals", target = 12 },
+		{ id = "GeneralStars5", name = "Living Legend", description = "Get a General to 5 stars", honor = 15, honorShare = 0.4, kind = "generalStars", target = 5 },
+		{ id = "MythicGeneral", name = "Myth Made Real", description = "Recruit a Mythic General", honor = 15, honorShare = 0.4, kind = "generalRarity", key = "Mythic", target = 1 },
 		{ id = "Golden10", name = "Gold Rush", description = "Defeat 10 golden enemies", honor = 3, honorShare = 0.05, kind = "lifetime", key = "GoldenKill", target = 10 },
 		{ id = "Golden100", name = "Midas Touch", description = "Defeat 100 golden enemies", honor = 8, honorShare = 0.2, kind = "lifetime", key = "GoldenKill", target = 100 },
 		{ id = "Legendary", name = "Legendary!", description = "Own a Legendary piece of gear", honor = 5, honorShare = 0.15, kind = "legendary", target = 1 },

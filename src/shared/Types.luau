@@ -412,6 +412,7 @@ export type PlayerData = {
 	clanTokens: number, -- Clan Tokens for the clan shop (kept on Ascend)
 	abilityLoadout: { string }, -- equipped abilities, one per slot (Formulas.loadoutSlots)
 	commanderXp: number, -- Commander Level XP (never resets)
+	generals: GeneralsData, -- Generals roster (kept forever)
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
@@ -483,6 +484,7 @@ export type Snapshot = {
 	abilityLoadout: { string }, -- equipped abilities by slot (keys 1/2/3)
 	bountyLeft: number, -- kills left on an active Bounty
 	commanderXp: number,
+	generals: GeneralsData,
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
 	enemyGolden: boolean, -- the current enemy is a golden one
@@ -579,6 +581,48 @@ export type FactionResult = {
 	reason: string?,
 }
 
+-- A General (GeneralConfig.GENERALS).
+export type GeneralDef = {
+	id: string,
+	name: string,
+	title: string,
+	rarity: string, -- "Rare" | "Epic" | "Legendary" | "Mythic"
+	passive: { stat: string, value: number }, -- "damage" | "armyHp" | "gold" | "tap"
+	trait: { kind: string, troopId: string?, value: number, text: string },
+}
+
+-- One General you own.
+export type GeneralState = { stars: number, level: number, copies: number }
+
+export type GeneralsData = {
+	owned: { [string]: GeneralState },
+	fielded: { string }, -- up to GeneralConfig.FIELD_SLOTS ids ("" = empty slot)
+	scrolls: number, -- Recruit Scrolls
+	shards: number, -- from extra copies; SHARDS_PER_SCROLL = 1 scroll
+	pity: { sinceLegendary: number, sinceMythic: number },
+	welcomed: boolean, -- got the FIRST_SCROLLS gift
+}
+
+-- Everything fielded Generals add up to (Formulas.generalBonuses).
+export type GeneralBonuses = {
+	damage: number, -- multipliers (1 = none)
+	armyHp: number,
+	gold: number,
+	tap: number,
+	bossDamage: number, -- multiplier on boss damage to your army
+	troopDamage: { [string]: number }, -- per troop type multipliers
+	troopHp: { [string]: number },
+	critChance: number, -- added
+	bossTime: number, -- added seconds
+	goldenChance: number, -- added to the golden chance multiplier (0.4 = x1.4)
+}
+
+export type RecruitResult = {
+	ok: boolean,
+	reason: string?,
+	results: { { id: string, isNew: boolean, stars: number, shards: number } }?,
+}
+
 -- One node of the skill tree (SkillConfig.NODES).
 export type SkillNodeDef = {
 	id: string,
@@ -667,6 +711,7 @@ export type RewardDef = {
 	heroChests: number?,
 	honor: number?, -- flat Honor (the minimum when honorShare is set)
 	honorShare: number?, -- share of an Ascend's Honor at your best stage (Formulas.scaledHonor)
+	scrolls: number?, -- Recruit Scrolls for Generals
 }
 
 export type QuestDef = {

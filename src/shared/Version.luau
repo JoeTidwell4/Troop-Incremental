@@ -1,4 +1,4 @@
 --!strict
 -- Build identifier shown in Output on boot so you can tell Rojo synced the latest code.
 
-return "0.23.0-skills"
+return "0.24.0-generals"

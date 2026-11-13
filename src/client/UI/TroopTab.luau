@@ -154,8 +154,8 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 
 	local function render(snapshot: Snapshot)
 		-- DPS is shown for the current fight: faction, area trait, and boss/normal jobs.
-		local factionBonus = Formulas.factionTroopMultipliers(snapshot.faction)
-		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal")
+		local factionBonus = Formulas.troopHpMultipliers(snapshot.faction, snapshot.generals)
+		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal", snapshot.generals)
 		local trait = Areas.forStage(snapshot.stage).theme.trait
 		for _, troopId in TroopConfig.ORDER do
 			local row = rows[troopId]

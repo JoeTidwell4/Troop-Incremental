@@ -77,6 +77,9 @@ function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef,
 	if reward.heroChests ~= nil then
 		data.packs.hero += reward.heroChests
 	end
+	if reward.scrolls ~= nil then
+		data.generals.scrolls += reward.scrolls
+	end
 	local honor = BigNum.ZERO
 	if reward.honorShare ~= nil then
 		honor = Formulas.scaledHonor(data.bestStage, reward.honorShare, reward.honor or 0)

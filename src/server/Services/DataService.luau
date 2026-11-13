@@ -21,6 +21,7 @@ local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("Factio
 local DailyConfig = require(Shared:WaitForChild("Config"):WaitForChild("DailyConfig"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local SkillConfig = require(Shared:WaitForChild("Config"):WaitForChild("SkillConfig"))
+local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -250,6 +251,36 @@ local function sanitize(data: PlayerData)
 		ranks = {}
 	end
 	data.skills.ranks = ranks
+	-- Generals: known ids, stars/level in range, fielded = FIELD_SLOTS owned-or-empty, no repeats.
+	local generals = data.generals
+	local owned: { [string]: Types.GeneralState } = {}
+	if typeof(generals.owned) == "table" then
+		for generalId, state in generals.owned do
+			if GeneralConfig.GENERALS[generalId] ~= nil and typeof(state) == "table" then
+				local stars = math.clamp(wholeNumber(state.stars, 1, 1), 1, GeneralConfig.MAX_STARS)
+				owned[generalId] = {
+					stars = stars,
+					level = math.clamp(wholeNumber(state.level, 1, 1), 1, Formulas.generalMaxLevel(stars)),
+					copies = wholeNumber(state.copies, 0, 0),
+				}
+			end
+		end
+	end
+	generals.owned = owned
+	local fielded: { string } = {}
+	for slot = 1, GeneralConfig.FIELD_SLOTS do
+		local generalId = if typeof(generals.fielded) == "table" then generals.fielded[slot] else nil
+		local valid = typeof(generalId) == "string" and owned[generalId] ~= nil and table.find(fielded, generalId) == nil
+		fielded[slot] = if valid then generalId :: string else ""
+	end
+	generals.fielded = fielded
+	generals.scrolls = wholeNumber(generals.scrolls, 0, 0)
+	generals.shards = wholeNumber(generals.shards, 0, 0)
+	generals.pity.sinceLegendary = wholeNumber(generals.pity.sinceLegendary, 0, 0)
+	generals.pity.sinceMythic = wholeNumber(generals.pity.sinceMythic, 0, 0)
+	if typeof(generals.welcomed) ~= "boolean" then
+		generals.welcomed = false
+	end
 	-- Ability loadout: exactly as many known, different abilities as there are slots.
 	local loadout: { string } = {}
 	local seen: { [string]: boolean } = {}

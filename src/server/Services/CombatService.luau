@@ -51,9 +51,10 @@ function CombatService.refreshArmy(player: Player)
 	end
 	local context = contexts[player] or { stage = data.stage, vsBoss = false }
 	-- Damage: faction x area trait x each troop's job. HP: faction only.
-	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss)
+	-- (plus per-troop bonuses of the fielded Generals, for both)
+	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss, data.generals)
 	army.baseDps = Formulas.armyDps(data.troops, data.gear, damageBonus)
-	army.baseHp = Formulas.armyHp(data.troops, data.gear, Formulas.factionTroopMultipliers(data.faction))
+	army.baseHp = Formulas.armyHp(data.troops, data.gear, Formulas.troopHpMultipliers(data.faction, data.generals))
 end
 
 -- Called by StageService whenever the fight changes; recalculates the army's damage.
@@ -104,7 +105,7 @@ function CombatService.applyTaps(player: Player, taps: number)
 	end
 	-- Each click can crit. The crits' extra damage is sent to the client for a big number.
 	local skills = Formulas.skillEffects(data.skills.ranks) -- Precision, Deadly Strikes
-	local chance = CombatConfig.CRIT_CHANCE + skills.critChance
+	local chance = CombatConfig.CRIT_CHANCE + skills.critChance + Formulas.generalBonuses(data.generals).critChance -- + Thessa
 	local multiplier = CombatConfig.CRIT_MULTIPLIER + skills.critMultiplier
 	local crits = 0
 	for _ = 1, math.floor(taps) do

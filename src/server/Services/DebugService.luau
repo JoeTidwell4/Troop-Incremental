@@ -110,6 +110,10 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 		data.packs.forge += arg or 3
 		return done(`+{arg} Epic Forge tokens.`)
 	end,
+	Scrolls = function(_player, data, arg)
+		data.generals.scrolls += arg or 20
+		return done(`+{arg} Recruit Scrolls.`)
+	end,
 	CommanderXp = function(player, _data, arg)
 		SkillService.addXp(player, arg or 5000)
 		return done(`+{arg} Commander XP.`)

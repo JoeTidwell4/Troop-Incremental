@@ -14,10 +14,12 @@ local Types = require(Shared:WaitForChild("Types"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
+local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local Spotlight = require(script.Parent.Spotlight)
 local SkillsTab = require(script.Parent.SkillsTab)
+local GeneralsTab = require(script.Parent.GeneralsTab)
 local StateController = require(Client.Controllers.StateController)
 local AbilityController = require(Client.Controllers.AbilityController)
 
@@ -285,7 +287,7 @@ function ArmyUI.start()
 		Parent = window,
 	}) :: Frame
 
-	local tabs: { Tab } = { buildAbilitiesTab(content), SkillsTab.build(content) }
+	local tabs: { Tab } = { buildAbilitiesTab(content), SkillsTab.build(content), GeneralsTab.build(content) }
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
 
@@ -333,7 +335,9 @@ function ArmyUI.start()
 		overlay.Visible = false
 	end)
 	StateController.Changed:Connect(function(snapshot: Snapshot)
+		-- Red dot: skill points to spend, or Recruit Scrolls once Generals are unlocked.
 		dot.Visible = SkillsTab.unspentPoints(snapshot) > 0
+			or (snapshot.bestStage >= GeneralConfig.UNLOCK_STAGE and snapshot.generals.scrolls > 0)
 		render()
 	end)
 

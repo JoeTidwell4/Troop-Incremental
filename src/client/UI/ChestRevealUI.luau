@@ -79,16 +79,46 @@ function ChestRevealUI.isPlaying(): boolean
 	return playing
 end
 
+-- What the reveal shows. `big` = the Legendary-style version (gold rays, more sparks).
+export type Card = {
+	header: string, -- shown on the chest, e.g. "Armory Chest" / "Recruit"
+	rarityName: string,
+	color: Color3,
+	big: boolean,
+	rare: boolean, -- rare sound instead of the common one
+	title: string,
+	line: string,
+	status: string,
+	statusGood: boolean,
+}
+
 -- Plays the opening for `def` (what the chest gave). Returns right away; the animation
 -- runs on its own and removes itself when the player presses OK.
 function ChestRevealUI.play(chestName: string, def: ItemDef, result: ChestResult)
+	local rarity = GearInfo.rarity(def.rarity)
+	ChestRevealUI.playCard({
+		header = chestName,
+		rarityName = rarity.name,
+		color = rarity.color,
+		big = def.rarity >= LEGENDARY,
+		rare = def.rarity >= 3,
+		title = def.displayName,
+		line = `{def.slot}  |  {statText(def)}`,
+		status = if result.duplicate and result.refund ~= nil
+			then `Already owned: +{NumberFormat.big(result.refund)} gold back`
+			else `NEW! Wear it in the {def.slot} tab.`,
+		statusGood = not result.duplicate,
+	})
+end
+
+-- The same opening for anything (Generals recruiting uses it too).
+function ChestRevealUI.playCard(info: Card)
 	if playing then
 		return
 	end
 	playing = true
-	local rarity = GearInfo.rarity(def.rarity)
-	local legendary = def.rarity >= LEGENDARY
-	local color = rarity.color
+	local legendary = info.big
+	local color = info.color
 
 	local overlay = frame({
 		Name = "Overlay",
@@ -177,7 +207,7 @@ function ChestRevealUI.play(chestName: string, def: ItemDef, result: ChestResult
 	corner(6).Parent = lock
 
 	local nameLabel = UIKit.label({
-		Text = chestName,
+		Text = info.header,
 		Font = Theme.FontBold,
 		TextSize = 22,
 		TextColor3 = TRIM,
@@ -226,13 +256,10 @@ function ChestRevealUI.play(chestName: string, def: ItemDef, result: ChestResult
 			Parent = card,
 		})
 	end
-	local rarityLabel = cardLabel(string.upper(rarity.name) .. "!", 12, 26, color, true)
-	cardLabel(def.displayName, 46, 20, Theme.Text, true)
-	cardLabel(`{def.slot}  |  {statText(def)}`, 74, 14, Theme.Muted, false)
-	local statusText = if result.duplicate and result.refund ~= nil
-		then `Already owned: +{NumberFormat.big(result.refund)} gold back`
-		else `NEW! Wear it in the {def.slot} tab.`
-	cardLabel(statusText, 96, 14, if result.duplicate then Theme.Muted else Theme.Good, true)
+	local rarityLabel = cardLabel(string.upper(info.rarityName) .. "!", 12, 26, color, true)
+	cardLabel(info.title, 46, 20, Theme.Text, true)
+	cardLabel(info.line, 74, 14, Theme.Muted, false)
+	cardLabel(info.status, 96, 14, if info.statusGood then Theme.Good else Theme.Muted, true)
 	local okButton = UIKit.button({
 		Text = "OK",
 		TextSize = 16,
@@ -322,7 +349,7 @@ function ChestRevealUI.play(chestName: string, def: ItemDef, result: ChestResult
 		chest.Rotation = 0
 
 		-- 3. Burst open: flash, lid flies off, rays and sparks in the rarity color.
-		AudioController.play(if def.rarity >= 3 then "PackRare" else "PackCommon")
+		AudioController.play(if info.rare then "PackRare" else "PackCommon")
 		glow.BackgroundColor3 = color
 		glow.BackgroundTransparency = 0.25
 		flash.BackgroundTransparency = if legendary then 0.05 else 0.35

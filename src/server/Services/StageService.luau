@@ -128,7 +128,9 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 			enemyHp = hp,
 			enemyMaxHp = hp,
 			goldPerKill = Formulas.bossGold(stage),
-			bossEndsAt = introUntil + BossConfig.BOSS_TIME_LIMIT + (if data ~= nil then Formulas.skillEffects(data.skills.ranks).bossTime else 0),
+			bossEndsAt = introUntil + BossConfig.BOSS_TIME_LIMIT + (if data ~= nil
+				then Formulas.skillEffects(data.skills.ranks).bossTime + Formulas.generalBonuses(data.generals).bossTime
+				else 0),
 			bossDps = Formulas.bossDps(stage),
 			armyDamageTaken = BigNum.ZERO,
 			raidDamage = BigNum.ZERO,
@@ -409,7 +411,7 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	else
 		-- The next enemy: sometimes a golden one (tougher, much richer).
 		local baseHp = Formulas.enemyHp(data.stage)
-		local goldenChance = StageConfig.GOLDEN_CHANCE * (1 + skills.goldenChance) -- Lucky Find
+		local goldenChance = StageConfig.GOLDEN_CHANCE * (1 + skills.goldenChance + Formulas.generalBonuses(data.generals).goldenChance) -- Lucky Find, Pip, Seren
 		encounter.golden = encounter.kind == "Normal" and random:NextNumber() < goldenChance
 		encounter.enemyMaxHp = if encounter.golden then BigNum.mulNumber(baseHp, StageConfig.GOLDEN_HP_MULTIPLIER) else baseHp
 		encounter.enemyHp = BigNum.max(BigNum.sub(encounter.enemyMaxHp, damage), BigNum.ONE)

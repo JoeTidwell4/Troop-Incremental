@@ -38,6 +38,7 @@ local ClanShopService = require(Services.ClanShopService)
 local ClanChatService = require(Services.ClanChatService)
 local LegacyService = require(Services.LegacyService)
 local SkillService = require(Services.SkillService)
+local GeneralService = require(Services.GeneralService)
 local DebugService = require(Services.DebugService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
@@ -75,6 +76,7 @@ ClanShopService.start() -- Clan Tokens and the clan shop
 ClanChatService.start() -- cross-server clan chat
 LegacyService.start() -- Legacy: the second prestige + the Crown shop
 SkillService.start() -- Commander Level + skill tree
+GeneralService.start() -- Generals: recruit, field, level
 DebugService.start() -- Studio-only test panel (does nothing in the live game)
 DataService.start() -- last: starts loading players once every listener is connected
 

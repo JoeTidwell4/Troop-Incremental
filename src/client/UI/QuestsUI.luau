@@ -86,6 +86,9 @@ local function rewardText(reward: RewardDef): string
 	if reward.heroChests ~= nil then
 		table.insert(parts, "Hero Chest")
 	end
+	if reward.scrolls ~= nil then
+		table.insert(parts, `{reward.scrolls} Recruit Scroll{if reward.scrolls == 1 then "" else "s"}`)
+	end
 	local honor = honorText(reward)
 	if honor ~= nil then
 		table.insert(parts, honor)

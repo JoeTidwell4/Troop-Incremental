@@ -33,6 +33,14 @@ local template: Types.PlayerData = {
 	abilityUpgrades = {},
 	abilityLoadout = { "Rally", "Barrage", "Plunder" }, -- equipped abilities (Formulas.loadoutSlots)
 	commanderXp = 0, -- Commander Level (never resets)
+	generals = { -- Generals roster (GeneralConfig; kept forever)
+		owned = {},
+		fielded = { "", "", "" },
+		scrolls = 0,
+		shards = 0,
+		pity = { sinceLegendary = 0, sinceMythic = 0 },
+		welcomed = false,
+	},
 	skills = { ranks = {}, respecDay = -1 }, -- skill tree (SkillConfig)
 	lastSeen = 0,
 	faction = "",

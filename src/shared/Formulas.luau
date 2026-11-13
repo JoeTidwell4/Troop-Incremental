@@ -21,6 +21,7 @@ local ClanConfig = require(Shared.Config.ClanConfig)
 local RaidConfig = require(Shared.Config.RaidConfig)
 local LegacyConfig = require(Shared.Config.LegacyConfig)
 local SkillConfig = require(Shared.Config.SkillConfig)
+local GeneralConfig = require(Shared.Config.GeneralConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -136,10 +137,20 @@ function Formulas.troopUnlocked(troopId: string, bestStage: number): boolean
 	return def ~= nil and bestStage >= (def.unlockStage or 0)
 end
 
+-- Multiplies per-troop General bonuses into a troop multiplier table (in place).
+local function applyTroopBonuses(target: { [string]: number }, bonuses: { [string]: number })
+	for troopId, multiplier in bonuses do
+		target[troopId] = (target[troopId] or 1) * multiplier
+	end
+end
+
 -- Per-troop DAMAGE multipliers for a fight: faction bonus x the area's trait x each
 -- troop's job (bosses vs normal enemies). HP only uses the faction bonus.
-function Formulas.fightDamageMultipliers(factionId: string, stage: number, vsBoss: boolean): TroopMultipliers
+function Formulas.fightDamageMultipliers(factionId: string, stage: number, vsBoss: boolean, generals: Types.GeneralsData?): TroopMultipliers
 	local result = Formulas.factionTroopMultipliers(factionId)
+	if generals ~= nil then
+		applyTroopBonuses(result, Formulas.generalBonuses(generals).troopDamage)
+	end
 	local trait = Areas.forStage(stage).theme.trait
 	for _, troopId in TroopConfig.ORDER do
 		local def = TroopConfig.TROOPS[troopId]
@@ -159,6 +170,15 @@ function Formulas.factionTroopMultipliers(factionId: string): TroopMultipliers
 		return {}
 	end
 	return { [def.troopId] = FactionConfig.TROOP_BONUS }
+end
+
+-- Per-troop HP multipliers: faction + fielded Generals (e.g. Brannoc: Knights).
+function Formulas.troopHpMultipliers(factionId: string, generals: Types.GeneralsData?): TroopMultipliers
+	local result = Formulas.factionTroopMultipliers(factionId)
+	if generals ~= nil then
+		applyTroopBonuses(result, Formulas.generalBonuses(generals).troopHp)
+	end
+	return result
 end
 
 -- Total DPS of all troops of one type, including that type's weapon and faction bonus.
@@ -418,6 +438,85 @@ function Formulas.honorForStage(stage: number): BigNum
 		AscendConfig.HONOR_BASE
 	)
 	return BigNum.floor(raw)
+end
+
+---------------------------------------------------------------- generals
+
+function Formulas.generalMaxLevel(stars: number): number
+	return stars * GeneralConfig.LEVELS_PER_STAR
+end
+
+-- How strong a General's passive is (levels and stars) and its trait (stars only).
+function Formulas.generalPassivePower(state: Types.GeneralState): number
+	return (1 + GeneralConfig.LEVEL_STEP * (state.level - 1)) * (1 + GeneralConfig.STAR_STEP * (state.stars - 1))
+end
+
+function Formulas.generalTraitPower(state: Types.GeneralState): number
+	return 1 + GeneralConfig.STAR_STEP * (state.stars - 1)
+end
+
+-- The trait's value for a General at its current stars (e.g. 0.5 -> 0.625 at 2 stars).
+function Formulas.generalTraitValue(def: Types.GeneralDef, state: Types.GeneralState): number
+	return def.trait.value * Formulas.generalTraitPower(state)
+end
+
+-- Gold to raise a General from `level` to `level + 1`.
+function Formulas.generalLevelCost(generalId: string, level: number, bestStage: number): BigNum
+	local def = GeneralConfig.GENERALS[generalId]
+	local rarity = GeneralConfig.RARITIES[if def ~= nil then def.rarity else "Rare"]
+	local kills = GeneralConfig.LEVEL_COST_KILLS * GeneralConfig.LEVEL_COST_GROWTH ^ (level - 1) * rarity.costMultiplier
+	return BigNum.round(BigNum.mulNumber(Formulas.goldPerKill(bestStage), kills))
+end
+
+-- Everything the FIELDED Generals add up to.
+function Formulas.generalBonuses(generals: Types.GeneralsData?): Types.GeneralBonuses
+	local result: Types.GeneralBonuses = {
+		damage = 1,
+		armyHp = 1,
+		gold = 1,
+		tap = 1,
+		bossDamage = 1,
+		troopDamage = {},
+		troopHp = {},
+		critChance = 0,
+		bossTime = 0,
+		goldenChance = 0,
+	}
+	if generals == nil then
+		return result
+	end
+	local passive = { damage = 0, armyHp = 0, gold = 0, tap = 0 } :: { [string]: number }
+	for _, generalId in generals.fielded do
+		local def = GeneralConfig.GENERALS[generalId]
+		local state = generals.owned[generalId]
+		if def ~= nil and state ~= nil then
+			passive[def.passive.stat] = (passive[def.passive.stat] or 0) + def.passive.value * Formulas.generalPassivePower(state)
+			local value = Formulas.generalTraitValue(def, state)
+			local trait = def.trait
+			if trait.kind == "troopDamage" and trait.troopId ~= nil then
+				result.troopDamage[trait.troopId] = (result.troopDamage[trait.troopId] or 1) * (1 + value)
+			elseif trait.kind == "troopHp" and trait.troopId ~= nil then
+				result.troopHp[trait.troopId] = (result.troopHp[trait.troopId] or 1) * (1 + value)
+			elseif trait.kind == "allTroopDamage" then
+				for _, troopId in TroopConfig.ORDER do
+					result.troopDamage[troopId] = (result.troopDamage[troopId] or 1) * (1 + value)
+				end
+			elseif trait.kind == "critChance" then
+				result.critChance += value
+			elseif trait.kind == "bossTime" then
+				result.bossTime += value
+			elseif trait.kind == "goldenChance" then
+				result.goldenChance += value
+			elseif trait.kind == "bossDamageTaken" then
+				result.bossDamage *= math.max(0.1, 1 + value)
+			end
+		end
+	end
+	result.damage = 1 + passive.damage
+	result.armyHp = 1 + passive.armyHp
+	result.gold = 1 + passive.gold
+	result.tap = 1 + passive.tap
+	return result
 end
 
 ---------------------------------------------------------------- commander level + skills

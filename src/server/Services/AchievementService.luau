@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
 local AchievementConfig = require(Shared:WaitForChild("Config"):WaitForChild("AchievementConfig"))
+local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local DataService = require(Services.DataService)
 local DailyService = require(Services.DailyService)
 local ActivityService = require(Services.ActivityService)
@@ -54,6 +55,26 @@ local function current(data: PlayerData, def: AchievementDef): number
 		return if data.faction ~= "" then 1 else 0
 	elseif kind == "warWin" then
 		return if WarService.hasWinnerBonus(data) then 1 else 0
+	elseif kind == "generals" then
+		local count = 0
+		for _ in data.generals.owned do
+			count += 1
+		end
+		return count
+	elseif kind == "generalStars" then
+		local best = 0
+		for _, state in data.generals.owned do
+			best = math.max(best, state.stars)
+		end
+		return best
+	elseif kind == "generalRarity" then
+		for generalId in data.generals.owned do
+			local generalDef = GeneralConfig.GENERALS[generalId]
+			if generalDef ~= nil and generalDef.rarity == def.key then
+				return 1
+			end
+		end
+		return 0
 	end
 	return 0
 end
