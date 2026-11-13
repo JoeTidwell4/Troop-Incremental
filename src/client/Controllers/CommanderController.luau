@@ -1,11 +1,13 @@
 --!strict
--- Your avatar as the commander: gives it a sword and swings its arm when you click the
+-- Your avatar as the commander: gives it a sword and swings when you click the
 -- battlefield. Visual only and only on your own screen. The server already put the
 -- avatar in place (PlotService).
 --
--- Avatars come in two body types: R15 (modern, "RightHand" + "RightShoulder" joint) and
--- R6 (classic, "Right Arm" + "Right Shoulder" joint). Both are handled; if a custom avatar
--- has neither, the sword and swing are skipped and the avatar just stands there.
+-- The swing has two parts:
+--   * The sword slashes (always works: we made that weld ourselves).
+--   * The arm lifts, if we can find the shoulder joint. Avatars use either classic
+--     Motor6D joints or Roblox's newer AnimationConstraint joints; both are handled.
+-- What was found is printed once to Output to help debug odd avatars.
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -13,25 +15,38 @@ local TweenService = game:GetService("TweenService")
 local Controllers = script.Parent
 local InputController = require(Controllers.InputController)
 
-local SWING_COOLDOWN = 0.25
-local SWING_TIME = 0.12
+local SWING_COOLDOWN = 0.3
 local SWORD_COLOR = Color3.fromRGB(200, 205, 215)
+local SWORD_LENGTH = 4
+local RAISE_ANGLE = math.rad(60) -- sword lifted up before the slash
+local SLASH_ANGLE = math.rad(-35) -- sword swung down past forward
+local ARM_ANGLE = math.rad(80)
 
-type Rig = {
-	shoulder: Motor6D,
-	restC0: CFrame,
-	swingC0: CFrame,
+type Swing = {
+	-- Sword weld: rotates around the grip point in the hand.
+	swordWeld: Weld?,
+	gripPoint: CFrame,
+	-- Shoulder: a Motor6D (tween C0) or an AnimationConstraint (tween Attachment0.CFrame).
+	armTarget: Instance?,
+	armProperty: string,
+	armRest: CFrame,
+	armRaised: CFrame,
 }
 
-local rig: Rig? = nil
+local current: Swing? = nil
 local lastSwing = 0
 
 local CommanderController = {}
 
-local function addSword(hand: BasePart, gripOffset: CFrame)
+local function swordCFrame(gripPoint: CFrame, angle: number): CFrame
+	-- Rotate around the grip, then push the blade out forward from the hand.
+	return gripPoint * CFrame.Angles(angle, 0, 0) * CFrame.new(0, 0, -(SWORD_LENGTH / 2 - 0.1))
+end
+
+local function addSword(hand: BasePart, gripPoint: CFrame): Weld
 	local sword = Instance.new("Part")
 	sword.Name = "CommanderSword"
-	sword.Size = Vector3.new(0.25, 0.4, 4)
+	sword.Size = Vector3.new(0.25, 0.4, SWORD_LENGTH)
 	sword.Color = SWORD_COLOR
 	sword.Material = Enum.Material.Metal
 	sword.CanCollide = false
@@ -43,61 +58,101 @@ local function addSword(hand: BasePart, gripOffset: CFrame)
 	local weld = Instance.new("Weld")
 	weld.Part0 = hand
 	weld.Part1 = sword
-	weld.C0 = gripOffset
+	weld.C0 = swordCFrame(gripPoint, 0)
 	weld.Parent = sword
 	sword.Parent = hand.Parent
+	return weld
+end
+
+-- Finds the joint that moves `arm`: (instance, property to tween, axis rotation) or nil.
+local function findShoulder(character: Model, arm: BasePart, rotation: CFrame): (Instance?, string, CFrame)
+	for _, item in character:GetDescendants() do
+		if item:IsA("Motor6D") and item.Part1 == arm then
+			return item, "C0", rotation
+		end
+		if item.ClassName == "AnimationConstraint" then
+			local attachment1 = (item :: any).Attachment1 :: Attachment?
+			local attachment0 = (item :: any).Attachment0 :: Attachment?
+			if attachment1 ~= nil and attachment0 ~= nil and attachment1.Parent == arm then
+				return attachment0, "CFrame", rotation
+			end
+		end
+	end
+	return nil, "", CFrame.identity
 end
 
 local function setupCharacter(character: Model)
-	rig = nil
+	current = nil
 	local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
 	if humanoid == nil then
 		return
 	end
 
-	if humanoid.RigType == Enum.HumanoidRigType.R15 then
-		local hand = character:WaitForChild("RightHand", 10) :: BasePart?
-		local upperArm = character:WaitForChild("RightUpperArm", 10)
-		local shoulder = if upperArm ~= nil then upperArm:FindFirstChild("RightShoulder") else nil
-		if hand ~= nil then
-			addSword(hand, CFrame.new(0, -0.2, -1.9))
-		end
-		if shoulder ~= nil and shoulder:IsA("Motor6D") then
-			-- Raise the arm forward by rotating around the shoulder's X axis.
-			rig = {
-				shoulder = shoulder,
-				restC0 = shoulder.C0,
-				swingC0 = shoulder.C0 * CFrame.Angles(math.rad(110), 0, 0),
-			}
-		end
-	else
-		local arm = character:WaitForChild("Right Arm", 10) :: BasePart?
-		local torso = character:WaitForChild("Torso", 10)
-		local shoulder = if torso ~= nil then torso:FindFirstChild("Right Shoulder") else nil
-		if arm ~= nil then
-			addSword(arm, CFrame.new(0, -1, -1.9))
-		end
-		if shoulder ~= nil and shoulder:IsA("Motor6D") then
-			-- R6 shoulder joints are turned sideways, so "forward" is around Z.
-			rig = {
-				shoulder = shoulder,
-				restC0 = shoulder.C0,
-				swingC0 = shoulder.C0 * CFrame.Angles(0, 0, math.rad(110)),
-			}
+	local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
+	local hand = character:WaitForChild(if isR15 then "RightHand" else "Right Arm", 10) :: BasePart?
+	local arm = character:WaitForChild(if isR15 then "RightUpperArm" else "Right Arm", 10) :: BasePart?
+	-- R15 joints raise the arm forward around X; R6 shoulder joints are turned sideways (Z).
+	local armRotation = if isR15 then CFrame.Angles(ARM_ANGLE, 0, 0) else CFrame.Angles(0, 0, ARM_ANGLE)
+	local gripPoint = if isR15 then CFrame.new(0, -0.2, 0) else CFrame.new(0, -0.9, 0)
+
+	local swing: Swing = {
+		swordWeld = nil,
+		gripPoint = gripPoint,
+		armTarget = nil,
+		armProperty = "",
+		armRest = CFrame.identity,
+		armRaised = CFrame.identity,
+	}
+
+	-- Guard against setting up the same character twice (two swords).
+	if hand ~= nil and character:FindFirstChild("CommanderSword") == nil then
+		swing.swordWeld = addSword(hand, gripPoint)
+	end
+
+	local jointKind = "none"
+	if arm ~= nil then
+		local target, property, rotation = findShoulder(character, arm, armRotation)
+		if target ~= nil then
+			local rest = (target :: any)[property] :: CFrame
+			swing.armTarget = target
+			swing.armProperty = property
+			swing.armRest = rest
+			swing.armRaised = rest * rotation
+			jointKind = if property == "C0" then "Motor6D" else "AnimationConstraint"
 		end
 	end
+
+	print(`[Commander] Avatar {if isR15 then "R15" else "R6"}, sword: {hand ~= nil}, shoulder joint: {jointKind}`)
+	current = swing
 end
 
 local function swing()
-	local current = rig
+	local state = current
 	local now = os.clock()
-	if current == nil or now - lastSwing < SWING_COOLDOWN then
+	if state == nil or now - lastSwing < SWING_COOLDOWN then
 		return
 	end
 	lastSwing = now
-	current.shoulder.C0 = current.restC0
-	local info = TweenInfo.new(SWING_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
-	TweenService:Create(current.shoulder, info, { C0 = current.swingC0 }):Play()
+
+	local weld = state.swordWeld
+	if weld ~= nil then
+		-- Lift, slash down, then return to rest.
+		weld.C0 = swordCFrame(state.gripPoint, RAISE_ANGLE)
+		local slash = TweenService:Create(weld, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			C0 = swordCFrame(state.gripPoint, SLASH_ANGLE),
+		})
+		slash.Completed:Connect(function()
+			TweenService:Create(weld, TweenInfo.new(0.15), { C0 = swordCFrame(state.gripPoint, 0) }):Play()
+		end)
+		slash:Play()
+	end
+
+	local target = state.armTarget
+	if target ~= nil then
+		(target :: any)[state.armProperty] = state.armRest
+		local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+		TweenService:Create(target, info, { [state.armProperty] = state.armRaised }):Play()
+	end
 end
 
 function CommanderController.start()

@@ -4,6 +4,9 @@
 --
 -- The avatar is anchored in place and movement controls are turned off: the game is
 -- played from a fixed camera, so walking around would only fight the camera.
+-- The battlefield ground is built only on each client, so the server puts a small
+-- invisible floor under each commander. Without it Roblox thinks the avatar is in mid-air
+-- and plays the falling animation forever.
 -- The plot number is stored as a Player attribute; the client builds its battlefield there.
 
 local Players = game:GetService("Players")
@@ -17,9 +20,32 @@ local WorldConfig = require(Shared:WaitForChild("Config"):WaitForChild("WorldCon
 -- a 1-stud-thick ground centered on the plot).
 local GROUND_TOP = 0.5
 local CHARACTER_LOAD_TIMEOUT = 10
+local FLOOR_SIZE = Vector3.new(8, 1, 8)
 
 local plotOwners: { [number]: Player } = {}
 local playerPlots: { [Player]: number } = {}
+local floors: { [number]: BasePart } = {}
+local floorFolder: Folder? = nil
+
+-- Invisible floor under the commander's spot on a plot.
+local function createFloor(index: number)
+	if floorFolder == nil then
+		local folder = Instance.new("Folder")
+		folder.Name = "CommanderFloors"
+		folder.Parent = workspace
+		floorFolder = folder
+	end
+	local floor = Instance.new("Part")
+	floor.Name = `Plot{index}`
+	floor.Size = FLOOR_SIZE
+	floor.Anchored = true
+	floor.CanCollide = true
+	floor.Transparency = 1
+	floor.CastShadow = false
+	floor.Position = Plots.origin(index) + WorldConfig.COMMANDER_OFFSET + Vector3.new(0, GROUND_TOP - FLOOR_SIZE.Y / 2, 0)
+	floor.Parent = floorFolder
+	floors[index] = floor
+end
 
 local PlotService = {}
 
@@ -30,6 +56,9 @@ local function claimPlot(player: Player): number
 	end
 	plotOwners[index] = player
 	playerPlots[player] = index
+	if floors[index] == nil then
+		createFloor(index)
+	end
 	player:SetAttribute(Plots.ATTRIBUTE, index)
 	return index
 end
