@@ -89,6 +89,12 @@ local function useAbility(player: Player, abilityId: string)
 	DataService.markChanged(player)
 end
 
+-- Uses an ability if it's unlocked and ready; does nothing otherwise.
+-- (Used by the Auto Abilities pass. Same checks as a player pressing the button.)
+function AbilityService.tryUse(player: Player, abilityId: string)
+	useAbility(player, abilityId)
+end
+
 function AbilityService.start()
 	-- Active timed abilities feed their multipliers into combat.
 	ModifierService.register(function(player: Player): ModifierService.PartialModifiers?

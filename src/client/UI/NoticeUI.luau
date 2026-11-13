@@ -12,6 +12,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Areas = require(Shared:WaitForChild("Areas"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
+local AudioController = require(Client.Controllers.AudioController)
 local StateController = require(Client.Controllers.StateController)
 
 type Snapshot = Types.Snapshot
@@ -71,6 +72,9 @@ local function onNotice(notice: Notice)
 		local nextArea = Areas.forStage(notice.stage + 1)
 		local bonus = if notice.firstClear then "  (+1 free gear pack!)" else ""
 		NoticeUI.show("BOSS DEFEATED!", `Entering Area {nextArea.number}: {nextArea.displayName}{bonus}`, Theme.Gold)
+	elseif notice.kind == "Purchase" then
+		AudioController.play("Purchase")
+		NoticeUI.show("THANK YOU!", `{notice.itemName or "Your purchase"} is yours. Enjoy!`, Color3.fromRGB(0, 176, 111))
 	elseif notice.kind == "RaidResult" then
 		NoticeUI.show("RAID ATTACK DONE", `+{notice.units or 0} raid units for your clan!`, Color3.fromRGB(230, 120, 40))
 	elseif notice.kind == "RaidRewards" then

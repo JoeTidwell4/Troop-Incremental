@@ -4,6 +4,12 @@
 
 local UIKit = {}
 
+-- Hooks other modules can fill in (e.g. AudioController sets onButtonClick for click sounds).
+-- This table stays writable even though UIKit itself is frozen.
+UIKit.hooks = {
+	onButtonClick = nil :: (() -> ())?,
+}
+
 UIKit.Theme = table.freeze({
 	Panel = Color3.fromRGB(28, 30, 40),
 	PanelLight = Color3.fromRGB(44, 47, 62),
@@ -96,7 +102,14 @@ function UIKit.button(props: { [string]: any }): TextButton
 	for key, value in props do
 		defaults[key] = value
 	end
-	return UIKit.create("TextButton", defaults, { UIKit.corner(8) }) :: TextButton
+	local button = UIKit.create("TextButton", defaults, { UIKit.corner(8) }) :: TextButton
+	button.Activated:Connect(function()
+		local hook = UIKit.hooks.onButtonClick
+		if hook ~= nil then
+			hook()
+		end
+	end)
+	return button
 end
 
 return table.freeze(UIKit)

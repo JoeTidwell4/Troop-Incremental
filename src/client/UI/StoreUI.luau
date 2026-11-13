@@ -1,0 +1,275 @@
+--!strict
+-- Robux store window ("STORE" button on the left). Lists the game passes and gold
+-- products that have been set up (id > 0 in MonetizationConfig); anything not set up is
+-- hidden. Prices are read live from Roblox.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Client = script.Parent.Parent
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Formulas = require(Shared:WaitForChild("Formulas"))
+local BigNum = require(Shared:WaitForChild("BigNum"))
+local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
+local MonetizationConfig = require(Shared:WaitForChild("Config"):WaitForChild("MonetizationConfig"))
+local UIKit = require(script.Parent.UIKit)
+local StateController = require(Client.Controllers.StateController)
+local MonetizationController = require(Client.Controllers.MonetizationController)
+
+local Theme = UIKit.Theme
+local ROBUX_GREEN = Color3.fromRGB(0, 176, 111)
+
+type Row = { refresh: () -> () }
+
+local StoreUI = {}
+
+function StoreUI.start()
+	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+	local gui = UIKit.create("ScreenGui", {
+		Name = "Store",
+		ResetOnSpawn = false,
+		DisplayOrder = 17,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	}) :: ScreenGui
+
+	-- Under the sound button on the left.
+	local storeButton = UIKit.button({
+		Name = "StoreButton",
+		Text = "STORE",
+		TextSize = 14,
+		BackgroundColor3 = ROBUX_GREEN,
+		Position = UDim2.new(0, 12, 0, 12 + 134 + 6 + 34 + 6 + 26 + 6),
+		Size = UDim2.new(0, 102, 0, 30),
+		Parent = gui,
+	})
+
+	local overlay = UIKit.create("Frame", {
+		Name = "Overlay",
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		Active = true,
+		Size = UDim2.new(1, 0, 1, 0),
+		Visible = false,
+		Parent = gui,
+	}) :: Frame
+	local window = UIKit.create("Frame", {
+		Name = "Window",
+		BackgroundColor3 = Theme.Panel,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.48, 0),
+		Size = UDim2.new(0.9, 0, 0.82, 0),
+		Parent = overlay,
+	}, {
+		UIKit.corner(14),
+		UIKit.padding(14),
+		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(520, 400) }),
+	}) :: Frame
+	UIKit.label({
+		Text = "Store",
+		Font = Theme.FontBold,
+		TextSize = 22,
+		TextColor3 = ROBUX_GREEN,
+		Size = UDim2.new(1, -40, 0, 26),
+		Parent = window,
+	})
+	local closeButton = UIKit.button({
+		Text = "X",
+		TextSize = 16,
+		BackgroundColor3 = Theme.PanelLight,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.new(0, 32, 0, 32),
+		Parent = window,
+	})
+	local list = UIKit.create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, 36),
+		Size = UDim2.new(1, 0, 1, -36),
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6,
+		Parent = window,
+	}, {
+		UIKit.create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+	}) :: ScrollingFrame
+
+	local rows: { Row } = {}
+	local order = 0
+
+	local function heading(text: string)
+		order += 1
+		UIKit.label({
+			Text = text,
+			Font = Theme.FontBold,
+			TextSize = 15,
+			TextColor3 = Theme.Muted,
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 20),
+			Parent = list,
+		})
+	end
+
+	-- One store item: name, description, extra line, and a button on the right.
+	local function itemRow(title: string, description: string): (TextLabel, TextButton)
+		order += 1
+		local row = UIKit.create("Frame", {
+			LayoutOrder = order,
+			BackgroundColor3 = Theme.PanelLight,
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, -8, 0, 62),
+			Parent = list,
+		}, { UIKit.corner(8) }) :: Frame
+		UIKit.label({
+			Text = title,
+			Font = Theme.FontBold,
+			TextSize = 15,
+			Position = UDim2.new(0, 10, 0, 6),
+			Size = UDim2.new(1, -130, 0, 18),
+			Parent = row,
+		})
+		UIKit.label({
+			Text = description,
+			TextColor3 = Theme.Muted,
+			TextSize = 12,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Position = UDim2.new(0, 10, 0, 26),
+			Size = UDim2.new(1, -130, 0, 16),
+			Parent = row,
+		})
+		local extra = UIKit.label({
+			Text = "",
+			TextColor3 = Theme.Gold,
+			TextSize = 12,
+			Position = UDim2.new(0, 10, 0, 42),
+			Size = UDim2.new(1, -130, 0, 16),
+			Parent = row,
+		})
+		local button = UIKit.button({
+			Text = "",
+			TextSize = 13,
+			BackgroundColor3 = ROBUX_GREEN,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -8, 0.5, 0),
+			Size = UDim2.new(0, 110, 0, 44),
+			Parent = row,
+		})
+		return extra, button
+	end
+
+	local anyItems = false
+
+	heading("Game passes (yours forever)")
+	for _, passKey in MonetizationConfig.PASS_ORDER do
+		local def = MonetizationConfig.PASSES[passKey]
+		if def.id > 0 then
+			anyItems = true
+			local extra, button = itemRow(def.displayName, def.description)
+			local function refresh()
+				local ownsIt = MonetizationController.owns(passKey)
+				local snapshot = StateController.get()
+				if ownsIt and passKey == "AutoAbilities" then
+					local on = snapshot ~= nil and snapshot.autoAbilities
+					extra.Text = "Owned"
+					button.Text = if on then "Auto: ON" else "Auto: OFF"
+					button.BackgroundColor3 = if on then Theme.Good else Theme.Disabled
+				elseif ownsIt then
+					extra.Text = "Owned"
+					button.Text = "Owned"
+					button.BackgroundColor3 = Theme.Disabled
+				else
+					local price = MonetizationController.getPrice("Pass", def.id)
+					extra.Text = ""
+					button.Text = if price ~= nil then `R$ {price}` else "Buy"
+					button.BackgroundColor3 = ROBUX_GREEN
+				end
+			end
+			button.Activated:Connect(function()
+				if MonetizationController.owns(passKey) then
+					if passKey == "AutoAbilities" then
+						local snapshot = StateController.get()
+						MonetizationController.setAutoAbilities(not (snapshot ~= nil and snapshot.autoAbilities))
+					end
+					return
+				end
+				MonetizationController.promptPass(passKey)
+			end)
+			table.insert(rows, { refresh = refresh })
+		end
+	end
+
+	heading("Gold (buy any time)")
+	for _, productKey in MonetizationConfig.PRODUCT_ORDER do
+		local def = MonetizationConfig.PRODUCTS[productKey]
+		if def.id > 0 then
+			anyItems = true
+			local extra, button = itemRow(def.displayName, def.description)
+			local function refresh()
+				local snapshot = StateController.get()
+				if snapshot ~= nil and def.goldMinutes ~= nil then
+					-- Same math as the server, for a preview (the server decides the real amount).
+					local gold = Formulas.offlineGold(
+						snapshot.armyDps,
+						snapshot.goldMultiplier,
+						Formulas.offlineStage(snapshot.highestStage),
+						def.goldMinutes * 60,
+						1
+					)
+					gold = BigNum.max(gold, BigNum.fromNumber(MonetizationConfig.GOLD_PRODUCT_MINIMUM))
+					extra.Text = `About {NumberFormat.big(gold)} gold right now`
+				end
+				local price = MonetizationController.getPrice("Product", def.id)
+				button.Text = if price ~= nil then `R$ {price}` else "Buy"
+			end
+			button.Activated:Connect(function()
+				MonetizationController.promptProduct(productKey)
+			end)
+			table.insert(rows, { refresh = refresh })
+		end
+	end
+
+	if not anyItems then
+		order += 1
+		UIKit.label({
+			Text = "The store isn't open yet. Check back soon!",
+			TextColor3 = Theme.Muted,
+			TextSize = 14,
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 30),
+			Parent = list,
+		})
+	end
+
+	local function refreshAll()
+		for _, row in rows do
+			task.spawn(row.refresh) -- price lookups yield the first time
+		end
+	end
+
+	storeButton.Activated:Connect(function()
+		overlay.Visible = true
+		refreshAll()
+	end)
+	closeButton.Activated:Connect(function()
+		overlay.Visible = false
+	end)
+	StateController.Changed:Connect(function()
+		if overlay.Visible then
+			refreshAll()
+		end
+	end)
+	Players.LocalPlayer.AttributeChanged:Connect(function()
+		if overlay.Visible then
+			refreshAll()
+		end
+	end)
+
+	gui.Parent = playerGui
+end
+
+return StoreUI

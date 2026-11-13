@@ -241,6 +241,8 @@ export type PlayerData = {
 	clanId: string, -- "" = not in a clan (a cached copy; the clan record is the truth)
 	clanDonation: { dayId: number, amount: number }, -- Supplies donated today
 	raid: RaidRecord, -- this player's clan raid week
+	purchases: { string }, -- recent Robux purchase ids already granted (newest last)
+	autoAbilities: boolean, -- Auto Abilities pass: on/off
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -306,11 +308,13 @@ export type Snapshot = {
 	raidAttacksLeft: number, -- today
 	raidUnitsWeek: number, -- your contribution this raid week
 	raidUnitsLive: number, -- units so far in the raid attack you're doing right now
+
+	autoAbilities: boolean,
 }
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -323,6 +327,8 @@ export type Notice = {
 	tier: number?,
 	honor: number?,
 	packs: number?,
+	-- Purchase only:
+	itemName: string?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"
@@ -361,6 +367,24 @@ export type LeaderboardEntry = { name: string, value: number }
 export type Leaderboards = {
 	bestStage: { LeaderboardEntry },
 	honor: { LeaderboardEntry },
+}
+
+export type SoundDef = { id: string, volume: number }
+
+export type PassDef = {
+	key: string,
+	id: number, -- Roblox game pass id (0 = not set up yet, hidden)
+	displayName: string,
+	description: string,
+	goldMultiplier: number?,
+}
+
+export type ProductDef = {
+	key: string,
+	id: number, -- Roblox developer product id (0 = not set up yet, hidden)
+	displayName: string,
+	description: string,
+	goldMinutes: number?, -- gives this many minutes of your army's gold
 }
 
 -- ModuleScripts must return a value; this module only exists for its types.

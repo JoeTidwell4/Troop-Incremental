@@ -34,6 +34,25 @@ type Swing = {
 }
 
 local current: Swing? = nil
+local currentSword: BasePart? = nil
+
+local GOLDEN_SWORD_ATTRIBUTE = "Pass_GoldenSword" -- set by the server when you own the pass
+local GOLDEN_COLOR = Color3.fromRGB(255, 200, 60)
+
+-- Golden Sword pass: a glowing gold blade. Looks only.
+local function styleSword()
+	local sword = currentSword
+	if sword == nil then
+		return
+	end
+	if Players.LocalPlayer:GetAttribute(GOLDEN_SWORD_ATTRIBUTE) == true then
+		sword.Color = GOLDEN_COLOR
+		sword.Material = Enum.Material.Neon
+	else
+		sword.Color = SWORD_COLOR
+		sword.Material = Enum.Material.Metal
+	end
+end
 local lastSwing = 0
 
 local CommanderController = {}
@@ -106,7 +125,10 @@ local function setupCharacter(character: Model)
 
 	-- Guard against setting up the same character twice (two swords).
 	if hand ~= nil and character:FindFirstChild("CommanderSword") == nil then
-		swing.swordWeld = addSword(hand, gripPoint)
+		local weld = addSword(hand, gripPoint)
+		swing.swordWeld = weld
+		currentSword = weld.Part1
+		styleSword()
 	end
 
 	local jointKind = "none"
@@ -157,6 +179,7 @@ end
 
 function CommanderController.start()
 	local player = Players.LocalPlayer
+	player:GetAttributeChangedSignal(GOLDEN_SWORD_ATTRIBUTE):Connect(styleSword)
 	player.CharacterAdded:Connect(function(character: Model)
 		setupCharacter(character)
 	end)

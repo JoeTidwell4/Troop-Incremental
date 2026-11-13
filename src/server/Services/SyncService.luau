@@ -101,6 +101,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		raidAttacksLeft = 0,
 		raidUnitsWeek = 0,
 		raidUnitsLive = 0,
+		autoAbilities = data.autoAbilities,
 	}
 	for _, provider in extraProviders do
 		for key, value in provider(player, data) do

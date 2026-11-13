@@ -27,6 +27,8 @@ type PlayerData = Types.PlayerData
 
 type Profile = {
 	Data: PlayerData,
+	LastSavedData: any,
+	Save: (self: Profile) -> (),
 	OnSessionEnd: { Connect: (self: any, listener: () -> ()) -> any },
 	AddUserId: (self: Profile, userId: number) -> (),
 	Reconcile: (self: Profile) -> (),
@@ -58,6 +60,28 @@ function DataService.get(player: Player): PlayerData?
 		return nil
 	end
 	return profile.Data
+end
+
+-- Asks ProfileStore to save now, then waits until the saved copy passes `isSaved`.
+-- Returns false on timeout or if the session ended. Used for Robux purchase receipts,
+-- which must only be confirmed to Roblox once the grant is safely stored.
+function DataService.saveAndWait(player: Player, isSaved: (savedData: any) -> boolean, timeout: number): boolean
+	local profile = profiles[player]
+	if profile == nil or not profile:IsActive() then
+		return false
+	end
+	profile:Save()
+	local deadline = os.clock() + timeout
+	while os.clock() < deadline do
+		if isSaved(profile.LastSavedData) then
+			return true
+		end
+		if not profile:IsActive() then
+			return false
+		end
+		task.wait(0.5)
+	end
+	return false
 end
 
 function DataService.markChanged(player: Player)
@@ -93,6 +117,16 @@ local function sanitize(data: PlayerData)
 	end
 	data.clanDonation.dayId = wholeNumber(data.clanDonation.dayId, -1, -1)
 	data.clanDonation.amount = wholeNumber(data.clanDonation.amount, 0, 0)
+	if typeof(data.autoAbilities) ~= "boolean" then
+		data.autoAbilities = true
+	end
+	local cleanPurchases: { string } = {}
+	for _, purchaseId in data.purchases do
+		if typeof(purchaseId) == "string" then
+			table.insert(cleanPurchases, purchaseId)
+		end
+	end
+	data.purchases = cleanPurchases
 	data.raid.weekId = wholeNumber(data.raid.weekId, -1, -1)
 	data.raid.attacks = wholeNumber(data.raid.attacks, 0, 0)
 	data.raid.units = wholeNumber(data.raid.units, 0, 0)

@@ -13,6 +13,7 @@ local GearInfo = require(Shared:WaitForChild("GearInfo"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local GearConfig = require(Shared:WaitForChild("Config"):WaitForChild("GearConfig"))
 local UIKit = require(script.Parent.UIKit)
+local AudioController = require(script.Parent.Parent.Controllers.AudioController)
 
 type PackResult = Types.PackResult
 
@@ -53,6 +54,7 @@ function PackRevealUI.show(result: PackResult)
 	local token = showToken
 
 	overlay.Visible = true
+	AudioController.play("PackOpen")
 	itemLabel.Text = "Opening..."
 	detailLabel.Text = ""
 
@@ -67,6 +69,7 @@ function PackRevealUI.show(result: PackResult)
 	end
 
 	setRarity(rarity)
+	AudioController.play(if rarity >= 3 then "PackRare" else "PackCommon")
 	local rarityDef = GearInfo.rarity(rarity)
 	itemLabel.Text = GearInfo.slotLabel(troopId, slot)
 	local statName = GearConfig.SLOT_INFO[slot].statName
