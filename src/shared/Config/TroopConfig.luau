@@ -52,8 +52,10 @@ local TroopConfig = {
 			role = "x2 damage to bosses. Very fragile.",
 			baseCost = 20000,
 			costGrowth = 1.10,
-			baseDps = 90,
-			baseHp = 60,
+			-- Balance pass (tools/balance_v2.py): was 90 dps / 60 hp, weaker than Knights
+			-- against bosses at the stages it unlocks for.
+			baseDps = 300,
+			baseHp = 200,
 			color = Color3.fromRGB(150, 90, 220),
 			unlockStage = 30,
 			bossMultiplier = 2,
@@ -73,14 +75,17 @@ local TroopConfig = {
 		Siege = {
 			id = "Siege",
 			displayName = "Siege Engine",
-			role = "x3 damage to bosses. Almost no HP.",
+			role = "x2 damage to bosses. Fragile.",
 			baseCost = 100000000,
 			costGrowth = 1.12,
-			baseDps = 500000,
-			baseHp = 50,
+			-- Balance pass (tools/balance_v2.py): was 500,000 dps / 50 hp / x3 vs bosses,
+			-- which grew to ~270x Cavalry's damage and left armies with no HP. Now it ends
+			-- up around 3-5x Cavalry vs bosses and has some HP.
+			baseDps = 11000,
+			baseHp = 4000,
 			color = Color3.fromRGB(120, 100, 85),
 			unlockStage = 100,
-			bossMultiplier = 3,
+			bossMultiplier = 2,
 		},
 	} :: { [string]: TroopDef },
 

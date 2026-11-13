@@ -41,10 +41,14 @@ local HonorConfig = {
 		Might = {
 			id = "Might",
 			displayName = "Commander's Might",
-			description = "x1.5 click damage per level",
+			-- Was x1.5 per level with no cap: clicks ended up doing thousands of times the
+			-- army's damage (tools/balance_v2.py). Now +10% per level, max 10 (x2 clicks).
+			-- Saves with more levels keep them but only the first 10 count.
+			description = "+10% click damage per level",
 			baseCost = 2,
 			costGrowth = 1.5,
-			tapMultiplier = 1.5,
+			maxLevel = 10,
+			tapPerLevel = 0.1,
 		},
 		HeadStart = {
 			id = "HeadStart",

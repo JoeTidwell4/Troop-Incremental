@@ -30,6 +30,7 @@ local Services = script.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
+local BigNum = require(Shared:WaitForChild("BigNum"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local ClanConfig = require(Shared:WaitForChild("Config"):WaitForChild("ClanConfig"))
@@ -505,7 +506,7 @@ local function claimIfDue(player: Player)
 	end
 	claiming[player] = true
 	local result = getResult(weekId) -- may yield
-	local reward: { honor: number?, heroChests: number?, packs: number? }? = nil
+	local reward: { honor: number?, honorShare: number?, heroChests: number?, packs: number? }? = nil
 	local rank: number? = nil
 	local decided = result ~= nil
 	local mvp = false
@@ -551,6 +552,7 @@ local function claimIfDue(player: Player)
 		local base = reward or {}
 		reward = {
 			honor = (base.honor or 0) + ClanConfig.HEAD_TO_HEAD_WIN_HONOR,
+			honorShare = (base.honorShare or 0) + ClanConfig.HEAD_TO_HEAD_HONOR_SHARE,
 			heroChests = base.heroChests,
 			packs = base.packs,
 		}
@@ -560,6 +562,7 @@ local function claimIfDue(player: Player)
 		local base = reward or {}
 		reward = {
 			honor = (base.honor or 0) + ClanConfig.MVP_HONOR,
+			honorShare = (base.honorShare or 0) + ClanConfig.MVP_HONOR_SHARE,
 			heroChests = base.heroChests,
 			packs = base.packs,
 		}
@@ -580,8 +583,9 @@ local function claimIfDue(player: Player)
 	end
 	if reward ~= nil or tokens > 0 then
 		local given = reward or {}
-		DailyService.grant(player, fresh, {
+		local honor = DailyService.grant(player, fresh, {
 			honor = given.honor,
+			honorShare = given.honorShare,
 			heroChests = given.heroChests,
 			packs = given.packs,
 		}, "ClanWar")
@@ -592,7 +596,7 @@ local function claimIfDue(player: Player)
 			mvp = mvp,
 			tokens = tokens,
 			headToHead = headToHead,
-			honor = given.honor,
+			honor = if BigNum.isZero(honor) then nil else BigNum.toNumber(honor),
 			heroChests = given.heroChests,
 			packs = given.packs,
 		})

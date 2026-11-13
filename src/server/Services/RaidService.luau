@@ -86,17 +86,19 @@ local function claimIfDue(player: Player, data: PlayerData)
 			finished = { units = 0, contributors = {} } -- nothing was recorded that week
 		end
 		local tier = Formulas.raidTier(tonumber(finished.units) or 0)
-		local honor, packs = Formulas.raidRewards(tier)
-		fresh.honor = BigNum.add(fresh.honor, BigNum.fromNumber(honor))
-		fresh.stats.honorEarned = BigNum.add(fresh.stats.honorEarned, BigNum.fromNumber(honor))
-		Analytics.honor(player, "Source", BigNum.fromNumber(honor), fresh.honor, "Raid")
+		local honor, packs = Formulas.raidRewards(tier, fresh.bestStage)
+		fresh.honor = BigNum.add(fresh.honor, honor)
+		fresh.stats.honorEarned = BigNum.add(fresh.stats.honorEarned, honor)
+		if not BigNum.isZero(honor) then
+			Analytics.honor(player, "Source", honor, fresh.honor, "Raid")
+		end
 		fresh.packs.free += packs
 		local claimedWeek = record.weekId
 		fresh.raid = newRecord(week)
 		fresh.raid.claimedWeek = claimedWeek
 		DataService.markChanged(player)
 		if tier > 0 then
-			notify(player, { kind = "RaidRewards", stage = 0, tier = tier, honor = honor, packs = packs })
+			notify(player, { kind = "RaidRewards", stage = 0, tier = tier, honor = BigNum.toNumber(honor), packs = packs })
 		end
 		return
 	end

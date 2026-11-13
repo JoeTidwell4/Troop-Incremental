@@ -191,9 +191,9 @@ function ClanRaidTab.build(parent: Instance, context: ClanTypes.Context): ClanTy
 			barLabel.Text = `{fmt(units)} units. Every tier cleared!`
 		end
 		tierLabel.Text = `Tier {tier} of {#tiers} reached`
-		local honor, packs = Formulas.raidRewards(tier)
+		local honor, packs = Formulas.raidRewards(tier, if snapshot ~= nil then snapshot.bestStage else 1)
 		rewardLabel.Text = if tier > 0
-			then `Rewards so far: +{honor} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"} for everyone who attacked.`
+			then `Rewards so far: +{NumberFormat.big(honor)} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"} for everyone who attacked.`
 			else "Reach tier 1 to earn rewards. Every attack counts."
 
 		local attacksLeft = if snapshot ~= nil then snapshot.raidAttacksLeft else 0

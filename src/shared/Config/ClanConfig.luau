@@ -96,12 +96,13 @@ local ClanConfig = {
 	WAR_BOARD_REFRESH = if isStudio then 20 else 120, -- seconds between leaderboard reads
 	WAR_MIN_CONTRIBUTION = if isStudio then 10 else 100, -- your XP to that clan that week, to get rewards
 	WAR_PARTICIPATION_XP = if isStudio then 30 else 500, -- clan XP that week for the small reward
+	-- Honor: `honorShare` of an Ascend's Honor at your best stage, at least `honor`.
 	WAR_REWARDS = {
-		{ maxRank = 1, honor = 25, heroChests = 2 },
-		{ maxRank = 3, honor = 15, heroChests = 1 },
-		{ maxRank = 10, honor = 8, packs = 1 },
-	} :: { { maxRank: number, honor: number?, heroChests: number?, packs: number? } },
-	WAR_PARTICIPATION_REWARD = { honor = 3 } :: { honor: number? },
+		{ maxRank = 1, honor = 25, honorShare = 0.5, heroChests = 2 },
+		{ maxRank = 3, honor = 15, honorShare = 0.3, heroChests = 1 },
+		{ maxRank = 10, honor = 8, honorShare = 0.15, packs = 1 },
+	} :: { { maxRank: number, honor: number?, honorShare: number?, heroChests: number?, packs: number? } },
+	WAR_PARTICIPATION_REWARD = { honor = 3, honorShare = 0.05 } :: { honor: number?, honorShare: number? },
 
 	-- Customization (Phase 11d B): picked by the Leader or Officers. Shown in the clan
 	-- window and on every member's battlefield banner. Emblems are emoji so they work in
@@ -128,6 +129,7 @@ local ClanConfig = {
 	-- Member MVP (Phase 11d F): last week's top contributor gets this much Honor (with the
 	-- Clan War rewards) and a star in the member list.
 	MVP_HONOR = 5,
+	MVP_HONOR_SHARE = 0.1,
 
 	-- Battlefield banner (Phase 11d A): extra decorations unlock at these clan levels.
 	BANNER_LEVELS = { finial = 5, pennants = 10, glow = 15, sparkles = 20, crown = 25 } :: { [string]: number },
@@ -140,6 +142,7 @@ local ClanConfig = {
 	TOKENS_MVP = 10,
 	TOKENS_HEAD_TO_HEAD_WIN = 15,
 	HEAD_TO_HEAD_WIN_HONOR = 5,
+	HEAD_TO_HEAD_HONOR_SHARE = 0.1,
 	-- The clan shop. kind "gear" = commander gear (CommanderConfig, unlock kind "clanShop",
 	-- bought once); "heroChests" / "packs" = buy as often as you like.
 	SHOP = {

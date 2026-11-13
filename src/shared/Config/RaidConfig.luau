@@ -71,7 +71,8 @@ local RaidConfig = {
 
 	-- Cumulative clan units needed for each tier.
 	TIERS = { 100, 300, 600, 1000, 1600, 2500, 3600, 5000, 7000, 10000 } :: { number },
-	HONOR_PER_TIER = 2,
+	HONOR_PER_TIER = 2, -- minimum per tier (what you get before stage 50)
+	HONOR_SHARE_PER_TIER = 0.03, -- per tier: 3% of an Ascend's Honor at your best stage
 	PACK_EVERY_TIERS = 2,
 
 	-- Raid weeks start Monday 00:00 UTC like faction wars. Studio: short weeks/days for testing.

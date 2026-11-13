@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local GearInfo = require(Shared:WaitForChild("GearInfo"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local Config = Shared:WaitForChild("Config")
 local DailyConfig = require(Config:WaitForChild("DailyConfig"))
 local AchievementConfig = require(Config:WaitForChild("AchievementConfig"))
@@ -22,11 +23,12 @@ local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local ProgressController = require(Client.Controllers.ProgressController)
 local AudioController = require(Client.Controllers.AudioController)
+local StateController = require(Client.Controllers.StateController)
 
 type ProgressView = Types.ProgressView
 type RewardDef = Types.RewardDef
 type QuestRow = { text: TextLabel, fill: Frame, progress: TextLabel, reward: TextLabel, claim: TextButton, reroll: TextButton }
-type AchievementRow = { frame: Frame, progress: TextLabel, claim: TextButton }
+type AchievementRow = { frame: Frame, progress: TextLabel, honor: TextLabel, claim: TextButton }
 
 local Theme = UIKit.Theme
 local fmt = NumberFormat.number
@@ -58,6 +60,21 @@ local function duration(seconds: number): string
 	return `{minutes}m {seconds % 60}s`
 end
 
+-- Honor rewards scale with your best stage, so the numbers shown follow it too.
+local function bestStage(): number
+	local snapshot = StateController.get()
+	return if snapshot ~= nil then snapshot.bestStage else 1
+end
+
+local function honorText(reward: RewardDef): string?
+	if reward.honorShare ~= nil then
+		return `{NumberFormat.big(Formulas.scaledHonor(bestStage(), reward.honorShare, reward.honor or 0))} Honor`
+	elseif reward.honor ~= nil then
+		return `{reward.honor} Honor`
+	end
+	return nil
+end
+
 local function rewardText(reward: RewardDef): string
 	local parts: { string } = {}
 	if reward.goldMinutes ~= nil then
@@ -69,8 +86,9 @@ local function rewardText(reward: RewardDef): string
 	if reward.heroChests ~= nil then
 		table.insert(parts, "Hero Chest")
 	end
-	if reward.honor ~= nil then
-		table.insert(parts, `{reward.honor} Honor`)
+	local honor = honorText(reward)
+	if honor ~= nil then
+		table.insert(parts, honor)
 	end
 	return table.concat(parts, " + ")
 end
@@ -187,7 +205,7 @@ function QuestsUI.start()
 
 	---------------------------------------------------------------- Daily
 	local dailyPage = page("Daily")
-	local dayCells: { { frame: Frame, title: TextLabel, reward: TextLabel } } = {}
+	local dayCells: { { frame: Frame, title: TextLabel, reward: TextLabel, def: RewardDef } } = {}
 	for i, reward in DailyConfig.LOGIN_REWARDS do
 		local cell = UIKit.create("Frame", {
 			BackgroundColor3 = Theme.PanelLight,
@@ -215,7 +233,7 @@ function QuestsUI.start()
 			Size = UDim2.new(1, 0, 1, -26),
 			Parent = cell,
 		})
-		table.insert(dayCells, { frame = cell, title = title, reward = rewardLabel })
+		table.insert(dayCells, { frame = cell, title = title, reward = rewardLabel, def = reward })
 	end
 	local loginInfo = UIKit.label({
 		Text = "",
@@ -340,8 +358,8 @@ function QuestsUI.start()
 			Size = UDim2.new(0, 90, 0, 18),
 			Parent = row,
 		})
-		UIKit.label({
-			Text = `+{def.honor} Honor`,
+		local honorLabel = UIKit.label({
+			Text = "",
 			TextColor3 = Theme.Gold,
 			TextSize = 12,
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -354,7 +372,7 @@ function QuestsUI.start()
 		claim.Activated:Connect(function()
 			request("ClaimAchievement", def.id)
 		end)
-		achievementRows[def.id] = { frame = row, progress = progress, claim = claim }
+		achievementRows[def.id] = { frame = row, progress = progress, honor = honorLabel, claim = claim }
 	end
 
 	---------------------------------------------------------------- tabs
@@ -388,6 +406,7 @@ function QuestsUI.start()
 			stroke.Transparency = if isNext then 0 else 1
 			stroke.Color = if login.canClaim then Theme.Gold else Theme.Muted
 			cell.title.Text = if claimed then "Claimed" elseif isNext and login.canClaim then "TODAY" else `Day {i}`
+			cell.reward.Text = rewardText(cell.def)
 		end
 		local nextIn = duration(ProgressController.secondsToNextDay())
 		if login.canClaim then
@@ -414,7 +433,11 @@ function QuestsUI.start()
 				row.fill.Size = UDim2.new(math.clamp(quest.progress / quest.target, 0, 1), 0, 1, 0)
 				row.progress.Text = `{fmt(quest.progress)} / {fmt(quest.target)}`
 				local minutes = (QUEST_MINUTES[quest.key] or {})[quest.difficulty] or 0
-				row.reward.Text = `Reward: {rewardText({ goldMinutes = minutes })}`
+				row.reward.Text = `Reward: {rewardText({
+					goldMinutes = minutes,
+					honor = DailyConfig.QUEST_HONOR_MIN[quest.difficulty],
+					honorShare = DailyConfig.QUEST_HONOR_SHARE[quest.difficulty],
+				})}`
 				row.claim.Text = if quest.claimed then "Done" elseif done then "Claim" else "..."
 				row.claim.BackgroundColor3 = if done and not quest.claimed then Theme.Good else Theme.Disabled
 				row.claim.AutoButtonColor = done and not quest.claimed
@@ -426,6 +449,7 @@ function QuestsUI.start()
 		bonusButton.BackgroundColor3 = if bonusReady then Theme.Good else Theme.Disabled
 		bonusButton.AutoButtonColor = bonusReady
 		bonusLabel.TextColor3 = if view.bonusClaimed then Theme.Muted else Theme.Gold
+		bonusLabel.Text = `Finish all {DailyConfig.QUESTS_PER_DAY} quests: {rewardText(DailyConfig.ALL_QUESTS_BONUS)}`
 		resetLabel.Text = `New quests in {nextIn}. Rerolls left today: {view.rerollsLeft}.`
 			.. (if view.studioTestMode then " (Studio test mode: days are 3 minutes)" else "")
 
@@ -438,6 +462,7 @@ function QuestsUI.start()
 			row.frame.LayoutOrder = (if status == "unlocked" then 0 elseif status == "locked" then 1000 else 2000) + order
 			row.progress.Text = if status == "claimed" then "Complete" else `{fmt(currentValue)} / {fmt(def.target)}`
 			row.claim.Text = if status == "claimed" then "Claimed" elseif status == "unlocked" then "Claim" else "Locked"
+			row.honor.Text = if status == "claimed" then "" else `+{honorText({ honor = def.honor, honorShare = def.honorShare })}`
 			row.claim.BackgroundColor3 = if status == "unlocked" then Theme.Good else Theme.Disabled
 			row.claim.AutoButtonColor = status == "unlocked"
 			row.frame.BackgroundTransparency = if status == "claimed" then 0.4 else 0

@@ -106,11 +106,15 @@ function HonorService.start()
 		local result = { damage = 1, gold = 1, armyHp = 1, tap = 1 }
 		for upgradeId, def in HonorConfig.UPGRADES do
 			local level = levelOf(data, upgradeId)
+			if def.maxLevel ~= nil then
+				level = math.min(level, def.maxLevel) -- old saves can be above a newer cap
+			end
 			if level > 0 then
 				result.damage *= (def.damageMultiplier or 1) ^ level
 				result.gold *= (def.goldMultiplier or 1) ^ level
 				result.armyHp *= (def.armyHpMultiplier or 1) ^ level
 				result.tap *= (def.tapMultiplier or 1) ^ level
+				result.tap *= 1 + (def.tapPerLevel or 0) * level
 			end
 		end
 		return result

@@ -19,11 +19,11 @@ local DailyConfig = {
 	LOGIN_REWARDS = {
 		{ goldMinutes = 15 },
 		{ packs = 1 },
-		{ goldMinutes = 30 },
+		{ goldMinutes = 30, honor = 2, honorShare = 0.05 },
 		{ packs = 2 },
 		{ goldMinutes = 60 },
 		{ packs = 3 },
-		{ heroChests = 1 }, -- a pack guaranteed Epic or better
+		{ heroChests = 1, honor = 10, honorShare = 0.25 }, -- a pack guaranteed Epic or better + Honor
 	} :: { Types.RewardDef },
 
 	-- Gold rewards always give at least this much (e.g. before you own troops).
@@ -31,7 +31,12 @@ local DailyConfig = {
 
 	QUESTS_PER_DAY = 3,
 	REROLLS_PER_DAY = 1,
-	ALL_QUESTS_BONUS = { packs = 1 } :: Types.RewardDef,
+	ALL_QUESTS_BONUS = { heroChests = 1, honor = 5, honorShare = 0.1 } :: Types.RewardDef,
+
+	-- Each quest also pays Honor by difficulty: a share of what an Ascend at your best
+	-- stage gives (Formulas.scaledHonor), never less than QUEST_HONOR_MIN.
+	QUEST_HONOR_SHARE = { 0.02, 0.04, 0.08 } :: { number },
+	QUEST_HONOR_MIN = { 1, 2, 3 } :: { number },
 
 	-- Quest pool. Each quest rolls one difficulty: target and gold reward go together.
 	-- `requires` hides quests you can't do yet: "abilities" (Rally unlocked), "gear"

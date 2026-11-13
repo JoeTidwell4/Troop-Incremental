@@ -145,6 +145,7 @@ export type HonorUpgradeDef = {
 	goldMultiplier: number?,
 	armyHpMultiplier: number?,
 	tapMultiplier: number?,
+	tapPerLevel: number?, -- additive: +this click damage per level (x(1 + tapPerLevel * level))
 	startGoldMultiplier: number?,
 	offlineHoursPerLevel: number?,
 	offlineEfficiencyPerLevel: number?,
@@ -566,7 +567,8 @@ export type RewardDef = {
 	goldMinutes: number?,
 	packs: number?,
 	heroChests: number?,
-	honor: number?,
+	honor: number?, -- flat Honor (the minimum when honorShare is set)
+	honorShare: number?, -- share of an Ascend's Honor at your best stage (Formulas.scaledHonor)
 }
 
 export type QuestDef = {
@@ -591,7 +593,8 @@ export type AchievementDef = {
 	id: string,
 	name: string,
 	description: string,
-	honor: number,
+	honor: number, -- minimum Honor (what you get before stage 50)
+	honorShare: number, -- share of an Ascend's Honor at your best stage
 	kind: string,
 	key: string?,
 	target: number,

@@ -45,6 +45,9 @@ local function effectText(def: HonorUpgradeDef, level: number, upgrades: { [stri
 		return `now x{fmt(def.armyHpMultiplier ^ level)} army HP`
 	elseif def.tapMultiplier ~= nil then
 		return `now x{fmt(def.tapMultiplier ^ level)} click damage`
+	elseif def.tapPerLevel ~= nil then
+		local counted = if def.maxLevel ~= nil then math.min(level, def.maxLevel) else level
+		return `now x{fmt(1 + def.tapPerLevel * counted)} click damage`
 	elseif def.startGoldMultiplier ~= nil then
 		return `start runs with {format(Formulas.startingGold(upgrades))} gold`
 	elseif def.offlineHoursPerLevel ~= nil then
@@ -365,7 +368,7 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 			local def = HonorConfig.UPGRADES[upgradeId]
 			local row = rows[upgradeId]
 			local current = snapshot.honorUpgrades[upgradeId] or 0
-			row.level.Text = if def.maxLevel ~= nil then `Lv {current}/{def.maxLevel}` else `Lv {current}`
+			row.level.Text = if def.maxLevel ~= nil then `Lv {math.min(current, def.maxLevel)}/{def.maxLevel}` else `Lv {current}`
 			row.effect.Text = `{def.description}  ({effectText(def, current, snapshot.honorUpgrades)})`
 
 			if def.maxLevel ~= nil and current >= def.maxLevel then

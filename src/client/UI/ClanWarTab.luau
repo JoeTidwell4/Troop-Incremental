@@ -36,14 +36,22 @@ local function duration(seconds: number): string
 	return `{minutes}m {seconds % 60}s`
 end
 
-local function rewardText(): string
+local function honorText(minimum: number?, share: number?, bestStage: number): string
+	if share ~= nil then
+		return `{NumberFormat.big(Formulas.scaledHonor(bestStage, share, minimum or 0))} Honor`
+	end
+	return `{minimum or 0} Honor`
+end
+
+-- Honor amounts follow your best stage, so this is rebuilt on render.
+local function rewardText(bestStage: number): string
 	local lines: { string } = {}
 	local previous = 0
 	for _, tier in ClanConfig.WAR_REWARDS do
 		local place = if tier.maxRank == previous + 1 then `#{tier.maxRank}` else `#{previous + 1}-{tier.maxRank}`
 		local parts: { string } = {}
-		if tier.honor ~= nil then
-			table.insert(parts, `{tier.honor} Honor`)
+		if tier.honor ~= nil or tier.honorShare ~= nil then
+			table.insert(parts, honorText(tier.honor, tier.honorShare, bestStage))
 		end
 		if tier.heroChests ~= nil then
 			table.insert(parts, `{tier.heroChests} Hero Chest{if tier.heroChests == 1 then "" else "s"}`)
@@ -54,8 +62,8 @@ local function rewardText(): string
 		table.insert(lines, `{place}: {table.concat(parts, " + ")}`)
 		previous = tier.maxRank
 	end
-	local participation = ClanConfig.WAR_PARTICIPATION_REWARD.honor or 0
-	table.insert(lines, `Any clan with {fmt(ClanConfig.WAR_PARTICIPATION_XP)}+ XP: {participation} Honor`)
+	local participation = ClanConfig.WAR_PARTICIPATION_REWARD
+	table.insert(lines, `Any clan with {fmt(ClanConfig.WAR_PARTICIPATION_XP)}+ XP: {honorText(participation.honor, participation.honorShare, bestStage)}`)
 	local tokenParts: { string } = {}
 	local previousRank = 0
 	for _, tier in ClanConfig.TOKENS_FOR_RANK do
@@ -64,7 +72,7 @@ local function rewardText(): string
 		previousRank = tier.maxRank
 	end
 	table.insert(lines, `Clan Tokens: {table.concat(tokenParts, ", ")}, others {ClanConfig.TOKENS_PARTICIPATION}, MVP +{ClanConfig.TOKENS_MVP}`)
-	table.insert(lines, `Head-to-head win: +{ClanConfig.TOKENS_HEAD_TO_HEAD_WIN} tokens, +{ClanConfig.HEAD_TO_HEAD_WIN_HONOR} Honor`)
+	table.insert(lines, `Head-to-head win: +{ClanConfig.TOKENS_HEAD_TO_HEAD_WIN} tokens, +{honorText(ClanConfig.HEAD_TO_HEAD_WIN_HONOR, ClanConfig.HEAD_TO_HEAD_HONOR_SHARE, bestStage)}`)
 	return table.concat(lines, "\n")
 end
 
@@ -129,8 +137,8 @@ function ClanWarTab.build(parent: Instance, _context: ClanTypes.Context): ClanTy
 	})
 	local matchupLabel = line(132, 16, { Text = "", TextSize = 12, RichText = true })
 	local endsLabel = line(150, 16, { Text = "", Font = Theme.FontBold, TextSize = 13, TextColor3 = XP_COLOR })
-	line(170, 110, {
-		Text = rewardText(),
+	local rewardsLabel = line(170, 110, {
+		Text = rewardText(1),
 		TextColor3 = Theme.Muted,
 		TextSize = 11,
 		TextWrapped = true,
@@ -158,11 +166,12 @@ function ClanWarTab.build(parent: Instance, _context: ClanTypes.Context): ClanTy
 		})
 	end
 
-	local function render(view: ClanView, _snapshot: Types.Snapshot?)
+	local function render(view: ClanView, snapshot: Types.Snapshot?)
 		local clan = view.clan
 		if clan == nil then
 			return
 		end
+		rewardsLabel.Text = rewardText(if snapshot ~= nil then snapshot.bestStage else 1)
 		local level, into, need = Formulas.clanLevel(clan.xp or 0)
 		levelLabel.Text = `Clan Level {level}`
 		if need > 0 then

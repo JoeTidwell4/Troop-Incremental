@@ -57,9 +57,9 @@ end
 
 ---------------------------------------------------------------- rewards
 
--- Grants a reward bundle. Must not yield.
+-- Grants a reward bundle. Must not yield. Returns the Honor given (zero if none).
 -- `source` names where the reward came from, for analytics (default "Daily").
-function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef, source: string?)
+function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef, source: string?): BigNum.BigNum
 	if reward.goldMinutes ~= nil then
 		local gold = Formulas.incomeGold(
 			CombatService.getDps(player),
@@ -77,13 +77,19 @@ function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef,
 	if reward.heroChests ~= nil then
 		data.packs.hero += reward.heroChests
 	end
-	if reward.honor ~= nil then
-		local honor = BigNum.fromNumber(reward.honor)
+	local honor = BigNum.ZERO
+	if reward.honorShare ~= nil then
+		honor = Formulas.scaledHonor(data.bestStage, reward.honorShare, reward.honor or 0)
+	elseif reward.honor ~= nil then
+		honor = BigNum.fromNumber(reward.honor)
+	end
+	if not BigNum.isZero(honor) then
 		data.honor = BigNum.add(data.honor, honor)
 		data.stats.honorEarned = BigNum.add(data.stats.honorEarned, honor)
 		Analytics.honor(player, "Source", honor, data.honor, source or "Daily")
 	end
 	DataService.markChanged(player)
+	return honor
 end
 
 ---------------------------------------------------------------- quests
@@ -215,7 +221,11 @@ local function claimQuest(player: Player, data: PlayerData, index: number): Resu
 	local def = QUEST_BY_KEY[quest.key]
 	quest.claimed = true
 	if def ~= nil then
-		DailyService.grant(player, data, { goldMinutes = def.minutes[quest.difficulty] })
+		DailyService.grant(player, data, {
+			goldMinutes = def.minutes[quest.difficulty],
+			honor = DailyConfig.QUEST_HONOR_MIN[quest.difficulty],
+			honorShare = DailyConfig.QUEST_HONOR_SHARE[quest.difficulty],
+		}, "Quest")
 	end
 	return { ok = true }
 end

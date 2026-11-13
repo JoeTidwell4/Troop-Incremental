@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
 local Areas = require(Shared:WaitForChild("Areas"))
+local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
 local AudioController = require(Client.Controllers.AudioController)
@@ -86,7 +87,7 @@ local function onNotice(notice: Notice)
 		local packs = notice.packs or 0
 		NoticeUI.show(
 			`RAID REWARDS: TIER {notice.tier or 0}`,
-			`+{notice.honor or 0} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"}`,
+			`+{NumberFormat.number(notice.honor or 0)} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"}`,
 			Theme.Gold
 		)
 	elseif notice.kind == "ClanJoined" then
@@ -96,7 +97,7 @@ local function onNotice(notice: Notice)
 	elseif notice.kind == "ClanWarRewards" then
 		local parts: { string } = {}
 		if (notice.honor or 0) > 0 then
-			table.insert(parts, `+{notice.honor} Honor`)
+			table.insert(parts, `+{NumberFormat.number(notice.honor or 0)} Honor`)
 		end
 		if (notice.heroChests or 0) > 0 then
 			table.insert(parts, `+{notice.heroChests} Hero Chest{if notice.heroChests == 1 then "" else "s"}`)

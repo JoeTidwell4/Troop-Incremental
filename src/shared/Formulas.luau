@@ -253,7 +253,7 @@ end
 
 -- The Clan War reward for a final rank (nil rank or off the board = none here; the
 -- participation reward is checked separately).
-function Formulas.clanWarReward(rank: number?): { honor: number?, heroChests: number?, packs: number? }?
+function Formulas.clanWarReward(rank: number?): { honor: number?, honorShare: number?, heroChests: number?, packs: number? }?
 	if rank == nil then
 		return nil
 	end
@@ -313,8 +313,12 @@ function Formulas.raidTier(units: number): number
 end
 
 -- Rewards for reaching a tier: (honor, freePacks).
-function Formulas.raidRewards(tier: number): (number, number)
-	return tier * RaidConfig.HONOR_PER_TIER, tier // RaidConfig.PACK_EVERY_TIERS
+-- (Honor, free packs) for a raid tier. Honor scales with your all-time best stage.
+function Formulas.raidRewards(tier: number, bestStage: number): (BigNum, number)
+	local honor = if tier > 0
+		then Formulas.scaledHonor(bestStage, tier * RaidConfig.HONOR_SHARE_PER_TIER, tier * RaidConfig.HONOR_PER_TIER)
+		else BigNum.ZERO
+	return honor, tier // RaidConfig.PACK_EVERY_TIERS
 end
 
 ---------------------------------------------------------------- faction war time
@@ -412,6 +416,14 @@ function Formulas.honorForStage(stage: number): BigNum
 		AscendConfig.HONOR_BASE
 	)
 	return BigNum.floor(raw)
+end
+
+-- An Honor reward that stays worth something at every stage: `share` of what an Ascend
+-- at your all-time best stage gives (e.g. 0.25 = a quarter of a run's Honor), never less
+-- than `minimum` (the old flat amount, which is what you get before stage 50).
+function Formulas.scaledHonor(bestStage: number, share: number, minimum: number): BigNum
+	local run = Formulas.honorForStage(math.max(bestStage, AscendConfig.MIN_STAGE))
+	return BigNum.max(BigNum.floor(BigNum.mulNumber(run, share)), BigNum.fromNumber(minimum))
 end
 
 -- The next stage above `stage` that gives more Honor than `stage` does.
