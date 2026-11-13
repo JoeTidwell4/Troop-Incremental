@@ -213,13 +213,20 @@ export type ClanResult = {
 export type AreaTheme = {
 	name: string,
 	bossName: string,
+	scenery: string, -- prop set around the battlefield (Client/Visuals/Environment)
+	enemyKind: string, -- creature model (Client/Visuals/EnemyModels)
 	groundColor: Color3,
 	groundMaterial: Enum.Material,
+	arenaColor: Color3,
+	arenaMaterial: Enum.Material,
+	mountainColor: Color3,
 	enemyColor: Color3,
 	bossColor: Color3,
-	enemyShape: Enum.PartType,
 	clockTime: number,
 	tint: Color3,
+	hazeColor: Color3,
+	hazeDensity: number,
+	particles: string,
 }
 
 -- What gets saved for each player (ProfileStore Profile.Data).

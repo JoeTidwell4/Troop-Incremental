@@ -1,15 +1,19 @@
 --!strict
--- Draws the battlefield: ground themed per area, the current enemy or boss, and a few
--- cosmetic troops. Everything here is local to this player's screen and has no effect
--- on gameplay. At most MAX_VISIBLE_PER_TYPE troops are shown per type.
+-- Draws the battlefield on this player's screen: the themed world around it
+-- (Visuals/Environment), your troops (Visuals/TroopModels), the current enemy or boss
+-- (Visuals/EnemyModels), and battle effects (Visuals/Effects). Everything here is local
+-- and cosmetic; the real fight is simulated on the server.
+--
+-- At most MAX_VISIBLE_PER_TYPE troops are shown per type, however many you own.
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Client = script.Parent.Parent
 local Controllers = script.Parent
+local Visuals = Client:WaitForChild("Visuals")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
@@ -19,98 +23,81 @@ local Config = Shared:WaitForChild("Config")
 local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local VisualConfig = require(Config:WaitForChild("VisualConfig"))
 local RaidConfig = require(Config:WaitForChild("RaidConfig"))
+local Environment = require(Visuals:WaitForChild("Environment"))
+local TroopModels = require(Visuals:WaitForChild("TroopModels"))
+local EnemyModels = require(Visuals:WaitForChild("EnemyModels"))
+local Effects = require(Visuals:WaitForChild("Effects"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 
 type Snapshot = Types.Snapshot
 
--- How far forward (toward the enemy) each troop row stands, and how they look.
+-- Troop rows (distance toward the enemy) and how they attack.
 local ROW_Z: { [string]: number } = { Swordsman = 4, Knight = 0, Archer = -4 }
-local UNIT_SIZE: { [string]: Vector3 } = {
-	Swordsman = Vector3.new(1.6, 3, 1.6),
-	Archer = Vector3.new(1.3, 3, 1.3),
-	Knight = Vector3.new(2.2, 3.6, 2.2),
-}
 local ATTACK_SPEED: { [string]: number } = { Swordsman = 6, Archer = 3, Knight = 4 }
 local UNIT_SPACING = 3
 local LUNGE_DISTANCE = 1.2
-local ENEMY_Z = 13
-local ENEMY_SIZE = 7
-local BOSS_SIZE = 12
+local ARENA_TOP = 0.5
+
+local ENEMY_Z = 14
+local ENEMY_SCALE = 1.25
+local BOSS_SCALE = 2
+local RAID_SCALE = 2.3
 local BOSS_ATTACK_INTERVAL = 1.2
+local POP_SECONDS = 0.25
+local SHATTER_COOLDOWN = 0.25
 local BARRAGE_ARROWS = 14
+local ARCHER_SHOT_INTERVAL = NumberRange.new(1.2, 2.2)
+
 local HURT_COLOR = Color3.fromRGB(255, 60, 60)
 local RALLY_COLOR = Color3.fromRGB(255, 205, 70)
+local ARROW_COLOR = Color3.fromRGB(255, 220, 120)
 
-type Unit = { model: Model, body: Part, color: Color3, home: CFrame, speed: number, phase: number }
+type Unit = {
+	troopId: string,
+	model: Model,
+	home: CFrame,
+	speed: number,
+	phase: number,
+	nextShot: number, -- archers: when they fire their next arrow
+	lastShot: number, -- archers: when they last fired (for the recoil)
+}
 
--- Center of this player's plot; set in start() from the PlotIndex the server assigns.
 local origin = Vector3.zero
 local folder: Folder
 local troopsModel: Model
-local effects: Folder
-local ground: Part
-local enemy: Part
-local rallyHighlight: Highlight
-local areaTint: ColorCorrectionEffect
+local environment: Model? = nil
+local currentArea = -1
 
-local enemyBaseColor = Color3.new(1, 1, 1)
-local enemyBaseSize = Vector3.one * ENEMY_SIZE
+local enemyModel: Model? = nil
+local enemyKey = ""
 local enemyHome = CFrame.new()
+local enemyHeight = 6
+local enemyScale = 1
+local enemyFloats = false
+local popStartedAt = -math.huge
+local lastShatter = 0
+local lungeStartedAt = -math.huge
+
+local enemyHighlight: Highlight
+local rallyHighlight: Highlight
+local hurtHighlight: Highlight
+local rallyAura: ParticleEmitter
+
 local isBoss = false
--- Running enemy tweens, cancelled when the enemy changes so old values don't stick.
-local enemyColorTween: Tween? = nil
-local enemyMoveTween: Tween? = nil
 local bossAttackTimer = 0
+local shake = 0
+local cameraBase = CFrame.new()
+
 local unitsByType: { [string]: { Unit } } = {}
 local visibleCounts: { [string]: number } = {}
+local lastGear: Types.GearSet? = nil
 
 local BattlefieldController = {}
 
-local function makePart(name: string, size: Vector3, color: Color3, cframe: CFrame): Part
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Size = size
-	part.Color = color
-	part.CFrame = cframe
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Material = Enum.Material.SmoothPlastic
-	part.TopSurface = Enum.SurfaceType.Smooth
-	part.BottomSurface = Enum.SurfaceType.Smooth
-	return part
-end
-
 ---------------------------------------------------------------- troops
 
-local function buildUnit(troopId: string, home: CFrame): (Model, Part)
-	local def = TroopConfig.TROOPS[troopId]
-	local size = UNIT_SIZE[troopId] or Vector3.new(1.5, 3, 1.5)
-
-	local model = Instance.new("Model")
-	model.Name = troopId
-
-	local body = makePart("Body", size, def.color, home)
-	body.Parent = model
-	local headSize = size.X * 0.7
-	local head = makePart(
-		"Head",
-		Vector3.one * headSize,
-		Color3.fromRGB(235, 200, 160),
-		home * CFrame.new(0, size.Y / 2 + headSize / 2, 0)
-	)
-	head.Shape = Enum.PartType.Ball
-	head.Parent = model
-
-	model.PrimaryPart = body
-	model.Parent = troopsModel
-	return model, body
-end
-
-local function setVisibleCount(troopId: string, count: number)
+local function setVisibleCount(troopId: string, count: number, gear: Types.GearSet?)
 	local wanted = math.min(count, VisualConfig.MAX_VISIBLE_PER_TYPE)
 	if visibleCounts[troopId] == wanted then
 		return
@@ -121,155 +108,171 @@ local function setVisibleCount(troopId: string, count: number)
 		unit.model:Destroy()
 	end
 	local units: { Unit } = {}
-
 	local def = TroopConfig.TROOPS[troopId]
-	local y = (UNIT_SIZE[troopId] or Vector3.new(0, 3, 0)).Y / 2 + 0.5
 	for index = 1, wanted do
 		local x = (index - (wanted + 1) / 2) * UNIT_SPACING
-		local home = CFrame.new(origin + Vector3.new(x, y, ROW_Z[troopId] or 0))
-		local model, body = buildUnit(troopId, home)
+		local home = CFrame.new(origin + Vector3.new(x, ARENA_TOP, ROW_Z[troopId] or 0))
+		local model = TroopModels.build(troopId, def.color, home, troopsModel)
+		TroopModels.applyGear(model, if gear ~= nil then gear[troopId] else nil)
 		table.insert(units, {
+			troopId = troopId,
 			model = model,
-			body = body,
-			color = def.color,
 			home = home,
 			speed = ATTACK_SPEED[troopId] or 4,
 			phase = math.random() * math.pi * 2,
+			nextShot = os.clock() + math.random() * 2,
+			lastShot = -math.huge,
 		})
 	end
 	unitsByType[troopId] = units
 end
 
----------------------------------------------------------------- enemy
-
--- Cylinders in Roblox lie on their side, so stand them up.
-local function shapeRotation(shape: Enum.PartType): CFrame
-	if shape == Enum.PartType.Cylinder then
-		return CFrame.Angles(0, 0, math.rad(90))
-	end
-	return CFrame.identity
-end
-
--- Top of the current enemy, for floating numbers. Nil before the battlefield exists.
-function BattlefieldController.getEnemyPosition(): Vector3?
-	if (enemy :: Part?) == nil then
-		return nil -- start() hasn't run yet
-	end
-	return enemyHome.Position + Vector3.new(0, enemyBaseSize.Y / 2, 0)
-end
-
-local function setEnemyLook(shape: Enum.PartType, size: number, color: Color3)
-	if enemyColorTween ~= nil then
-		enemyColorTween:Cancel()
-	end
-	if enemyMoveTween ~= nil then
-		enemyMoveTween:Cancel()
-	end
-	enemy.Shape = shape
-	enemyBaseSize = Vector3.one * size
-	enemyBaseColor = color
-	enemyHome = CFrame.new(origin + Vector3.new(0, size / 2 + 0.5, ENEMY_Z)) * shapeRotation(shape)
-	enemy.Size = enemyBaseSize
-	enemy.Color = color
-	enemy.CFrame = enemyHome
-end
-
-local function flashEnemy()
-	enemy.Color = Color3.new(1, 1, 1)
-	local tween = TweenService:Create(enemy, TweenInfo.new(0.15), { Color = enemyBaseColor })
-	enemyColorTween = tween
-	tween:Play()
-end
-
-local function popEnemy()
-	enemy.Size = enemyBaseSize * 0.6
-	TweenService:Create(enemy, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = enemyBaseSize,
-	}):Play()
-end
-
--- Boss lunges at the troops and they flash red.
-local function bossAttack()
-	local lunge = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
-	local tween = TweenService:Create(enemy, lunge, { CFrame = enemyHome - Vector3.new(0, 0, 3) })
-	enemyMoveTween = tween
-	tween:Play()
-	for _, units in unitsByType do
+local function applyGear(gear: Types.GearSet)
+	for troopId, units in unitsByType do
 		for _, unit in units do
-			unit.body.Color = HURT_COLOR
-			TweenService:Create(unit.body, TweenInfo.new(0.35), { Color = unit.color }):Play()
+			TroopModels.applyGear(unit.model, gear[troopId])
 		end
 	end
 end
 
----------------------------------------------------------------- effects
+local function gearChanged(a: Types.GearSet?, b: Types.GearSet): boolean
+	if a == nil then
+		return true
+	end
+	for troopId, troopGear in b do
+		local before = a[troopId]
+		if before == nil or before.weapon.rarity ~= troopGear.weapon.rarity or before.armor.rarity ~= troopGear.armor.rarity then
+			return true
+		end
+	end
+	return false
+end
+
+---------------------------------------------------------------- enemy
+
+-- Top of the current enemy, for floating numbers. Nil before the battlefield exists.
+function BattlefieldController.getEnemyPosition(): Vector3?
+	if enemyModel == nil then
+		return nil
+	end
+	return enemyHome.Position + Vector3.new(0, enemyHeight, 0)
+end
+
+local function enemyCenter(): Vector3
+	return enemyHome.Position + Vector3.new(0, enemyHeight * 0.55, 0)
+end
+
+local function setEnemy(kind: string, color: Color3, scale: number, crowned: boolean)
+	local key = `{kind}:{color:ToHex()}:{scale}:{crowned}`
+	if key == enemyKey and enemyModel ~= nil then
+		return
+	end
+	enemyKey = key
+	if enemyModel ~= nil then
+		enemyModel:Destroy()
+	end
+	enemyHome = CFrame.new(origin + Vector3.new(0, ARENA_TOP, ENEMY_Z))
+	local model, height = EnemyModels.build(kind, color, scale, crowned, enemyHome, folder)
+	enemyModel = model
+	enemyHeight = height
+	enemyScale = scale
+	enemyFloats = kind == "Wraith"
+	enemyHighlight.Adornee = model
+	popStartedAt = os.clock()
+end
+
+local function flashEnemy()
+	enemyHighlight.FillTransparency = 0.35
+	TweenService:Create(enemyHighlight, TweenInfo.new(0.15), { FillTransparency = 1 }):Play()
+end
+
+local function onTap()
+	flashEnemy()
+	Effects.hitSparks(enemyCenter() + Vector3.new(math.random(-10, 10) / 10, math.random(-10, 10) / 10, -1.5))
+end
+
+local function onKill()
+	local now = os.clock()
+	Effects.coinBurst(enemyCenter())
+	if now - lastShatter >= SHATTER_COOLDOWN and enemyModel ~= nil then
+		lastShatter = now
+		Effects.shatter(enemyModel, 14)
+	end
+	popStartedAt = now -- the next enemy grows in
+end
+
+-- Boss slams the ground: lunges, troops flash red, camera shakes, dust flies.
+local function bossAttack()
+	lungeStartedAt = os.clock()
+	hurtHighlight.FillTransparency = 0.4
+	TweenService:Create(hurtHighlight, TweenInfo.new(0.35), { FillTransparency = 1 }):Play()
+	shake = 0.6
+	task.delay(0.12, function()
+		Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, -3))
+	end)
+end
+
+---------------------------------------------------------------- abilities
 
 local function playBarrage()
 	local sources: { Vector3 } = {}
 	for _, units in unitsByType do
 		for _, unit in units do
-			table.insert(sources, unit.home.Position)
+			table.insert(sources, unit.home.Position + Vector3.new(0, 2.5, 0))
 		end
 	end
 	if #sources == 0 then
 		table.insert(sources, origin + Vector3.new(0, 3, -6))
 	end
-	local target = enemyHome.Position
 	for i = 1, BARRAGE_ARROWS do
 		task.delay(i * 0.03, function()
-			local from = sources[math.random(1, #sources)] + Vector3.new(0, 2, 0)
-			local to = target + Vector3.new(math.random(-20, 20) / 10, math.random(-15, 15) / 10, 0)
-			local arrow = makePart("Arrow", Vector3.new(0.3, 0.3, 2.5), RALLY_COLOR, CFrame.lookAt(from, to))
-			arrow.Material = Enum.Material.Neon
-			arrow.Parent = effects
-			local tween = TweenService:Create(arrow, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {
-				CFrame = CFrame.lookAt(to, to + (to - from).Unit),
-			})
-			tween.Completed:Connect(function()
-				arrow:Destroy()
-				flashEnemy()
-			end)
-			tween:Play()
+			local from = sources[math.random(1, #sources)]
+			local to = enemyCenter() + Vector3.new(math.random(-20, 20) / 10, math.random(-15, 15) / 10, 0)
+			Effects.arrow(from, to, RALLY_COLOR, 0.35, flashEnemy)
 		end)
 	end
-end
-
-local function applyArea(stage: number)
-	local theme = Areas.forStage(stage).theme
-	ground.Color = theme.groundColor
-	ground.Material = theme.groundMaterial
-	Lighting.ClockTime = theme.clockTime
-	areaTint.TintColor = theme.tint
 end
 
 ---------------------------------------------------------------- state
 
 local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	for _, troopId in TroopConfig.ORDER do
-		setVisibleCount(troopId, snapshot.troops[troopId] or 0)
+		setVisibleCount(troopId, snapshot.troops[troopId] or 0, snapshot.gear)
+	end
+	if gearChanged(lastGear, snapshot.gear) then
+		applyGear(snapshot.gear)
+	end
+	lastGear = snapshot.gear
+
+	local area = Areas.forStage(snapshot.stage)
+	if area.number ~= currentArea then
+		currentArea = area.number
+		if environment ~= nil then
+			environment:Destroy()
+		end
+		environment = Environment.build(area.theme, origin, area.number, folder)
+		Environment.applyLighting(area.theme)
 	end
 
-	local stageChanged = previous == nil or previous.stage ~= snapshot.stage
-	local encounterChanged = previous == nil or previous.encounter ~= snapshot.encounter
-	if stageChanged or encounterChanged then
-		local theme = Areas.forStage(snapshot.stage).theme
-		isBoss = snapshot.encounter == "Boss"
-		if snapshot.encounter == "Raid" then
-			setEnemyLook(Enum.PartType.Block, BOSS_SIZE * 1.3, RaidConfig.BOSS_COLOR)
-		elseif isBoss then
-			setEnemyLook(theme.enemyShape, BOSS_SIZE, theme.bossColor)
-			bossAttackTimer = 0
-		else
-			setEnemyLook(theme.enemyShape, ENEMY_SIZE, theme.enemyColor)
-		end
-		applyArea(snapshot.stage)
+	isBoss = snapshot.encounter == "Boss"
+	if snapshot.encounter == "Raid" then
+		setEnemy("Colossus", RaidConfig.BOSS_COLOR, RAID_SCALE, false)
+	elseif isBoss then
+		setEnemy(area.theme.enemyKind, area.theme.bossColor, BOSS_SCALE, true)
+	else
+		setEnemy(area.theme.enemyKind, area.theme.enemyColor, ENEMY_SCALE, false)
+	end
+	if previous ~= nil and previous.encounter ~= snapshot.encounter then
+		bossAttackTimer = 0
 	end
 
 	if previous ~= nil and snapshot.totalKills > previous.totalKills then
-		popEnemy()
+		onKill()
 	end
 
-	rallyHighlight.Enabled = snapshot.damageMultiplier > 1
+	local rallying = snapshot.damageMultiplier > 1
+	rallyHighlight.Enabled = rallying
+	rallyAura.Enabled = rallying
 
 	if previous ~= nil then
 		local before = previous.abilities.Barrage
@@ -280,31 +283,59 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	end
 end
 
+---------------------------------------------------------------- camera + animation
+
 local function setupCamera()
 	local camera = workspace.CurrentCamera
-	local cameraCFrame = CFrame.lookAt(origin + VisualConfig.CAMERA_OFFSET, origin + VisualConfig.CAMERA_LOOK_OFFSET)
-	local function apply()
-		camera.CameraType = Enum.CameraType.Scriptable
-		camera.CFrame = cameraCFrame
-	end
-	apply()
+	cameraBase = CFrame.lookAt(origin + VisualConfig.CAMERA_OFFSET, origin + VisualConfig.CAMERA_LOOK_OFFSET)
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = cameraBase
 	-- Roblox's default camera scripts can reset this on load; put it back if they do.
 	camera:GetPropertyChangedSignal("CameraType"):Connect(function()
 		if camera.CameraType ~= Enum.CameraType.Scriptable then
-			apply()
+			camera.CameraType = Enum.CameraType.Scriptable
 		end
 	end)
 end
 
 local function animate(dt: number)
 	local now = os.clock()
+
+	-- Troops: melee units lunge, archers hold position and loose arrows.
 	for _, units in unitsByType do
 		for _, unit in units do
-			-- Quick lunge toward the enemy, then back.
-			local wave = math.max(0, math.sin(now * unit.speed + unit.phase))
-			local lunge = (wave ^ 4) * LUNGE_DISTANCE
-			unit.model:PivotTo(unit.home * CFrame.new(0, 0, lunge))
+			if unit.troopId == "Archer" then
+				local recoil = math.max(0, 1 - (now - unit.lastShot) * 6) * 0.3
+				unit.model:PivotTo(unit.home * CFrame.new(0, 0, -recoil))
+				if now >= unit.nextShot then
+					unit.lastShot = now
+					unit.nextShot = now + math.random() * (ARCHER_SHOT_INTERVAL.Max - ARCHER_SHOT_INTERVAL.Min) + ARCHER_SHOT_INTERVAL.Min
+					if enemyModel ~= nil then
+						Effects.arrow(unit.home.Position + Vector3.new(-0.9, 2, 1), enemyCenter(), ARROW_COLOR, 0.45, nil)
+					end
+				end
+			else
+				local wave = math.max(0, math.sin(now * unit.speed + unit.phase))
+				local lunge = (wave ^ 4) * LUNGE_DISTANCE
+				local hop = (wave ^ 4) * 0.25
+				unit.model:PivotTo(unit.home * CFrame.new(0, hop, lunge))
+			end
 		end
+	end
+
+	-- Enemy: grows in after spawning, idles (wraiths float), and lunges when a boss slams.
+	local model = enemyModel
+	if model ~= nil then
+		local popT = math.clamp((now - popStartedAt) / POP_SECONDS, 0, 1)
+		local popScale = 0.35 + 0.65 * (1 - (1 - popT) ^ 3)
+		if popT < 1 or math.abs(model:GetScale() - enemyScale) > 0.001 then
+			model:ScaleTo(enemyScale * popScale)
+		end
+		local bob = math.sin(now * 2.2) * (if enemyFloats then 0.5 else 0.12) * enemyScale
+		local float = if enemyFloats then 0.8 * enemyScale else 0
+		local lungeT = (now - lungeStartedAt) / 0.3
+		local lunge = if lungeT >= 0 and lungeT < 1 then math.sin(lungeT * math.pi) * 3 else 0
+		model:PivotTo(enemyHome * CFrame.new(0, bob + float, -lunge))
 	end
 
 	if isBoss then
@@ -314,7 +345,20 @@ local function animate(dt: number)
 			bossAttack()
 		end
 	end
+
+	-- Camera shake fades out quickly.
+	local camera = workspace.CurrentCamera
+	if shake > 0.01 then
+		shake *= math.exp(-dt * 8)
+		local offset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * shake
+		camera.CFrame = cameraBase * CFrame.new(offset)
+	else
+		shake = 0
+		camera.CFrame = cameraBase
+	end
 end
+
+---------------------------------------------------------------- setup
 
 -- Waits until the server has assigned this player a plot.
 local function waitForPlot(): number
@@ -327,45 +371,63 @@ local function waitForPlot(): number
 	return index :: number
 end
 
+local function makeHighlight(color: Color3, fill: number, adornee: Instance?): Highlight
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = color
+	highlight.OutlineColor = color
+	highlight.FillTransparency = fill
+	highlight.OutlineTransparency = if fill >= 1 then 1 else 0
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.Adornee = adornee
+	highlight.Parent = folder
+	return highlight
+end
+
 function BattlefieldController.start()
 	origin = Plots.origin(waitForPlot())
 
 	folder = Instance.new("Folder")
 	folder.Name = "Battlefield"
+	folder.Parent = workspace
 
 	troopsModel = Instance.new("Model")
 	troopsModel.Name = "Troops"
 	troopsModel.Parent = folder
 
-	effects = Instance.new("Folder")
-	effects.Name = "Effects"
-	effects.Parent = folder
+	Effects.init(folder)
 
-	ground = makePart("Ground", Vector3.new(70, 1, 36), Color3.fromRGB(96, 140, 80), CFrame.new(origin))
-	ground.Material = Enum.Material.Grass
-	ground.Parent = folder
-
-	enemy = makePart("Enemy", enemyBaseSize, enemyBaseColor, CFrame.new())
-	enemy.Parent = folder
-
-	-- Golden glow on every troop while Rally is active (one Highlight for the whole army).
-	rallyHighlight = Instance.new("Highlight")
-	rallyHighlight.Adornee = troopsModel
-	rallyHighlight.FillColor = RALLY_COLOR
-	rallyHighlight.FillTransparency = 0.6
-	rallyHighlight.OutlineColor = RALLY_COLOR
+	-- Golden glow on the whole army while Rally is active, plus rising sparkles.
+	rallyHighlight = makeHighlight(RALLY_COLOR, 0.65, troopsModel)
 	rallyHighlight.Enabled = false
-	rallyHighlight.Parent = folder
+	local auraPart = Instance.new("Part")
+	auraPart.Name = "RallyAura"
+	auraPart.Anchored = true
+	auraPart.CanCollide = false
+	auraPart.CanQuery = false
+	auraPart.CanTouch = false
+	auraPart.Transparency = 1
+	auraPart.Size = Vector3.new(26, 1, 12)
+	auraPart.CFrame = CFrame.new(origin + Vector3.new(0, ARENA_TOP + 0.5, 0))
+	auraPart.Parent = folder
+	rallyAura = Instance.new("ParticleEmitter")
+	rallyAura.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	rallyAura.Color = ColorSequence.new(RALLY_COLOR)
+	rallyAura.LightEmission = 1
+	rallyAura.Size = NumberSequence.new(0.5, 0)
+	rallyAura.Rate = 40
+	rallyAura.Lifetime = NumberRange.new(0.8, 1.2)
+	rallyAura.Speed = NumberRange.new(3, 6)
+	rallyAura.EmissionDirection = Enum.NormalId.Top
+	rallyAura.Enabled = false
+	rallyAura.Parent = auraPart
 
-	areaTint = Instance.new("ColorCorrectionEffect")
-	areaTint.Name = "AreaTint"
-	areaTint.Parent = Lighting
-
-	folder.Parent = workspace
+	-- Red flash on the army when a boss hits it; white flash on the enemy when you hit it.
+	hurtHighlight = makeHighlight(HURT_COLOR, 1, troopsModel)
+	enemyHighlight = makeHighlight(Color3.new(1, 1, 1), 1, nil)
 
 	setupCamera()
 	StateController.Changed:Connect(onStateChanged)
-	InputController.Tapped:Connect(flashEnemy)
+	InputController.Tapped:Connect(onTap)
 	RunService.RenderStepped:Connect(animate)
 end
 
