@@ -67,6 +67,9 @@ end
 
 -- Switches the background track ("Main", "Boss", "Raid"), fading between them.
 function AudioController.setMusic(trackName: string)
+	if music[trackName] == nil then
+		trackName = "Main" -- no music picked for this one yet: keep the main track going
+	end
 	if currentTrack == trackName then
 		return
 	end

@@ -39,9 +39,10 @@ local AudioConfig = {
 	} :: { [string]: SoundDef },
 
 	MUSIC = {
-		Main = { id = "", volume = 0.25 }, -- normal fighting
+		Main = { id = "rbxassetid://91381492411905", volume = 0.25 }, -- normal fighting (HB Opus, Classical House Nocturne)
 		Boss = { id = "", volume = 0.3 }, -- boss fights
 		Raid = { id = "", volume = 0.3 }, -- clan raid attacks
+		-- A track with no id falls back to Main, so the music never cuts out.
 	} :: { [string]: SoundDef },
 
 	-- The same sound can't play more often than this (seconds), so mashing doesn't blast.
