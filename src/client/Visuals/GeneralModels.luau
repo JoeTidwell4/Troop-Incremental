@@ -48,6 +48,30 @@ local function weapon(def: GeneralDef, at: CFrame, model: Model, s: number)
 	end
 end
 
+export type AttackStyle = "Arrow" | "Orb" | "Coin" | "Boulder" | "Melee" | "Lance"
+
+-- How a General attacks (matches the weapon above).
+function GeneralModels.attackStyle(def: GeneralDef): AttackStyle
+	local troop = def.trait.troopId
+	if troop == "Archer" then
+		return "Arrow"
+	elseif troop == "Mage" or def.trait.kind == "critChance" then
+		return "Orb"
+	elseif troop == "Cavalry" then
+		return "Lance"
+	elseif troop == "Siege" then
+		return "Boulder"
+	elseif def.trait.kind == "goldenChance" then
+		return "Coin"
+	end
+	return "Melee"
+end
+
+-- Where projectiles leave from, relative to the General's feet (in front, weapon hand).
+function GeneralModels.handOffset(): CFrame
+	return CFrame.new(1 * SCALE, 2.3 * SCALE, -0.6 * SCALE)
+end
+
 -- Builds one General. `houseColor` / `rarityColor` from GeneralConfig.
 function GeneralModels.build(def: GeneralDef, houseColor: Color3, rarityColor: Color3, parent: Instance): Model
 	local model = Parts.model(`General_{def.id}`, parent)
@@ -93,6 +117,11 @@ function GeneralModels.build(def: GeneralDef, houseColor: Color3, rarityColor: C
 		light.Parent = torso
 		Parts.cylinder(0.08, 2.6 * s, rarityColor, at * CFrame.new(0, 0.05, 0), model, { material = Enum.Material.Neon, transparency = 0.4 }) -- ring on the ground
 	end
+
+	-- The pivot is the torso by default (it's the PrimaryPart), which put the feet ~2.4
+	-- studs underground. Move it to the feet (the model's origin) so PivotTo places it on
+	-- the ground.
+	torso.PivotOffset = torso.CFrame:Inverse()
 
 	-- A small standard in the House color beside them.
 	local pole = at * CFrame.new(-1.6 * s, 0, 0.4 * s)
