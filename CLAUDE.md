@@ -57,6 +57,9 @@ Decisions made:
 - Gear packs (2b, approved design): Gold only, never Robux (Roblox requires odds disclosure for paid random items; some countries restrict). No inventory: each troop x slot has rarity + level; a pack rolls troop+slot+rarity, upgrades rarity if better, else refunds 50% of the price. Odds 60/25/10/4/1 shown in UI, Epic+ pity every 20 packs (was 30), price = 25 kills' worth of gold at your best stage this run (was 40), free pack on each boss's first kill.
 - Owner tuning request (after Phase 5): gold +20% (`StageConfig.GOLD_BASE` 1.5 -> 1.8; sims show the same boss walls and ~20 min first Ascend, just faster buying), packs cheaper and pity sooner (above). All rolls server-side. Open question for Phase 3: does rarity reset on Ascend (leaning yes).
 
+## Standing rule: tutorials (owner, after Phase 13d)
+**Every new feature that a player has to learn ships with its tutorial lesson in the same change** (TutorialConfig, once the tutorial system exists): what it is, where to find it, and the one or two things to do first. If a change alters how an existing system works, update that system's lesson too. Don't wait to be asked.
+
 ## Working with the owner
 The owner is new to Roblox development, GitHub, and the command line. Explain steps one at a time, give exact clicks/commands, say what they should see, and assume nothing is installed. They're on Windows (PowerShell). Project lives at `Documents\Troop-Incremental`. They get updates with `git pull` and sync with `rojo serve` + the Rojo plugin's Connect button. In their Studio version, the Output window is under the top menu bar's **Window** menu.
 
