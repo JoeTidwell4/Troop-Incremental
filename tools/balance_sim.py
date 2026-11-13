@@ -12,7 +12,7 @@ TROOPS = [  # name, baseCost, growth, baseDps, baseHp
     ("Knight", 1500, 1.09, 110.0, 2600.0),
 ]
 MILESTONES = [25, 50, 100, 200, 300, 400, 500]; REPEAT = 100; MULT = 2
-ENEMIES = 10; HP_BASE, HP_G = 8, 1.17; GOLD_BASE, GOLD_G = 1.5, 1.15
+ENEMIES = 10; HP_BASE, HP_G = 8, 1.17; GOLD_BASE, GOLD_G = 1.8, 1.15
 TAP_FLAT, TAP_FRAC = 1.0, 0.08; START_GOLD = 10
 GEAR_BASE=float(__import__('os').environ.get('GB','5')); GEAR_G=float(__import__('os').environ.get('GG','1.9'))  # GearConfig BASE_COST_MULTIPLIER / COST_GROWTH
 BOSS_EVERY=10; BOSS_HP_MULT=float(sys.argv[1]) if len(sys.argv)>1 and sys.argv[1][0].isdigit() else 12; BOSS_GOLD_MULT=10; BOSS_TIME=30

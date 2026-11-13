@@ -11,7 +11,7 @@ local StageConfig = {
 	ENEMY_HP_BASE = 8,
 	ENEMY_HP_GROWTH = 1.17,
 
-	GOLD_BASE = 1.5,
+	GOLD_BASE = 1.8, -- was 1.5 (+20% gold everywhere, owner asked for a little more gold)
 	GOLD_GROWTH = 1.15,
 }
 

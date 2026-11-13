@@ -12,10 +12,10 @@ local PackConfig = {
 	-- Percent chance per rarity, same order as GearConfig.RARITIES. Must add up to 100.
 	ODDS = { 60, 25, 10, 4, 1 } :: { number },
 
-	PRICE_IN_KILLS = 40,
+	PRICE_IN_KILLS = 25, -- was 40
 	DUPLICATE_REFUND = 0.5,
 
-	PITY_EVERY = 30,
+	PITY_EVERY = 20, -- was 30
 	PITY_MIN_RARITY = 4, -- Epic
 
 	FREE_PACKS_PER_NEW_BOSS = 1,

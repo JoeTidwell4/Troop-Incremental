@@ -6,7 +6,7 @@
 import math, sys, os
 TROOPS=[("Swordsman",10,1.07,1.0,12.0),("Archer",100,1.08,10.0,25.0),("Knight",1500,1.09,110.0,2600.0)]
 MIL=[25,50,100,200,300,400,500]
-ENEMIES=10; HPB,HPG=8,1.17; GB,GG=1.5,1.15; TAPF,TAPR=1.0,0.08
+ENEMIES=10; HPB,HPG=8,1.17; GB,GG=1.8,1.15; TAPF,TAPR=1.0,0.08
 BOSS_HP=12; BOSS_GOLD=10; BOSS_T=30; BOSS_DPS=0.12
 GEARB,GEARG=5,1.9
 MIN_STAGE=int(os.environ.get('MIN','50')); HON_B=float(os.environ.get('HB','10')); HON_G=float(os.environ.get('HG','1.08'))
