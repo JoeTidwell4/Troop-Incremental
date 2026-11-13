@@ -2,13 +2,15 @@
 -- Small helpers for building UI in code, plus the shared color theme.
 --   local label = UIKit.create("TextLabel", { Text = "Hi", Parent = frame }) :: TextLabel
 
+local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
+
+local Layout = require(script.Parent.Layout)
 
 local UIKit = {}
 
--- UI is designed for roughly this screen size; smaller screens (phones) scale it down.
-local DESIGN_WIDTH = 1000
-local DESIGN_HEIGHT = 620
+-- UI is designed for a fixed screen size (Layout.DESIGN_WIDTH/HEIGHT; the compact phone
+-- layout is designed shorter) and scaled down to fit smaller screens.
 local MIN_SCALE = 0.6
 
 -- Hooks other modules can fill in (e.g. AudioController sets onButtonClick for click sounds).
@@ -68,7 +70,13 @@ function UIKit.autoScale(gui: ScreenGui)
 			return
 		end
 		local size = camera.ViewportSize
-		scale.Scale = math.clamp(math.min(size.X / DESIGN_WIDTH, size.Y / DESIGN_HEIGHT), MIN_SCALE, 1)
+		if Layout.SCALE_USES_INSET then
+			-- Compact: fit the design height into the space under the Roblox top bar.
+			local usable = size.Y - GuiService:GetGuiInset().Y
+			scale.Scale = math.clamp(usable / Layout.DESIGN_HEIGHT, MIN_SCALE, 1)
+		else
+			scale.Scale = math.clamp(math.min(size.X / Layout.DESIGN_WIDTH, size.Y / Layout.DESIGN_HEIGHT), MIN_SCALE, 1)
+		end
 	end
 	update()
 	if workspace.CurrentCamera ~= nil then

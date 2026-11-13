@@ -4,7 +4,8 @@
 -- (Visuals/EnemyModels), and battle effects (Visuals/Effects). Everything here is local
 -- and cosmetic; the real fight is simulated on the server.
 --
--- At most MAX_VISIBLE_PER_TYPE troops are shown per type, however many you own.
+-- At most MAX_VISIBLE_PER_TYPE troops are shown per type, however many you own (halved
+-- on Low graphics). Switching graphics quality rebuilds the world and the troops.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +29,7 @@ local Environment = require(Visuals:WaitForChild("Environment"))
 local TroopModels = require(Visuals:WaitForChild("TroopModels"))
 local EnemyModels = require(Visuals:WaitForChild("EnemyModels"))
 local Effects = require(Visuals:WaitForChild("Effects"))
+local Quality = require(Visuals:WaitForChild("Quality"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 
@@ -116,7 +118,8 @@ local updateMinions: (on: boolean, kind: string, color: Color3) -> ()
 ---------------------------------------------------------------- troops
 
 local function setVisibleCount(troopId: string, count: number, gear: Types.GearSet?)
-	local wanted = math.min(count, MAX_VISIBLE[troopId] or VisualConfig.MAX_VISIBLE_PER_TYPE)
+	local cap = math.max(1, math.floor((MAX_VISIBLE[troopId] or VisualConfig.MAX_VISIBLE_PER_TYPE) * Quality.get().unitScale))
+	local wanted = math.min(count, cap)
 	if visibleCounts[troopId] == wanted then
 		return
 	end
@@ -511,6 +514,15 @@ function BattlefieldController.start()
 
 	setupCamera()
 	StateController.Changed:Connect(onStateChanged)
+	-- Graphics quality changed: throw away the world and troops and build them again.
+	Quality.Changed:Connect(function()
+		currentArea = -1
+		visibleCounts = {}
+		local snapshot = StateController.get()
+		if snapshot ~= nil then
+			onStateChanged(snapshot, nil)
+		end
+	end)
 	InputController.Tapped:Connect(onTap)
 	RunService.RenderStepped:Connect(animate)
 end

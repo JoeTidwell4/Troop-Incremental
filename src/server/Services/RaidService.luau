@@ -31,6 +31,7 @@ local ClanService = require(Services.ClanService)
 local ClanBankService = require(Services.ClanBankService)
 local ClanStore = require(Services.ClanStore)
 local ActivityService = require(Services.ActivityService)
+local Analytics = require(Services.AnalyticsService)
 
 type PlayerData = Types.PlayerData
 type RaidRecord = Types.RaidRecord
@@ -87,6 +88,7 @@ local function claimIfDue(player: Player, data: PlayerData)
 		local honor, packs = Formulas.raidRewards(tier)
 		fresh.honor = BigNum.add(fresh.honor, BigNum.fromNumber(honor))
 		fresh.stats.honorEarned = BigNum.add(fresh.stats.honorEarned, BigNum.fromNumber(honor))
+		Analytics.honor(player, "Source", BigNum.fromNumber(honor), fresh.honor, "Raid")
 		fresh.packs.free += packs
 		local claimedWeek = record.weekId
 		fresh.raid = newRecord(week)

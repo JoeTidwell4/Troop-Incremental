@@ -96,13 +96,15 @@ function AudioController.getMode(): Mode
 	return mode
 end
 
--- Cycles All -> SfxOnly (music off) -> Off -> All.
-function AudioController.cycleMode(): Mode
-	mode = if mode == "All" then "SfxOnly" elseif mode == "SfxOnly" then "Off" else "All"
+-- Sets the sound mode (saved in Settings): "All", "SfxOnly" (music off) or "Off".
+function AudioController.setMode(newMode: Mode)
+	if newMode == mode then
+		return
+	end
+	mode = newMode
 	local track = currentTrack or "Main"
 	currentTrack = nil -- force setMusic to re-apply
 	AudioController.setMusic(track)
-	return mode
 end
 
 local function trackFor(snapshot: Snapshot): string

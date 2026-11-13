@@ -20,6 +20,7 @@ local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
 local ModifierService = require(Services.ModifierService)
+local Analytics = require(Services.AnalyticsService)
 
 type BuyResult = Types.BuyResult
 
@@ -63,6 +64,7 @@ local function buyUpgrade(player: Player, upgradeId: string): BuyResult
 
 	data.honor = BigNum.sub(data.honor, cost)
 	data.honorUpgrades[upgradeId] = level + 1
+	Analytics.honor(player, "Sink", cost, data.honor, "HonorShop", upgradeId)
 	CombatService.refreshArmy(player)
 	DataService.markChanged(player)
 	return { ok = true, bought = 1 }

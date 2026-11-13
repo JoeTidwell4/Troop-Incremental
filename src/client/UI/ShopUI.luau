@@ -2,8 +2,12 @@
 -- Bottom shop panel with tabs: Troops | Gear | Packs | Honor.
 -- The header holds the tab buttons, a short status message, and the buy-mode buttons
 -- (x1 / x10 / Max) for tabs that use them. Each tab lives in its own module.
+-- On phones (Layout.compact) the shop sits between the left column and the ability
+-- column and works as a drawer: HIDE shrinks it to just the header so you can see the
+-- fight; tapping any tab (or SHOW) opens it again.
 
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 local Client = script.Parent.Parent
 local UIKit = require(script.Parent.UIKit)
@@ -13,17 +17,19 @@ local GearTab = require(script.Parent.GearTab)
 local PackTab = require(script.Parent.PackTab)
 local HonorTab = require(script.Parent.HonorTab)
 local StateController = require(Client.Controllers.StateController)
+local Layout = require(script.Parent.Layout)
+local Spotlight = require(script.Parent.Spotlight)
 
 type Tab = ShopTypes.Tab
 
 local Theme = UIKit.Theme
 
-local ROW_HEIGHT = 56
-local ROWS = 3
-local HEADER_HEIGHT = 30
-local TAB_WIDTH = 66
+local COMPACT = Layout.compact
+local HEADER_HEIGHT = Layout.SHOP_HEADER_HEIGHT
+local TAB_WIDTH = Layout.SHOP_TAB_WIDTH
 local TAB_COUNT = 4 -- Troops, Gear, Packs, Honor (leaves room for the status message)
-local MODE_WIDTH = 52
+local MODE_WIDTH = Layout.SHOP_MODE_WIDTH
+local TOGGLE_WIDTH = 60 -- compact only: the HIDE / SHOW button
 local STATUS_SECONDS = 2
 
 local ALL_MODES = { "One", "Ten", "Max" }
@@ -60,16 +66,23 @@ function ShopUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	local contentHeight = ROWS * ROW_HEIGHT + (ROWS - 1) * 6
-	local panelHeight = 16 + HEADER_HEIGHT + 6 + contentHeight
+	local contentHeight = Layout.SHOP_CONTENT_HEIGHT
+	local panelHeight = Layout.SHOP_HEIGHT
+	local collapsedHeight = 16 + HEADER_HEIGHT
 	local panel = UIKit.panel({
 		Name = "Panel",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.new(0.96, 0, 0, panelHeight),
+		AnchorPoint = if COMPACT then Vector2.new(0, 1) else Vector2.new(0.5, 1),
+		Position = if COMPACT
+			then UDim2.new(0, Layout.SHOP_LEFT, 1, -Layout.SHOP_BOTTOM_MARGIN)
+			else UDim2.new(0.5, 0, 1, -Layout.SHOP_BOTTOM_MARGIN),
+		Size = if COMPACT
+			then UDim2.new(1, -(Layout.SHOP_LEFT + Layout.SHOP_RIGHT), 0, panelHeight)
+			else UDim2.new(0.96, 0, 0, panelHeight),
 		Parent = gui,
 	})
-	UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(780, panelHeight), Parent = panel })
+	if not COMPACT then
+		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(780, panelHeight), Parent = panel })
+	end
 
 	local content = UIKit.create("Frame", {
 		Name = "Content",
@@ -79,14 +92,20 @@ function ShopUI.start()
 		Parent = panel,
 	}) :: Frame
 
-	-- Header: status message (between tabs and mode buttons).
+	-- Status message: in the header between tabs and mode buttons on desktop; floating
+	-- just above the panel on phones (the header is full there).
+	local modeSpace = 3 * (MODE_WIDTH + 6) + (if COMPACT then TOGGLE_WIDTH + 6 else 0)
 	local statusLabel = UIKit.label({
 		Text = "",
 		TextColor3 = Theme.HpFill,
-		TextSize = 14,
+		Font = if COMPACT then Theme.FontBold else Theme.Font,
+		TextSize = if COMPACT then 16 else 14,
+		TextStrokeTransparency = if COMPACT then 0.3 else 1,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.new(0, TAB_COUNT * (TAB_WIDTH + 6), 0, 0),
-		Size = UDim2.new(1, -TAB_COUNT * (TAB_WIDTH + 6) - 3 * (MODE_WIDTH + 6), 0, HEADER_HEIGHT),
+		Position = if COMPACT then UDim2.new(0, 0, 0, -36) else UDim2.new(0, TAB_COUNT * (TAB_WIDTH + 6), 0, 0),
+		Size = if COMPACT
+			then UDim2.new(1, 0, 0, 22)
+			else UDim2.new(1, -TAB_COUNT * (TAB_WIDTH + 6) - modeSpace, 0, HEADER_HEIGHT),
 		Parent = panel,
 	})
 	local statusToken = 0
@@ -122,6 +141,24 @@ function ShopUI.start()
 	local tabButtons: { [Tab]: TextButton } = {}
 	local modeButtons: { [string]: TextButton } = {}
 
+	-- Compact drawer: open (full height) or hidden (header only).
+	local open = true
+	local toggleButton: TextButton? = nil
+	local function setOpen(value: boolean)
+		if value == open then
+			return
+		end
+		open = value
+		content.Visible = open
+		local height = if open then panelHeight else collapsedHeight
+		TweenService:Create(panel, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(panel.Size.X.Scale, panel.Size.X.Offset, 0, height),
+		}):Play()
+		if toggleButton ~= nil then
+			toggleButton.Text = if open then "HIDE" else "SHOW"
+		end
+	end
+
 	local function render()
 		local snapshot = StateController.get()
 		for tab, button in tabButtons do
@@ -154,9 +191,11 @@ function ShopUI.start()
 		})
 		button.Activated:Connect(function()
 			activeTab = tab
+			setOpen(true)
 			render()
 		end)
 		tabButtons[tab] = button
+		Spotlight.register(`Tab:{tab.title}`, button)
 	end
 
 	for index, mode in ALL_MODES do
@@ -166,7 +205,12 @@ function ShopUI.start()
 			TextSize = 14,
 			BackgroundColor3 = Theme.PanelLight,
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -(#ALL_MODES - index) * (MODE_WIDTH + 6), 0, 1),
+			Position = UDim2.new(
+				1,
+				-(#ALL_MODES - index) * (MODE_WIDTH + 6) - (if COMPACT then TOGGLE_WIDTH + 6 else 0),
+				0,
+				1
+			),
 			Size = UDim2.new(0, MODE_WIDTH, 0, HEADER_HEIGHT - 2),
 			Parent = panel,
 		})
@@ -177,10 +221,28 @@ function ShopUI.start()
 		modeButtons[mode] = button
 	end
 
+	if COMPACT then
+		local button = UIKit.button({
+			Name = "Toggle",
+			Text = "HIDE",
+			TextSize = 14,
+			BackgroundColor3 = Theme.PanelLight,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 1),
+			Size = UDim2.new(0, TOGGLE_WIDTH, 0, HEADER_HEIGHT - 2),
+			Parent = panel,
+		})
+		button.Activated:Connect(function()
+			setOpen(not open)
+		end)
+		toggleButton = button
+	end
+
 	openTabByTitle = function(title: string)
 		for _, tab in tabs do
 			if tab.title == title then
 				activeTab = tab
+				setOpen(true)
 				render()
 			end
 		end

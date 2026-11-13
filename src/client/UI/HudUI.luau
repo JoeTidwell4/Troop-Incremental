@@ -22,6 +22,7 @@ local BattleController = require(Client.Controllers.BattleController)
 local ShopUI = require(script.Parent.ShopUI)
 local Layout = require(script.Parent.Layout)
 local BattlefieldController = require(Client.Controllers.BattlefieldController)
+local Spotlight = require(script.Parent.Spotlight)
 local RaidConfig = require(Shared:WaitForChild("Config"):WaitForChild("RaidConfig"))
 
 type Snapshot = Types.Snapshot
@@ -44,40 +45,44 @@ local format = NumberFormat.big
 local HudUI = {}
 
 -- Starter tips: walks a new player through the first minutes, one tip at a time.
--- Returns nil when there's nothing useful to say.
-local function tipFor(snapshot: Snapshot): string?
+-- Returns (text, spotlight key) or nil when there's nothing useful to say. The key
+-- names the button the tip is about (see Spotlight), which then pulses.
+-- Phones get "tap" wording and no keyboard shortcuts.
+local TAP = if Layout.compact then "Tap" else "Click"
+local function tipFor(snapshot: Snapshot): (string?, string?)
 	if snapshot.packs.free > 0 and snapshot.encounter == "Normal" then
-		return "You have a free gear pack! Open it in the Packs tab."
+		return "You have a free gear pack! Open it in the Packs tab.", "Tab:Packs"
 	end
 	if snapshot.encounter == "Normal" then
 		for _, troopId in TroopConfig.ORDER do
 			local def = TroopConfig.TROOPS[troopId]
 			if def.unlockStage ~= nil and (snapshot.troops[troopId] or 0) == 0 and Formulas.troopUnlocked(troopId, snapshot.bestStage) then
-				return `New troop unlocked: {def.displayName}! Find it in the shop.`
+				return `New troop unlocked: {def.displayName}! Find it in the shop.`, "Tab:Troops"
 			end
 		end
 	end
 	if snapshot.ascensions > 0 or snapshot.bestStage >= 25 then
-		return nil -- experienced players don't need tips
+		return nil, nil -- experienced players don't need tips
 	end
 	if snapshot.totalKills < HINT_UNTIL_KILLS then
-		return "Click anywhere on the battlefield to attack!"
+		return `{TAP} anywhere on the battlefield to attack!`, nil
 	end
 	local troops = 0
 	for _, count in snapshot.troops do
 		troops += count
 	end
 	if troops == 0 then
-		return "Buy a Swordsman in the shop below. Troops fight for you!"
+		return "Buy a Swordsman in the shop below. Troops fight for you!", "Buy:Swordsman"
 	end
 	if snapshot.encounter == "Boss" then
-		return "Boss fight! Beat it before time runs out. Knights soak up hits."
+		return "Boss fight! Beat it before time runs out. Knights soak up hits.", nil
 	end
 	if not snapshot.autoAdvance and Formulas.isBossStage(snapshot.stage + 1) then
-		return "Got stronger? Press FIGHT BOSS to try again."
+		return "Got stronger? Press FIGHT BOSS to try again.", "FightBoss"
 	end
 	if snapshot.bestStage >= 5 and snapshot.bestStage < 10 then
-		return "Press 1 to Rally: double damage for 10 seconds."
+		local how = if Layout.compact then "Tap RALLY" else "Press 1 to Rally"
+		return `{how}: double damage for 10 seconds.`, "Ability:Rally"
 	end
 	local geared = false
 	for _, troopGear in snapshot.gear do
@@ -86,12 +91,13 @@ local function tipFor(snapshot: Snapshot): string?
 		end
 	end
 	if snapshot.bestStage >= 12 and not geared then
-		return "Open the Gear tab: weapons and armor make each troop type stronger."
+		return "Open the Gear tab: weapons and armor make each troop type stronger.", "Tab:Gear"
 	end
 	if snapshot.bestStage >= 15 and snapshot.bestStage < 20 then
-		return "Press 2 for Barrage: a huge burst of damage."
+		local how = if Layout.compact then "Tap BARRAGE" else "Press 2 for Barrage"
+		return `{how}: a huge burst of damage.`, "Ability:Barrage"
 	end
-	return nil
+	return nil, nil
 end
 
 local function fraction(value: BigNum, max: BigNum): number
@@ -137,22 +143,33 @@ function HudUI.start()
 		Name = "Hud",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		DisplayOrder = 2, -- above the shop (tips can overlap it on phones), below popups
 	}) :: ScreenGui
 
-	-- Left column: gold + damage.
+	-- Left column: gold + damage. Compact (phones) drops the "GOLD" header and the
+	-- click-damage line to save height.
+	local compact = Layout.compact
 	local economy = UIKit.panel({
 		Name = "Economy",
-		Position = UDim2.new(0, 12, 0, 12),
-		Size = UDim2.new(0, 210, 0, 134),
+		Position = UDim2.new(0, Layout.LEFT, 0, Layout.ECONOMY_TOP),
+		Size = UDim2.new(0, Layout.COLUMN_WIDTH, 0, Layout.ECONOMY_HEIGHT),
 		Parent = gui,
 	})
-	UIKit.label({ Text = "GOLD", TextColor3 = Theme.Muted, TextSize = 13, Size = UDim2.new(1, 0, 0, 16), Parent = economy })
+	UIKit.label({
+		Text = "GOLD",
+		TextColor3 = Theme.Muted,
+		TextSize = 13,
+		Size = UDim2.new(1, 0, 0, 16),
+		Visible = not compact,
+		Parent = economy,
+	})
+	local top = if compact then 0 else 16
 	local goldLabel = UIKit.label({
 		Text = "0",
 		TextColor3 = Theme.Gold,
 		Font = Theme.FontBold,
 		TextSize = 28,
-		Position = UDim2.new(0, 0, 0, 16),
+		Position = UDim2.new(0, 0, 0, top),
 		Size = UDim2.new(1, 0, 0, 30),
 		Parent = economy,
 	})
@@ -161,7 +178,7 @@ function HudUI.start()
 		TextColor3 = Theme.Muted,
 		TextSize = 13,
 		RichText = true,
-		Position = UDim2.new(0, 0, 0, 46),
+		Position = UDim2.new(0, 0, 0, top + 30),
 		Size = UDim2.new(1, 0, 0, 16),
 		Parent = economy,
 	})
@@ -169,15 +186,16 @@ function HudUI.start()
 		Text = "",
 		TextSize = 14,
 		RichText = true,
-		Position = UDim2.new(0, 0, 0, 66),
+		Position = UDim2.new(0, 0, 0, top + 48),
 		Size = UDim2.new(1, 0, 0, 16),
 		Parent = economy,
 	})
 	local tapLabel = UIKit.label({
 		Text = "",
 		TextSize = 14,
-		Position = UDim2.new(0, 0, 0, 82),
+		Position = UDim2.new(0, 0, 0, top + 66),
 		Size = UDim2.new(1, 0, 0, 16),
+		Visible = not compact,
 		Parent = economy,
 	})
 	local honorLabel = UIKit.label({
@@ -185,7 +203,7 @@ function HudUI.start()
 		TextColor3 = Theme.Gold,
 		Font = Theme.FontBold,
 		TextSize = 14,
-		Position = UDim2.new(0, 0, 0, 100),
+		Position = UDim2.new(0, 0, 0, if compact then top + 62 else top + 84),
 		Size = UDim2.new(1, 0, 0, 16),
 		Parent = economy,
 	})
@@ -292,6 +310,7 @@ function HudUI.start()
 
 	-- What the stage button does right now (set in render).
 	local buttonAction: () -> () = function() end
+	Spotlight.register("FightBoss", stageButton)
 	stageButton.Activated:Connect(function()
 		buttonAction()
 	end)
@@ -399,11 +418,12 @@ function HudUI.start()
 		end
 
 		renderStageButton(snapshot)
-		local tip = tipFor(snapshot)
+		local tip, spotlight = tipFor(snapshot)
 		hint.Visible = tip ~= nil
 		if tip ~= nil then
 			hint.Text = tip
 		end
+		Spotlight.show(spotlight)
 	end
 
 	StateController.Changed:Connect(render)

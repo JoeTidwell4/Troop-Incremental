@@ -267,6 +267,8 @@ export type PlayerData = {
 	achievements: { [string]: string }, -- id -> "unlocked" | "claimed"
 	lifetime: { [string]: number }, -- lifetime activity counters (see ActivityService)
 	passToggles: { [string]: boolean }, -- toggleable passes switched OFF (missing = on)
+	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
+	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -338,6 +340,7 @@ export type Snapshot = {
 	raidUnitsLive: number, -- units so far in the raid attack you're doing right now
 
 	passToggles: { [string]: boolean },
+	settings: { [string]: string }, -- every SettingsConfig key, filled with defaults
 }
 
 -- One-off messages from the server, shown as banners.

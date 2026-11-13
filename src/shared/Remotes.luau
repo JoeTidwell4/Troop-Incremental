@@ -26,6 +26,7 @@
 --                (action: "ClaimLogin" | "ClaimQuest" | "RerollQuest" | "ClaimBonus" | "ClaimAchievement", arg)
 -- ProgressSync   server -> client   (view: Types.ProgressView)  login calendar, quests, achievements
 -- SetPassToggle  client -> server   (passKey: string, enabled: boolean)  Auto Clicker / Auto Abilities on/off
+-- SetSetting     client -> server   (key: string, value: string)  saved settings (see SettingsConfig)
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
 --                (raid attacks use ClanRequest action "RaidAttack")
@@ -48,6 +49,7 @@ local Remotes = {
 		RaidSync = "RaidSync",
 		LeaderboardSync = "LeaderboardSync",
 		SetPassToggle = "SetPassToggle",
+		SetSetting = "SetSetting",
 		ProgressSync = "ProgressSync",
 	}),
 

@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
+local Spotlight = require(script.Parent.Spotlight)
 local StateController = require(Client.Controllers.StateController)
 local AbilityController = require(Client.Controllers.AbilityController)
 
@@ -170,24 +171,31 @@ function AbilityBarUI.start()
 	}) :: ScreenGui
 
 	local count = #AbilityConfig.ORDER
+	local length = count * BUTTON_SIZE + (count - 1) * GAP
 	local bar = UIKit.create("Frame", {
 		Name = "Bar",
 		BackgroundTransparency = 1,
-		-- A row centred just above the shop panel.
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -(Layout.SHOP_HEIGHT + Layout.SHOP_BOTTOM_MARGIN + 8)),
-		Size = UDim2.new(0, count * BUTTON_SIZE + (count - 1) * GAP, 0, BUTTON_SIZE),
+		-- Desktop: a row centred just above the shop panel.
+		-- Compact (phones): a column on the right edge, where the right thumb rests.
+		AnchorPoint = if Layout.compact then Vector2.new(1, 0.5) else Vector2.new(0.5, 1),
+		Position = if Layout.compact
+			then UDim2.new(1, -Layout.ABILITY_RIGHT, 0.45, 0)
+			else UDim2.new(0.5, 0, 1, -(Layout.SHOP_HEIGHT + Layout.SHOP_BOTTOM_MARGIN + 8)),
+		Size = if Layout.compact
+			then UDim2.new(0, BUTTON_SIZE, 0, length)
+			else UDim2.new(0, length, 0, BUTTON_SIZE),
 		Parent = gui,
 	}, {
 		UIKit.create("UIListLayout", {
 			Padding = UDim.new(0, GAP),
-			FillDirection = Enum.FillDirection.Horizontal,
+			FillDirection = if Layout.compact then Enum.FillDirection.Vertical else Enum.FillDirection.Horizontal,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
 
 	for order, abilityId in AbilityConfig.ORDER do
 		slots[abilityId] = buildSlot(abilityId, order, bar)
+		Spotlight.register(`Ability:{abilityId}`, slots[abilityId].button)
 	end
 
 	local elapsed = 0

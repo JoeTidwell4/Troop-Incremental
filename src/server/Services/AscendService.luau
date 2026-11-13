@@ -22,6 +22,7 @@ local RateLimiter = require(Server.Util.RateLimiter)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local StageService = require(Services.StageService)
+local Analytics = require(Services.AnalyticsService)
 
 type AscendResult = Types.AscendResult
 type PlayerData = Types.PlayerData
@@ -71,6 +72,8 @@ local function ascend(player: Player, _payload: boolean): AscendResult
 	data.honor = BigNum.add(data.honor, honor)
 	data.stats.honorEarned = BigNum.add(data.stats.honorEarned, honor)
 	data.stats.ascensions += 1
+	Analytics.ascended(player, data.highestStage, data.stats.ascensions)
+	Analytics.honor(player, "Source", honor, data.honor, "Ascend")
 	resetRun(data)
 
 	StageService.restart(player) -- also recalculates the (now empty) army

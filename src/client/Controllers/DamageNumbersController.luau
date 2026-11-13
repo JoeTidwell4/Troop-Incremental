@@ -1,7 +1,8 @@
 --!strict
 -- Floating numbers above the enemy: your click damage when you click, and gold when an
 -- enemy dies. Purely cosmetic (the real numbers come from the server snapshot).
--- At most MAX_ACTIVE numbers exist at once so mashing can't pile up hundreds.
+-- At most a few numbers exist at once (GraphicsConfig damageNumbers: 12 on High, 6 on
+-- Low) so mashing can't pile up hundreds.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -14,10 +15,10 @@ local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 local BattlefieldController = require(Controllers.BattlefieldController)
+local Quality = require(script.Parent.Parent:WaitForChild("Visuals"):WaitForChild("Quality"))
 
 type Snapshot = Types.Snapshot
 
-local MAX_ACTIVE = 12
 local LIFETIME = 0.8
 local CLICK_COLOR = Color3.fromRGB(255, 255, 255)
 local GOLD_COLOR = Color3.fromRGB(255, 205, 70)
@@ -29,7 +30,7 @@ local DamageNumbersController = {}
 
 local function spawnText(text: string, color: Color3, size: number)
 	local enemy = BattlefieldController.getEnemyPosition()
-	if enemy == nil or active >= MAX_ACTIVE then
+	if enemy == nil or active >= Quality.get().damageNumbers then
 		return
 	end
 	active += 1

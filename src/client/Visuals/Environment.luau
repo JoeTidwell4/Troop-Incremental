@@ -10,6 +10,7 @@
 local Lighting = game:GetService("Lighting")
 
 local Parts = require(script.Parent.Parts)
+local Quality = require(script.Parent.Quality)
 
 local GROUND_TOP = 0.3 -- big ground sits just below the arena top (0.5) to avoid flicker
 local ARENA_SIZE = Vector3.new(70, 1, 36)
@@ -356,11 +357,11 @@ local function scatter(rng: Random, origin: Vector3, parent: Instance, count: nu
 	end
 end
 
-local function mountains(rng: Random, theme: Theme, origin: Vector3, parent: Instance)
+local function mountains(rng: Random, theme: Theme, origin: Vector3, parent: Instance, count: number)
 	local rounded = theme.scenery == "Desert" or theme.scenery == "Swamp"
-	for i = 1, 14 do
+	for i = 1, count do
 		-- Spread around the front and sides (the camera looks toward +Z).
-		local angle = math.rad(-115 + (i - 1) * (230 / 13) + rng:NextNumber(-6, 6))
+		local angle = math.rad(-115 + (i - 1) * (230 / math.max(1, count - 1)) + rng:NextNumber(-6, 6))
 		local distance = rng:NextNumber(300, 420)
 		local position = origin + Vector3.new(math.sin(angle) * distance, GROUND_TOP, math.cos(angle) * distance)
 		local facing = CFrame.lookAt(position, origin + Vector3.new(0, GROUND_TOP, 0))
@@ -506,7 +507,7 @@ local function ambientParticles(theme: Theme, origin: Vector3, parent: Instance)
 	emitter.Texture = style.texture
 	emitter.Color = ColorSequence.new(style.color)
 	emitter.Size = NumberSequence.new(style.size.Min, style.size.Max)
-	emitter.Rate = style.rate
+	emitter.Rate = style.rate * Quality.get().particleRate
 	emitter.Lifetime = style.lifetime
 	emitter.Speed = style.speed
 	emitter.EmissionDirection = style.direction
@@ -523,7 +524,8 @@ end
 
 ---------------------------------------------------------------- public
 
--- Builds everything for one area. Returns the model holding it (destroy it to clear).
+-- Builds everything for one area at the current graphics quality (Visuals/Quality).
+-- Returns the model holding it (destroy it to clear).
 function Environment.build(theme: Theme, origin: Vector3, areaNumber: number, parent: Instance): Model
 	local model = Parts.model("Environment", parent)
 	local rng = Random.new(areaNumber * 7919)
@@ -551,8 +553,9 @@ function Environment.build(theme: Theme, origin: Vector3, areaNumber: number, pa
 	end
 
 	local set = SCENERY[theme.scenery] or SCENERY.Forest
-	scatter(rng, origin, model, 110, set)
-	mountains(rng, theme, origin, model)
+	local quality = Quality.get()
+	scatter(rng, origin, model, quality.props, set)
+	mountains(rng, theme, origin, model, quality.mountains)
 	ambientParticles(theme, origin, model)
 	return model
 end

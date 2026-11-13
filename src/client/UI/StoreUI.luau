@@ -35,7 +35,7 @@ function StoreUI.start()
 	}) :: ScreenGui
 
 	-- Left column, first menu row (Sound | Store).
-	local storePosition, storeSize = Layout.rowSlot(Layout.ROW1_TOP, 2, 2)
+	local storePosition, storeSize = Layout.menuSlot("Store")
 	local storeButton = UIKit.button({
 		Name = "StoreButton",
 		Text = "STORE",
@@ -62,7 +62,7 @@ function StoreUI.start()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.48, 0),
-		Size = UDim2.new(0.9, 0, 0.82, 0),
+		Size = Layout.windowSize(0.9, 0.82),
 		Parent = overlay,
 	}, {
 		UIKit.corner(14),
@@ -83,7 +83,7 @@ function StoreUI.start()
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.new(0, 32, 0, 32),
+		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
 	local list = UIKit.create("ScrollingFrame", {

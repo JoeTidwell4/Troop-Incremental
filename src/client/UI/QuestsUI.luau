@@ -83,13 +83,14 @@ function QuestsUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
+	local questsPosition, questsSize = Layout.menuSlot("Quests")
 	local questsButton = UIKit.button({
 		Name = "QuestsButton",
 		Text = "QUESTS",
 		TextSize = 15,
 		BackgroundColor3 = Color3.fromRGB(150, 90, 220),
-		Position = UDim2.new(0, Layout.LEFT, 0, Layout.ROW3_TOP),
-		Size = UDim2.new(0, Layout.COLUMN_WIDTH, 0, Layout.ROW_HEIGHT),
+		Position = questsPosition,
+		Size = questsSize,
 		Parent = gui,
 	})
 	local dot = UIKit.create("Frame", {
@@ -118,7 +119,7 @@ function QuestsUI.start()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.48, 0),
-		Size = UDim2.new(0.94, 0, 0.86, 0),
+		Size = Layout.windowSize(0.94, 0.86),
 		Parent = overlay,
 	}, {
 		UIKit.corner(14),
@@ -141,7 +142,7 @@ function QuestsUI.start()
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.new(0, 32, 0, 32),
+		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
 	local statusToken = 0

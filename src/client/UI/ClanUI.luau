@@ -69,7 +69,7 @@ function ClanUI.start()
 	}) :: ScreenGui
 
 	-- "CLAN" button: left column, menu row (War | Clan | Top).
-	local clanPosition, clanSize = Layout.rowSlot(Layout.ROW2_TOP, 2, 3)
+	local clanPosition, clanSize = Layout.menuSlot("Clan")
 	local clanButton = UIKit.button({
 		Name = "ClanButton",
 		Text = "CLAN",
@@ -96,7 +96,7 @@ function ClanUI.start()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.48, 0),
-		Size = UDim2.new(0.94, 0, 0.86, 0),
+		Size = Layout.windowSize(0.94, 0.86),
 		Parent = overlay,
 	}, {
 		UIKit.corner(14),
@@ -134,7 +134,7 @@ function ClanUI.start()
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.new(0, 32, 0, 32),
+		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
 

@@ -95,7 +95,7 @@ function AchievementService.start()
 			return { ok = false, reason = if data.achievements[def.id] == "claimed" then "AlreadyClaimed" else "NotDone" }
 		end
 		data.achievements[def.id] = "claimed"
-		DailyService.grant(player, data, { honor = def.honor })
+		DailyService.grant(player, data, { honor = def.honor }, "Achievement")
 		return { ok = true }
 	end)
 

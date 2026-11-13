@@ -31,6 +31,7 @@ local SyncService = require(Services.SyncService)
 local CombatService = require(Services.CombatService)
 local ModifierService = require(Services.ModifierService)
 local ActivityService = require(Services.ActivityService)
+local Analytics = require(Services.AnalyticsService)
 
 type PlayerData = Types.PlayerData
 type QuestState = Types.QuestState
@@ -57,7 +58,8 @@ end
 ---------------------------------------------------------------- rewards
 
 -- Grants a reward bundle. Must not yield.
-function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef)
+-- `source` names where the reward came from, for analytics (default "Daily").
+function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef, source: string?)
 	if reward.goldMinutes ~= nil then
 		local gold = Formulas.incomeGold(
 			CombatService.getDps(player),
@@ -79,6 +81,7 @@ function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef)
 		local honor = BigNum.fromNumber(reward.honor)
 		data.honor = BigNum.add(data.honor, honor)
 		data.stats.honorEarned = BigNum.add(data.stats.honorEarned, honor)
+		Analytics.honor(player, "Source", honor, data.honor, source or "Daily")
 	end
 	DataService.markChanged(player)
 end

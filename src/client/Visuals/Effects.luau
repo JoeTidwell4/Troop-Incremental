@@ -7,6 +7,7 @@ local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
 
 local Parts = require(script.Parent.Parts)
+local Quality = require(script.Parent.Quality)
 
 local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
@@ -103,9 +104,11 @@ function Effects.dustRing(position: Vector3)
 end
 
 -- Breaks a model into flying pieces that fade away. The model itself is left as is.
+-- Low graphics scales the piece count down (to none).
 function Effects.shatter(model: Model, maxPieces: number)
 	local target = folder
-	if target == nil then
+	maxPieces = math.floor(maxPieces * Quality.get().debris)
+	if target == nil or maxPieces <= 0 then
 		return
 	end
 	local center = model:GetPivot().Position
@@ -181,6 +184,7 @@ function Effects.arrow(from: Vector3, to: Vector3, color: Color3, duration: numb
 	a1.Position = Vector3.new(0, -0.1, 1)
 	a1.Parent = shaft
 	local trail = Instance.new("Trail")
+	trail.Enabled = Quality.get().trails
 	trail.Attachment0 = a0
 	trail.Attachment1 = a1
 	trail.Color = ColorSequence.new(color)

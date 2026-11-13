@@ -32,7 +32,7 @@ function LeaderboardUI.start()
 	}) :: ScreenGui
 
 	-- Left column, menu row (War | Clan | Top).
-	local topPosition, topSize = Layout.rowSlot(Layout.ROW2_TOP, 3, 3)
+	local topPosition, topSize = Layout.menuSlot("Top")
 	local topButton = UIKit.button({
 		Name = "TopButton",
 		Text = "TOP",
@@ -60,7 +60,7 @@ function LeaderboardUI.start()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.48, 0),
-		Size = UDim2.new(0.9, 0, 0.8, 0),
+		Size = Layout.windowSize(0.9, 0.8),
 		Parent = overlay,
 	}, {
 		UIKit.corner(14),
@@ -89,7 +89,7 @@ function LeaderboardUI.start()
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.new(0, 32, 0, 32),
+		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
 

@@ -18,6 +18,7 @@ local TroopConfig = require(Shared:WaitForChild("Config"):WaitForChild("TroopCon
 local UIKit = require(script.Parent.UIKit)
 local ShopTypes = require(script.Parent.ShopTypes)
 local ShopController = require(Client.Controllers.ShopController)
+local Spotlight = require(script.Parent.Spotlight)
 
 type Snapshot = Types.Snapshot
 type BuyMode = Types.BuyMode
@@ -148,6 +149,7 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 			onBuy(troopId)
 		end)
 		rows[troopId] = { frame = row, owned = owned, info = info, button = button }
+		Spotlight.register(`Buy:{troopId}`, button)
 	end
 
 	local function render(snapshot: Snapshot)

@@ -72,7 +72,7 @@ function FactionUI.start()
 	}) :: ScreenGui
 
 	-- "WAR" button: left column, menu row (War | Clan | Top).
-	local warPosition, warSize = Layout.rowSlot(Layout.ROW2_TOP, 1, 3)
+	local warPosition, warSize = Layout.menuSlot("War")
 	local warButton = UIKit.button({
 		Name = "WarButton",
 		Text = "WAR",
@@ -100,7 +100,7 @@ function FactionUI.start()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.48, 0),
-		Size = UDim2.new(0.94, 0, 0.86, 0),
+		Size = Layout.windowSize(0.94, 0.86),
 		Parent = overlay,
 	}, {
 		UIKit.corner(14),
@@ -130,7 +130,7 @@ function FactionUI.start()
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.new(0, 32, 0, 32),
+		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
 	local statusLabel = UIKit.label({

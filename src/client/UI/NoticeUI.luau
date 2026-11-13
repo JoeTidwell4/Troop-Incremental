@@ -32,6 +32,11 @@ local FAIL_REASONS: { [string]: string } = {
 	OutOfTime = "Out of time!",
 	ArmyDefeated = "Your army was defeated!",
 }
+-- What to do about it (each reason has a different fix).
+local FAIL_ADVICE: { [string]: string } = {
+	OutOfTime = "Not enough damage: buy troops, upgrade Weapons, use Rally in the fight.",
+	ArmyDefeated = "Not enough HP: buy Knights or upgrade Armor, then Fight Boss again.",
+}
 
 function NoticeUI.show(title: string, subtitle: string, color: Color3)
 	showToken += 1
@@ -86,7 +91,7 @@ local function onNotice(notice: Notice)
 		)
 	elseif notice.kind == "BossFailed" then
 		local reason = FAIL_REASONS[notice.reason or ""] or "Boss fight lost."
-		NoticeUI.show(reason, "Train more troops, then press Fight Boss to try again.", Theme.HpFill)
+		NoticeUI.show(reason, FAIL_ADVICE[notice.reason or ""] or FAIL_ADVICE.OutOfTime, Theme.HpFill)
 	end
 end
 

@@ -72,6 +72,10 @@ local StageService = {
 	BossDefeated = Signal.new() :: Signal.Signal<Player, number, boolean>,
 	-- Fires whenever enemies die: (player, stage, kills, wasBoss). Used for war points.
 	Killed = Signal.new() :: Signal.Signal<Player, number, number, boolean>,
+	-- Fires when a boss fight begins: (player, bossStage). Used for analytics.
+	BossStarted = Signal.new() :: Signal.Signal<Player, number>,
+	-- Fires when a boss fight is lost: (player, bossStage, "OutOfTime" | "ArmyDefeated").
+	BossFailed = Signal.new() :: Signal.Signal<Player, number, string>,
 	-- Fires when a raid attack ends (time up, cap reached, or leaving): (player, damage).
 	RaidFinished = Signal.new() :: Signal.Signal<Player, BigNum>,
 }
@@ -153,6 +157,9 @@ end
 local function setEncounter(player: Player, data: PlayerData, encounter: Encounter)
 	encounters[player] = encounter
 	CombatService.setFightContext(player, data.stage, encounter.kind ~= "Normal")
+	if encounter.kind == "Boss" then
+		StageService.BossStarted:Fire(player, data.stage)
+	end
 end
 
 local function goToStage(player: Player, data: PlayerData, stage: number)
@@ -219,6 +226,7 @@ local function failBoss(player: Player, data: PlayerData, reason: "OutOfTime" | 
 	data.autoAdvance = false
 	goToStage(player, data, bossStage - 1)
 	notify(player, { kind = "BossFailed", stage = bossStage, reason = reason })
+	StageService.BossFailed:Fire(player, bossStage, reason)
 end
 
 local function onStageCleared(player: Player, data: PlayerData, encounter: Encounter)

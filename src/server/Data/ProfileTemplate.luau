@@ -43,6 +43,8 @@ local template: Types.PlayerData = {
 	achievements = {},
 	lifetime = {},
 	passToggles = {},
+	settings = { graphics = "Auto", sound = "All" },
+	analytics = { onboardingStep = 0 },
 	raid = { weekId = -1, clanId = "", attacks = 0, units = 0, dayId = -1, attacksToday = 0, claimedWeek = -1 },
 	troops = {
 		Swordsman = 0,

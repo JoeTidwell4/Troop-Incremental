@@ -28,6 +28,8 @@ local RaidService = require(Services.RaidService)
 local LeaderboardService = require(Services.LeaderboardService)
 local MonetizationService = require(Services.MonetizationService)
 local ActivityService = require(Services.ActivityService)
+local SettingsService = require(Services.SettingsService)
+local AnalyticsService = require(Services.AnalyticsService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
 
@@ -54,6 +56,8 @@ MonetizationService.start() -- Robux passes and products (granted only here)
 ActivityService.start() -- counts what players do (for quests and achievements)
 DailyService.start() -- login calendar and daily quests
 AchievementService.start()
+SettingsService.start() -- graphics / sound settings saved in the profile
+AnalyticsService.start() -- onboarding funnel, boss results, Honor flow (Creator Dashboard)
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)
