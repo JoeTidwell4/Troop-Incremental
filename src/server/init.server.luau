@@ -40,6 +40,7 @@ local LegacyService = require(Services.LegacyService)
 local SkillService = require(Services.SkillService)
 local GeneralService = require(Services.GeneralService)
 local RelicService = require(Services.RelicService)
+local TutorialService = require(Services.TutorialService)
 local DebugService = require(Services.DebugService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
@@ -79,6 +80,7 @@ LegacyService.start() -- Legacy: the second prestige + the Crown shop
 SkillService.start() -- Commander Level + skill tree
 GeneralService.start() -- Generals: recruit, field, level
 RelicService.start() -- Relics: boss drops, slots, sets, Dust
+TutorialService.start() -- which tutorial lessons each player has seen
 DebugService.start() -- Studio-only test panel (does nothing in the live game)
 DataService.start() -- last: starts loading players once every listener is connected
 

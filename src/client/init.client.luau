@@ -45,6 +45,8 @@ local WeakPointUI = require(UI.WeakPointUI)
 local WardrobeUI = require(UI.WardrobeUI)
 local LegacyUI = require(UI.LegacyUI)
 local ArmyUI = require(UI.ArmyUI)
+local TutorialUI = require(UI.TutorialUI)
+local GuideUI = require(UI.GuideUI)
 local DebugPanelUI = require(UI.DebugPanelUI)
 
 ShopController.start()
@@ -82,6 +84,8 @@ WeakPointUI.start()
 WardrobeUI.start()
 LegacyUI.start()
 ArmyUI.start()
+GuideUI.start()
+TutorialUI.start() -- after every window so its openers are registered
 DebugPanelUI.start() -- Studio only; does nothing in the live game
 StateController.start() -- last: asks the server for state once everything is listening
 

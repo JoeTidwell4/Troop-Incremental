@@ -414,6 +414,7 @@ export type PlayerData = {
 	commanderXp: number, -- Commander Level XP (never resets)
 	generals: GeneralsData, -- Generals roster (kept forever)
 	relics: RelicsData, -- relic inventory (kept on Ascend, turned to Dust on Legacy)
+	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
@@ -487,6 +488,7 @@ export type Snapshot = {
 	commanderXp: number,
 	generals: GeneralsData,
 	relicDust: number, -- (the relic inventory itself comes on RelicSync, only when it changes)
+	tutorialSeen: { [string]: boolean },
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
 	enemyGolden: boolean, -- the current enemy is a golden one
@@ -594,6 +596,17 @@ export type GeneralDef = {
 	rarity: string, -- "Rare" | "Epic" | "Legendary" | "Mythic"
 	passive: { stat: string, value: number }, -- "damage" | "armyHp" | "gold" | "tap"
 	trait: { kind: string, troopId: string?, value: number, text: string },
+}
+
+-- A tutorial lesson (TutorialConfig).
+export type TutorialStep = { text: string, spotlight: string?, open: string? }
+export type TutorialLesson = {
+	id: string,
+	topic: string,
+	title: string,
+	when: string,
+	stage: number,
+	steps: { TutorialStep },
 }
 
 -- Relics (RelicConfig).

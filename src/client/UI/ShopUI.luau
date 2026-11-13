@@ -196,6 +196,9 @@ function ShopUI.start()
 		end)
 		tabButtons[tab] = button
 		Spotlight.register(`Tab:{tab.title}`, button)
+		Spotlight.registerOpener(`Tab:{tab.title}`, function()
+			ShopUI.openTab(tab.title)
+		end)
 	end
 
 	for index, mode in ALL_MODES do

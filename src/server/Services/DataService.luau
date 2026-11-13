@@ -23,6 +23,7 @@ local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("Abilit
 local SkillConfig = require(Shared:WaitForChild("Config"):WaitForChild("SkillConfig"))
 local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local RelicConfig = require(Shared:WaitForChild("Config"):WaitForChild("RelicConfig"))
+local TutorialConfig = require(Shared:WaitForChild("Config"):WaitForChild("TutorialConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -326,6 +327,19 @@ local function sanitize(data: PlayerData)
 	relics.nextId = math.max(wholeNumber(relics.nextId, 1, 1), highestId + 1)
 	relics.pity.sinceLegendary = wholeNumber(relics.pity.sinceLegendary, 0, 0)
 	relics.pity.sinceMythic = wholeNumber(relics.pity.sinceMythic, 0, 0)
+	-- Tutorial: only real lesson ids.
+	local seenLessons: { [string]: boolean } = {}
+	if typeof(data.tutorial.seen) == "table" then
+		for lessonId, value in data.tutorial.seen do
+			if typeof(lessonId) == "string" and value == true and TutorialConfig.BY_ID[lessonId] ~= nil then
+				seenLessons[lessonId] = true
+			end
+		end
+	end
+	data.tutorial.seen = seenLessons
+	if typeof(data.tutorial.initialized) ~= "boolean" then
+		data.tutorial.initialized = false
+	end
 	-- Ability loadout: exactly as many known, different abilities as there are slots.
 	local loadout: { string } = {}
 	local seen: { [string]: boolean } = {}

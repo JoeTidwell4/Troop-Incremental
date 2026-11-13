@@ -34,6 +34,7 @@ local template: Types.PlayerData = {
 	abilityLoadout = { "Rally", "Barrage", "Plunder" }, -- equipped abilities (Formulas.loadoutSlots)
 	commanderXp = 0, -- Commander Level (never resets)
 	relics = { items = {}, equipped = {}, dust = 0, nextId = 1, pity = { sinceLegendary = 0, sinceMythic = 0 } }, -- RelicConfig
+	tutorial = { seen = {}, initialized = false }, -- TutorialConfig lessons already shown
 	generals = { -- Generals roster (GeneralConfig; kept forever)
 		owned = {},
 		fielded = { "", "", "" },

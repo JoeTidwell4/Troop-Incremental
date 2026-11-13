@@ -20,6 +20,7 @@ local Config = Shared:WaitForChild("Config")
 local DailyConfig = require(Config:WaitForChild("DailyConfig"))
 local AchievementConfig = require(Config:WaitForChild("AchievementConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 local ProgressController = require(Client.Controllers.ProgressController)
 local AudioController = require(Client.Controllers.AudioController)
@@ -488,10 +489,13 @@ function QuestsUI.start()
 		tabButtons[info.frame] = button
 	end
 
-	questsButton.Activated:Connect(function()
+	local function openQuests()
 		UIKit.openModal(overlay, window)
 		render()
-	end)
+	end
+	questsButton.Activated:Connect(openQuests)
+	Spotlight.register("Menu:Quests", questsButton)
+	Spotlight.registerOpener("Menu:Quests", openQuests)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false
 	end)

@@ -44,6 +44,7 @@
 -- GeneralRequest client -> server, returns {ok, reason, ...}  ("Recruit", 1|10) ("Field", slot, generalId|"") ("LevelUp", generalId, max)
 -- RelicRequest   client -> server, returns {ok, reason}  (action, arg, extra): Equip(id) Unequip(slot) Upgrade(id) Reroll(id, line) Salvage(id) SalvageBelow(rarityOrder) Lock(id)
 -- RelicSync      server -> client   (relics: Types.RelicsData)  the relic inventory, sent only when it changes
+-- TutorialSeen   client -> server   (lessonId: string)  a tutorial lesson was finished or skipped
 -- DebugCommand   client -> server, returns {ok, message}  (action: string, arg: any)  STUDIO ONLY
 --                test panel (DebugConfig.ACTIONS); the server ignores it in the live game
 --                (Robux purchases are prompted on the client with MarketplaceService and
@@ -62,6 +63,7 @@ local Remotes = {
 		SetAbilitySlot = "SetAbilitySlot",
 		Crit = "Crit",
 		RelicSync = "RelicSync",
+		TutorialSeen = "TutorialSeen",
 		FightBoss = "FightBoss",
 		SetAutoAdvance = "SetAutoAdvance",
 		StateSync = "StateSync",

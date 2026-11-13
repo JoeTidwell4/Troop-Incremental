@@ -671,14 +671,16 @@ function ClanUI.start()
 		end
 	end)
 
-	clanButton.Activated:Connect(function()
+	local function openClan()
 		UIKit.openModal(overlay, window)
 		render()
 		local view = ClanController.get()
 		if view == nil or not view.inClan then
 			browse()
 		end
-	end)
+	end
+	clanButton.Activated:Connect(openClan)
+	Spotlight.registerOpener("Menu:Clan", openClan)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false
 	end)

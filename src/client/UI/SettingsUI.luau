@@ -1,7 +1,8 @@
 --!strict
 -- "SETTINGS" menu button and window: graphics quality (Auto / Low / High) and sound
--- (On / Music off / Off). Saved between sessions (SettingsController). Also shows the
--- game version, handy when reporting bugs.
+-- (On / Music off / Off). Saved between sessions (SettingsController). The GUIDE button
+-- opens GuideUI (replay tutorial lessons). Also shows the game version, handy when
+-- reporting bugs.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,8 +11,10 @@ local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Version = require(Shared:WaitForChild("Version")) :: string
 local UIKit = require(script.Parent.UIKit)
+local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 local SettingsController = require(Client.Controllers.SettingsController)
+local GuideUI = require(script.Parent.GuideUI)
 
 local Theme = UIKit.Theme
 
@@ -63,7 +66,7 @@ function SettingsUI.start()
 		Visible = false,
 		Parent = gui,
 	}) :: Frame
-	local windowHeight = 14 + 34 + 2 * (22 + ROW_HEIGHT + 22 + 8) + 18 + 14
+	local windowHeight = 14 + 34 + 2 * (22 + ROW_HEIGHT + 22 + 8) + ROW_HEIGHT + 8 + 18 + 14
 	local window = UIKit.create("Frame", {
 		Name = "Window",
 		BackgroundColor3 = Theme.Panel,
@@ -148,6 +151,19 @@ function SettingsUI.start()
 	section(38 + sectionHeight, "Sound", "sound", SOUND, function(): string
 		return "Sounds play once the game's audio is added."
 	end)
+	local guideButton = UIKit.button({
+		Text = "GUIDE: replay tutorials",
+		TextSize = 15,
+		BackgroundColor3 = Theme.Accent,
+		Position = UDim2.new(0, 0, 0, 38 + 2 * sectionHeight),
+		Size = UDim2.new(1, 0, 0, ROW_HEIGHT),
+		Parent = window,
+	})
+	guideButton.Activated:Connect(function()
+		overlay.Visible = false
+		GuideUI.open()
+	end)
+	Spotlight.register("Settings:Guide", guideButton)
 	UIKit.label({
 		Text = `Version {Version}`,
 		TextColor3 = Theme.Muted,
@@ -166,10 +182,13 @@ function SettingsUI.start()
 	SettingsController.Changed:Connect(refresh)
 	refresh()
 
-	menuButton.Activated:Connect(function()
+	local function openSettings()
 		refresh()
 		UIKit.openModal(overlay, window)
-	end)
+	end
+	menuButton.Activated:Connect(openSettings)
+	Spotlight.register("Menu:Settings", menuButton)
+	Spotlight.registerOpener("Menu:Settings", openSettings)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false
 	end)

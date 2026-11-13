@@ -13,6 +13,7 @@ local BigNum = require(Shared:WaitForChild("BigNum"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local MonetizationConfig = require(Shared:WaitForChild("Config"):WaitForChild("MonetizationConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 local StateController = require(Client.Controllers.StateController)
 local MonetizationController = require(Client.Controllers.MonetizationController)
@@ -253,10 +254,13 @@ function StoreUI.start()
 		end
 	end
 
-	storeButton.Activated:Connect(function()
+	local function openStore()
 		UIKit.openModal(overlay, window)
 		refreshAll()
-	end)
+	end
+	storeButton.Activated:Connect(openStore)
+	Spotlight.register("Menu:Store", storeButton)
+	Spotlight.registerOpener("Menu:Store", openStore)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false
 	end)

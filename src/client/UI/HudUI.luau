@@ -232,6 +232,7 @@ function HudUI.start()
 	ascendButton.Activated:Connect(function()
 		ShopUI.openTab("Honor")
 	end)
+	Spotlight.register("Ascend", ascendButton)
 
 	-- Center column: stage panel, then the stage button, then the hint.
 	local column = UIKit.create("Frame", {

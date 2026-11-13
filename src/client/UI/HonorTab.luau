@@ -17,6 +17,7 @@ local HonorConfig = require(Config:WaitForChild("HonorConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local AscendConfig = require(Config:WaitForChild("AscendConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Spotlight = require(script.Parent.Spotlight)
 local ShopTypes = require(script.Parent.ShopTypes)
 local AscendConfirmUI = require(script.Parent.AscendConfirmUI)
 local LegacyUI = require(script.Parent.LegacyUI)
@@ -141,6 +142,7 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 	legacyButton.Activated:Connect(function()
 		LegacyUI.open()
 	end)
+	Spotlight.register("Legacy", legacyButton)
 	local runLabel = UIKit.label({
 		Text = "",
 		TextColor3 = Theme.Muted,

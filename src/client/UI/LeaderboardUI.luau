@@ -13,6 +13,7 @@ local Config = Shared:WaitForChild("Config")
 local LeaderboardConfig = require(Config:WaitForChild("LeaderboardConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
+local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 
 type Leaderboards = Types.Leaderboards
@@ -137,6 +138,10 @@ function LeaderboardUI.start()
 	end)
 
 	topButton.Activated:Connect(function()
+		UIKit.openModal(overlay, window)
+	end)
+	Spotlight.register("Menu:Top", topButton)
+	Spotlight.registerOpener("Menu:Top", function()
 		UIKit.openModal(overlay, window)
 	end)
 	closeButton.Activated:Connect(function()

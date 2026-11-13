@@ -318,6 +318,10 @@ function ArmyUI.start()
 			render()
 		end)
 		tabButtons[tab] = button
+		Spotlight.register(`Army:{tab.title}`, button)
+		Spotlight.registerOpener(`Army:{tab.title}`, function()
+			ArmyUI.open(tab.title)
+		end)
 	end
 
 	openWindow = function(tabTitle: string?)
@@ -330,6 +334,9 @@ function ArmyUI.start()
 		render()
 	end
 	menuButton.Activated:Connect(function()
+		ArmyUI.open()
+	end)
+	Spotlight.registerOpener("Menu:Army", function()
 		ArmyUI.open()
 	end)
 	closeButton.Activated:Connect(function()
