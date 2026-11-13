@@ -591,6 +591,15 @@ export type GeneralDef = {
 	trait: { kind: string, troopId: string?, value: number, text: string },
 }
 
+-- A House: fielding 2-3 of its members gives a set bonus (GeneralConfig.HOUSES).
+export type GeneralHouseDef = {
+	id: string,
+	name: string,
+	color: Color3,
+	members: { string },
+	bonuses: { [number]: { text: string, effects: { [string]: number } } },
+}
+
 -- One General you own.
 export type GeneralState = { stars: number, level: number, copies: number }
 
@@ -613,8 +622,10 @@ export type GeneralBonuses = {
 	troopDamage: { [string]: number }, -- per troop type multipliers
 	troopHp: { [string]: number },
 	critChance: number, -- added
+	critMultiplier: number, -- added to the crit multiplier
 	bossTime: number, -- added seconds
 	goldenChance: number, -- added to the golden chance multiplier (0.4 = x1.4)
+	sets: { { houseId: string, count: number, power: number } }, -- active set bonuses
 }
 
 export type RecruitResult = {

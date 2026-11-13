@@ -15,6 +15,7 @@
 --   "generals"    own >= target different Generals
 --   "generalStars" any General at >= target stars
 --   "generalRarity" own a General of rarity `key`
+--   "generalSet"  a House set of >= target fielded Generals active
 
 local Types = require(script.Parent.Parent.Types)
 
@@ -62,6 +63,7 @@ local AchievementConfig = {
 		{ id = "Generals3", name = "War Council", description = "Recruit 3 different Generals", honor = 3, honorShare = 0.05, kind = "generals", target = 3 },
 		{ id = "Generals8", name = "Hall of Heroes", description = "Recruit 8 different Generals", honor = 8, honorShare = 0.2, kind = "generals", target = 8 },
 		{ id = "Generals12", name = "Every Banner", description = "Recruit all 12 Generals", honor = 20, honorShare = 0.5, kind = "generals", target = 12 },
+		{ id = "FullHouse", name = "Full House", description = "Field a full 3-General House set", honor = 6, honorShare = 0.15, kind = "generalSet", target = 3 },
 		{ id = "GeneralStars5", name = "Living Legend", description = "Get a General to 5 stars", honor = 15, honorShare = 0.4, kind = "generalStars", target = 5 },
 		{ id = "MythicGeneral", name = "Myth Made Real", description = "Recruit a Mythic General", honor = 15, honorShare = 0.4, kind = "generalRarity", key = "Mythic", target = 1 },
 		{ id = "Golden10", name = "Gold Rush", description = "Defeat 10 golden enemies", honor = 3, honorShare = 0.05, kind = "lifetime", key = "GoldenKill", target = 10 },

@@ -114,12 +114,25 @@ function GeneralsTab.build(parent: Instance): { title: string, frame: Frame, ren
 		slotLabels[slot] = UIKit.label({ Text = "", Font = Theme.FontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.new(1, 0, 1, 0), Parent = card })
 	end
 
+	-- Active set bonuses (2-3 fielded Generals of one House).
+	local setsLabel = UIKit.label({
+		Text = "",
+		RichText = true,
+		TextSize = 11,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.None,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Position = UDim2.new(0, 0, 0, 105),
+		Size = UDim2.new(1, 0, 0, 30),
+		Parent = frame,
+	})
+
 	---------------------------------------------------------------- roster
 	local list = UIKit.create("ScrollingFrame", {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, 0, 0, 108),
-		Size = UDim2.new(1, 0, 1, -108),
+		Position = UDim2.new(0, 0, 0, 138),
+		Size = UDim2.new(1, 0, 1, -138),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollBarThickness = 6,
@@ -162,7 +175,21 @@ function GeneralsTab.build(parent: Instance): { title: string, frame: Frame, ren
 			Size = UDim2.new(1, 0, 0, 70),
 			Parent = list,
 		}, { UIKit.corner(8), UIKit.create("UIStroke", { Color = rarity.color, Thickness = 1.5, Transparency = 0.3 }) }) :: Frame
-		local name = UIKit.label({ Text = `{def.name}, {def.title}`, Font = Theme.FontBold, TextSize = 13, TextColor3 = rarity.color, Position = UDim2.new(0, 8, 0, 3), Size = UDim2.new(1, -200, 0, 16), Parent = row })
+		local houseId = Formulas.generalHouse(generalId)
+		local house = GeneralConfig.HOUSES[houseId]
+		local houseText = if house ~= nil
+			then `<font color="#{house.color:ToHex()}">[{house.name}]</font>`
+			else `<font color="#{rarity.color:ToHex()}">[Every House]</font>`
+		local name = UIKit.label({
+			Text = `{def.name}, {def.title}  {houseText}`,
+			RichText = true,
+			Font = Theme.FontBold,
+			TextSize = 13,
+			TextColor3 = rarity.color,
+			Position = UDim2.new(0, 8, 0, 3),
+			Size = UDim2.new(1, -200, 0, 16),
+			Parent = row,
+		})
 		local info = UIKit.label({ Text = "", TextSize = 11, Position = UDim2.new(0, 8, 0, 19), Size = UDim2.new(1, -200, 0, 14), Parent = row })
 		local passive = UIKit.label({ Text = "", TextSize = 11, TextColor3 = Theme.Good, Position = UDim2.new(0, 8, 0, 34), Size = UDim2.new(1, -200, 0, 14), Parent = row })
 		local trait = UIKit.label({ Text = "", TextSize = 11, TextColor3 = SCROLL_COLOR, Position = UDim2.new(0, 8, 0, 50), Size = UDim2.new(1, -200, 0, 14), Parent = row })
@@ -282,6 +309,15 @@ function GeneralsTab.build(parent: Instance): { title: string, frame: Frame, ren
 		recruitOne.BackgroundColor3 = if generals.scrolls >= 1 then Theme.Good else Theme.Disabled
 		recruitTen.BackgroundColor3 = if generals.scrolls >= GeneralConfig.MAX_RECRUIT_AT_ONCE then Theme.Good else Theme.Disabled
 
+		local bonuses = Formulas.generalBonuses(generals)
+		local lines: { string } = {}
+		for _, set in bonuses.sets do
+			local house = GeneralConfig.HOUSES[set.houseId]
+			local power = if set.power > 1 then ` (x{fmt(set.power)} from stars)` else ""
+			table.insert(lines, `<font color="#{house.color:ToHex()}"><b>{house.name} ({set.count}):</b></font> {house.bonuses[set.count].text}{power}`)
+		end
+		setsLabel.Text = if #lines > 0 then table.concat(lines, "   ")
+			else `<font color="#A0A5B9">Set bonus: field 2-3 Generals of the same House. {GeneralConfig.GENERALS[GeneralConfig.WILDCARD].name} counts for every House.</font>`
 		for slot, label in slotLabels do
 			local def = GeneralConfig.GENERALS[generals.fielded[slot] or ""]
 			label.Text = if def ~= nil then `{slot}: {def.name}` else `{slot}: (empty)`

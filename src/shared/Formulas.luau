@@ -479,8 +479,10 @@ function Formulas.generalBonuses(generals: Types.GeneralsData?): Types.GeneralBo
 		troopDamage = {},
 		troopHp = {},
 		critChance = 0,
+		critMultiplier = 0,
 		bossTime = 0,
 		goldenChance = 0,
+		sets = {},
 	}
 	if generals == nil then
 		return result
@@ -512,11 +514,77 @@ function Formulas.generalBonuses(generals: Types.GeneralsData?): Types.GeneralBo
 			end
 		end
 	end
+	-- Set bonuses: 2 or 3 fielded members of a House (the wildcard counts for every House).
+	for _, set in Formulas.generalSets(generals) do
+		local house = GeneralConfig.HOUSES[set.houseId]
+		local bonus = house.bonuses[set.count]
+		if bonus ~= nil then
+			for field, value in bonus.effects do
+				local scaled = value * set.power
+				if passive[field] ~= nil then
+					passive[field] += scaled
+				elseif field == "bossDamage" then
+					result.bossDamage *= math.max(0.1, 1 + scaled)
+				elseif field == "critChance" then
+					result.critChance += scaled
+				elseif field == "critMultiplier" then
+					result.critMultiplier += scaled
+				elseif field == "bossTime" then
+					result.bossTime += scaled
+				elseif field == "goldenChance" then
+					result.goldenChance += scaled
+				end
+			end
+			table.insert(result.sets, set)
+		end
+	end
 	result.damage = 1 + passive.damage
 	result.armyHp = 1 + passive.armyHp
 	result.gold = 1 + passive.gold
 	result.tap = 1 + passive.tap
 	return result
+end
+
+-- The House a General belongs to ("" for the wildcard, who belongs to all of them).
+function Formulas.generalHouse(generalId: string): string
+	for _, houseId in GeneralConfig.HOUSE_ORDER do
+		if table.find(GeneralConfig.HOUSES[houseId].members, generalId) ~= nil then
+			return houseId
+		end
+	end
+	return ""
+end
+
+-- Active sets among the fielded Generals: { houseId, count (2-3), power }.
+-- power = 1 + STAR_STEP x (lowest stars among the counted members - 1).
+function Formulas.generalSets(generals: Types.GeneralsData): { { houseId: string, count: number, power: number } }
+	local sets = {}
+	local wildcard = GeneralConfig.WILDCARD
+	local wildcardState = if table.find(generals.fielded, wildcard) ~= nil then generals.owned[wildcard] else nil
+	for _, houseId in GeneralConfig.HOUSE_ORDER do
+		local house = GeneralConfig.HOUSES[houseId]
+		local count = 0
+		local lowest = math.huge
+		for _, generalId in generals.fielded do
+			local state = generals.owned[generalId]
+			if state ~= nil and table.find(house.members, generalId) ~= nil then
+				count += 1
+				lowest = math.min(lowest, state.stars)
+			end
+		end
+		if count >= 1 and wildcardState ~= nil then
+			count += 1
+			lowest = math.min(lowest, wildcardState.stars)
+		end
+		if count >= 2 then
+			table.insert(sets, {
+				houseId = houseId,
+				count = math.min(count, 3),
+				power = 1 + GeneralConfig.STAR_STEP * (lowest - 1),
+			})
+		end
+	end
+	return sets
 end
 
 ---------------------------------------------------------------- commander level + skills

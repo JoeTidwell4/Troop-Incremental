@@ -85,6 +85,58 @@ local GeneralConfig = {
 		Marshal = { id = "Marshal", name = "The Eternal Marshal", title = "Who Commands Kings", rarity = "Mythic", passive = { stat = "damage", value = 0.18 }, trait = { kind = "allTroopDamage", value = 0.25, text = "Every troop +{v}% damage" } },
 	} :: { [string]: Types.GeneralDef },
 
+	-- Set bonuses (Phase 13c part 2): field 2 or 3 Generals of the same House. The
+	-- WILDCARD General counts as a member of every House. A set's bonus is multiplied by
+	-- (1 + STAR_STEP x (lowest stars among its fielded members - 1)), so starring up the
+	-- whole set pays off. Effect fields (added up like General traits):
+	--   damage / armyHp / gold / tap  +x to the multiplier
+	--   bossDamage                    multiplier on boss damage to you (-0.2 = 20% less)
+	--   critChance / critMultiplier / bossTime / goldenChance   added
+	WILDCARD = "Marshal",
+	HOUSE_ORDER = { "Crown", "WildHunt", "Arcane", "Fleet" } :: { string },
+	HOUSES = {
+		Crown = {
+			id = "Crown",
+			name = "House of the Crown",
+			color = Color3.fromRGB(80, 120, 220),
+			members = { "Aldric", "Brannoc", "Isolde" },
+			bonuses = {
+				[2] = { text = "+20% army HP", effects = { armyHp = 0.2 } },
+				[3] = { text = "+20% army HP, bosses deal 20% less damage", effects = { armyHp = 0.2, bossDamage = -0.2 } },
+			},
+		},
+		WildHunt = {
+			id = "WildHunt",
+			name = "The Wild Hunt",
+			color = Color3.fromRGB(80, 170, 90),
+			members = { "Lyra", "Garrick", "Varkas" },
+			bonuses = {
+				[2] = { text = "+15% army damage", effects = { damage = 0.15 } },
+				[3] = { text = "+35% army damage, +3s on boss timers", effects = { damage = 0.35, bossTime = 3 } },
+			},
+		},
+		Arcane = {
+			id = "Arcane",
+			name = "The Arcane Circle",
+			color = Color3.fromRGB(160, 90, 230),
+			members = { "Morwen", "Thessa", "Rook" },
+			bonuses = {
+				[2] = { text = "+25% click damage", effects = { tap = 0.25 } },
+				[3] = { text = "+25% click damage, +5% crit chance, crits hit x1 harder", effects = { tap = 0.25, critChance = 0.05, critMultiplier = 1 } },
+			},
+		},
+		Fleet = {
+			id = "Fleet",
+			name = "The Golden Fleet",
+			color = Color3.fromRGB(240, 190, 60),
+			members = { "Pip", "Seren" }, -- the third member is the Marshal (wildcard)
+			bonuses = {
+				[2] = { text = "+20% gold", effects = { gold = 0.2 } },
+				[3] = { text = "+40% gold, golden enemies twice as likely", effects = { gold = 0.4, goldenChance = 1 } },
+			},
+		},
+	} :: { [string]: Types.GeneralHouseDef },
+
 	REQUESTS_PER_SECOND = 4,
 	REQUESTS_BURST = 8,
 	MAX_RECRUIT_AT_ONCE = 10,

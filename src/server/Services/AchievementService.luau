@@ -11,6 +11,7 @@ local Services = script.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local AchievementConfig = require(Shared:WaitForChild("Config"):WaitForChild("AchievementConfig"))
 local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local DataService = require(Services.DataService)
@@ -65,6 +66,12 @@ local function current(data: PlayerData, def: AchievementDef): number
 		local best = 0
 		for _, state in data.generals.owned do
 			best = math.max(best, state.stars)
+		end
+		return best
+	elseif kind == "generalSet" then
+		local best = 0
+		for _, set in Formulas.generalSets(data.generals) do
+			best = math.max(best, set.count)
 		end
 		return best
 	elseif kind == "generalRarity" then

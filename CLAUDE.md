@@ -37,7 +37,7 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 13 (approved: "really in depth and replayable, a bunch of content"). Build in this order, owner tests each:**
 - **13a: done (owner confirmed): more abilities + swappable loadout, click crits, golden enemies, ARMY hub** (see "Phase 13a" below).
 - **13b: done (owner confirmed): Commander Level + skill tree** (see "Phase 13b" below).
-- **13c part 1 (built, waiting for owner's test): Generals** (see "Phase 13c" below). Part 2 next: set bonuses for fielding matching Generals + Generals shown on the battlefield.
+- **13c part 1: done (owner confirmed): Generals.** **Part 2 (built, waiting for owner's test): House set bonuses + Generals on the battlefield** (see "Phase 13c" below).
 - 13d Relics: boss drops, rolled stats + set effects, 6 slots, kept on Ascend / reset on Legacy, dupes -> dust.
 - 13e Challenge runs (after first Ascend), 13f Endless Tower (best stage 75), 13g Expeditions (best stage 40).
 - UI rule (owner OK'd): no more menu buttons beyond two hubs: ARMY (Abilities, Skills, Generals, Relics) and ADVENTURE (Challenges, Tower, Expeditions). Every system unlocks gradually and gets a power budget; re-run `tools/balance_v2.py` after each.
@@ -271,6 +271,11 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - Achievements: Generals3 / 8 / 12 (kind "generals"), GeneralStars5 ("generalStars"), MythicGeneral ("generalRarity", key Mythic).
 - Client: `UI/GeneralsTab` (ARMY > Generals: scrolls, odds + pity countdown, Recruit x1 / x10, 3 fielded slots, roster rows with stars, level, copies to next star, passive, trait, Field 1/2/3, Level up / Max). Recruits play `ChestRevealUI.playCard(Card)` (ChestRevealUI.play for wardrobe chests now builds a Card too). ARMY red dot also for unspent scrolls. Test panel "+20 Recruit Scrolls".
 - Sim bound check: skills lv20 200 by 6 h; + mid Generals (3 at ~lv15, 2 stars) 210; + fully maxed Generals 240.
+
+### Phase 13c part 2: House set bonuses, Generals on the battlefield
+- `GeneralConfig.HOUSES` (HOUSE_ORDER Crown / WildHunt / Arcane / Fleet; members 3/3/3/2; color; bonuses[2] / [3] = {text, effects}) and `WILDCARD` "Marshal" (counts as a member of every House, only together with at least 1 real member, so it can complete two sets at once). Set power = 1 + STAR_STEP x (lowest stars among the counted members - 1). Effects: damage / armyHp / gold / tap (+ to the passive totals), bossDamage, critChance, critMultiplier, bossTime, goldenChance.
+- `Formulas.generalSets(generals)` -> { houseId, count, power }; `Formulas.generalBonuses` adds them (new fields `critMultiplier` (CombatService crits) and `sets`); `Formulas.generalHouse(id)` ("" = wildcard). Achievement FullHouse (kind "generalSet", target 3).
+- Client: GeneralsTab shows each General's House and the active sets ("House (3): text (x1.25 from stars)") above the roster. `Visuals/GeneralModels.build(def, houseColor, rarityColor, parent)` (part-built, x1.35 a soldier: House-colored armor, rarity cape, trait weapon, crown from Legendary, Mythic glow + ground ring, House standard; front = local -Z). `Controllers/GeneralsController` places the fielded ones at plot offsets (-21, 0.5, -6 / 0 / 6) facing +Z, idle sway, hops on BossDefeated; rebuilt when the fielded ids change.
 
 ### Releasing (Roblox rules as of Nov 2026, from Roblox/creator-docs on GitHub)
 - Publish (File > Publish) only saves the game online; **release** is the same File > Publish flow: Continue -> first question of the Content Ratings Questionnaire ("age-restricted content?") -> No -> Publish. Result: "Content May Vary" rating, playable only by **age-checked users 16+**. Needs an account in good standing, 2+ days old, and an age check (facial estimation or government ID). Free. The same requirements apply to every later update.
