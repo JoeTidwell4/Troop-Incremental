@@ -96,7 +96,7 @@ local function tipFor(snapshot: Snapshot): (string?, string?)
 		return `Boss fight! {TAP} the red ! targets on the boss for big damage.`, nil
 	end
 	if not snapshot.autoAdvance and Formulas.isBossStage(snapshot.stage + 1) then
-		return "Got stronger? Press FIGHT BOSS to try again.", "FightBoss"
+		return "Press FIGHT BOSS to try again. Every failed try weakens the boss!", "FightBoss"
 	end
 	if snapshot.bestStage >= 5 and snapshot.bestStage < 10 then
 		local how = if Layout.compact then "Tap RALLY" else "Press 1 to Rally"
@@ -399,14 +399,24 @@ function HudUI.start()
 			stageLabel.Text = `BOSS: {area.bossName}`
 			stageLabel.TextColor3 = BOSS_HP_COLOR
 			hpFill.BackgroundColor3 = BOSS_HP_COLOR
-			local timeLeft = math.max(0, math.ceil(snapshot.bossEndsAt - workspace:GetServerTimeNow()))
-			infoLabel.Text = `Time left: {timeLeft}s  |  Boss hits for {format(snapshot.bossDps)}/s`
-			infoLabel.TextColor3 = if timeLeft <= 10 then Theme.HpFill else Theme.Muted
+			local serverNow = workspace:GetServerTimeNow()
+			local timeLeft = math.max(0, math.ceil(snapshot.bossEndsAt - serverNow))
+			if serverNow < snapshot.bossIntroUntil then
+				infoLabel.Text = "Get ready..."
+				infoLabel.TextColor3 = Theme.Gold
+			else
+				infoLabel.Text = `Time left: {timeLeft}s  |  Boss hits for {format(snapshot.bossDps)}/s`
+				infoLabel.TextColor3 = if timeLeft <= 10 then Theme.HpFill else Theme.Muted
+			end
 			armyBack.Visible = true
 			armyFill.Size = UDim2.new(fraction(snapshot.armyHp, snapshot.armyMaxHp), 0, 1, 0)
 			armyLabel.Text = `Army HP {format(snapshot.armyHp)} / {format(snapshot.armyMaxHp)}`
 
 			local status: { string } = {}
+			if snapshot.bossWeakened > 0 then
+				local percent = math.floor(snapshot.bossWeakened * 100 + 0.5)
+				table.insert(status, `<font color="#78E08C">WEAKENED -{percent}%</font>`)
+			end
 			if workspace:GetServerTimeNow() < snapshot.bossShieldUntil then
 				table.insert(status, `<font color="#{SHIELD_COLOR:ToHex()}">SHIELD: only clicks + abilities hurt!</font>`)
 			end

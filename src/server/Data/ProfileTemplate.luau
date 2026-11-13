@@ -46,6 +46,7 @@ local template: Types.PlayerData = {
 	passToggles = {},
 	settings = { graphics = "Auto", sound = "All" },
 	analytics = { onboardingStep = 0 },
+	bossWeaken = { stage = 0, fails = 0 },
 	clanWar = {
 		weekId = -1,
 		clanId = "",

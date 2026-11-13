@@ -24,6 +24,7 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 - Rejected: Robux for random packs (owner actually meant gold, covered by pack tiers).
 **Phase 11 (approved, from playtester feedback; build in this order, test each):**
 - **11a: boss + raid animations (built, waiting for owner's Studio test).** See "Phase 11a" below.
+- **Boss balance pass (built, waiting for owner's test; playtesters said later bosses were instant or impossible):** see "Boss fairness" below.
 - **11b: 4 new biomes** (Jungle Ruins, Crystal Caverns, Sunken Reef, Sky Citadel; areas repeat after stage 100 instead of 60), traits that weaken the NEW troop types, 2-3 enemy kinds per biome (old ones too), a unique boss model per biome. Parts only, no uploads.
 - **11c: commander gear WITH stats** (owner's choice): Helmet / Cape / Weapon skin / Back slots, Wardrobe UI. Rule: stat gear is earn-only (achievements, milestones, Clan War, clan shop, login); Robux items stay cosmetic (no pay-to-win).
 - **11d: clans, all of A-I** (owner's choice): A battlefield banner, B customization (color, preset emblem, filtered motto), C weekly clan quests, D clan shop (Clan Tokens from Clan War -> commander gear), E join requests, F member MVP, G raid boss rotation, H cross-server clan chat (filter per recipient + respect chat permissions; flagged as the riskiest), I head-to-head weekly pairings (bye = free win when unpaired). Write the cross-server plan before building H and I.
@@ -173,6 +174,12 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - `EnemyModels.attackStyle(kind)`: Goblin/Scorpion Sweep, Yeti/Golem/Colossus Stomp, Bogling/Wraith Projectile. Colossus core part is named "Core".
 - `BattlefieldController`: `setEnemy(..., mode)` with mode Normal/Boss/Raid; the old boss leaves via `playExit` (Death: stagger, fall, shatter + `Effects.lootBurst` + gold shockwave; Retreat: leaps away when you lose; Sink: raid boss) and the next enemy waits until it's done. Boss attacks every 1.2s (0.85s enraged) only when no locked move plays; raid sweeps are cosmetic (3.2s, 2.2s after the half-HP phase change, which also roars and turns the core red). Enrage = Roar + growth + `Effects.smoke`; new shield = ShieldCast + bubble grows in; minions climb out of `Effects.portal`s; weak point hits call `BattlefieldController.flinch()`; troops hop for `CHEER_SECONDS` after a boss kill.
 - New Effects: `shockwave`, `portal`, `lootBurst`, `roar`, `smoke` (scaled by graphics quality).
+
+### Boss fairness (after playtester feedback)
+- `BossConfig.INTRO_SECONDS` (2): the boss can't be hurt, doesn't hit, and the timer waits (`encounter.introUntil`, snapshot `bossIntroUntil`; HUD shows "Get ready...").
+- `MAX_DAMAGE_PER_SECOND_FRACTION` (0.12): StageService caps damage to a boss per tick at that fraction of its max HP per second (all sources), so fights last 8s+.
+- `StageService.getBossHitRate(player)`: the boss's stage damage clamped to `ARMY_DAMAGE_MIN/MAX_FRACTION` (1.5%-6%) of the army's current max HP per second, x2 when enraged. Used by updateBoss and the snapshot's `bossDps`. Consequence: army HP walls mostly gone (an army survives >= ~16s); bosses are mainly a damage check now. The Python sims still use the old formula.
+- Weakening: `data.bossWeaken = {stage, fails}`; each failed attempt in a row on that boss stage = -`WEAKEN_PER_FAIL` (10%) boss HP, max `WEAKEN_MAX` (50%) (`newEncounter(stage, data)`); reset when that boss is beaten. Snapshot `bossWeakened`, HUD "WEAKENED -X%".
 
 ### Releasing (Roblox rules as of Nov 2026, from Roblox/creator-docs on GitHub)
 - Publish (File > Publish) only saves the game online; **release** is the same File > Publish flow: Continue -> first question of the Content Ratings Questionnaire ("age-restricted content?") -> No -> Publish. Result: "Content May Vary" rating, playable only by **age-checked users 16+**. Needs an account in good standing, 2+ days old, and an age check (facial estimation or government ID). Free. The same requirements apply to every later update.

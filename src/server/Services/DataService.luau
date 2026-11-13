@@ -219,6 +219,8 @@ local function sanitize(data: PlayerData)
 		data.lifetime[key] = wholeNumber(value, 0, 0)
 	end
 	data.packs.forge = wholeNumber(data.packs.forge, 0, 0)
+	data.bossWeaken.stage = wholeNumber(data.bossWeaken.stage, 0, 0)
+	data.bossWeaken.fails = wholeNumber(data.bossWeaken.fails, 0, 0)
 	for _, field in { "weekId", "dayId", "lastWeekId", "claimedWeek" } do
 		(data.clanWar :: any)[field] = wholeNumber((data.clanWar :: any)[field], -1, -1)
 	end

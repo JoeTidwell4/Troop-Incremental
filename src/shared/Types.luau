@@ -339,6 +339,7 @@ export type PlayerData = {
 	clanWar: ClanWarRecord,
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
+	bossWeaken: { stage: number, fails: number }, -- failed attempts in a row on that boss stage
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -375,6 +376,8 @@ export type Snapshot = {
 	bossEndsAt: number, -- server time; 0 when not fighting a boss
 	bossDps: BigNum, -- zero when not fighting a boss (already doubled while enraged)
 	bossEnraged: boolean,
+	bossIntroUntil: number, -- server time; the fight (and timer) starts after the entrance
+	bossWeakened: number, -- 0..0.5, how much HP this boss lost from your failed attempts
 	bossShieldUntil: number, -- server time; troops can't hurt the boss until then
 	minionHp: BigNum, -- summoned minions' remaining HP (zero = none)
 	minionMaxHp: BigNum,
