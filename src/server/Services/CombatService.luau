@@ -52,9 +52,13 @@ function CombatService.refreshArmy(player: Player)
 	local context = contexts[player] or { stage = data.stage, vsBoss = false }
 	-- Damage: faction x area trait x each troop's job. HP: faction only.
 	-- (plus per-troop bonuses of the fielded Generals, for both)
-	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss, data.generals)
-	army.baseDps = Formulas.armyDps(data.troops, data.gear, damageBonus)
-	army.baseHp = Formulas.armyHp(data.troops, data.gear, Formulas.troopHpMultipliers(data.faction, data.generals))
+	-- Challenge rules: Back to Basics switches Generals off, Bare Hands switches gear off.
+	local rules = Formulas.challengeRules(data.challenge.active)
+	local _, generals = Formulas.fightBuild(data.challenge.active, nil, data.generals, nil)
+	local gear = if rules.noGear then nil else data.gear
+	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss, generals)
+	army.baseDps = Formulas.armyDps(data.troops, gear, damageBonus)
+	army.baseHp = Formulas.armyHp(data.troops, gear, Formulas.troopHpMultipliers(data.faction, generals))
 end
 
 -- Called by StageService whenever the fight changes; recalculates the army's damage.
@@ -103,8 +107,11 @@ function CombatService.applyTaps(player: Player, taps: number)
 	if data == nil or taps <= 0 then
 		return
 	end
+	if Formulas.challengeRules(data.challenge.active).noClicks then
+		return -- Hands Off challenge: clicks do nothing
+	end
 	-- Each click can crit. The crits' extra damage is sent to the client for a big number.
-	local extras = Formulas.extras(data.skills.ranks, data.generals, data.relics) -- skills, Generals, relics
+	local extras = Formulas.extras(Formulas.fightBuild(data.challenge.active, data.skills.ranks, data.generals, data.relics)) -- skills, Generals, relics
 	local chance = CombatConfig.CRIT_CHANCE + extras.critChance
 	local multiplier = CombatConfig.CRIT_MULTIPLIER + extras.critMultiplier
 	local crits = 0

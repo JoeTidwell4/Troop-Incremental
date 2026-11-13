@@ -41,6 +41,7 @@ local SkillService = require(Services.SkillService)
 local GeneralService = require(Services.GeneralService)
 local RelicService = require(Services.RelicService)
 local TutorialService = require(Services.TutorialService)
+local ChallengeService = require(Services.ChallengeService)
 local DebugService = require(Services.DebugService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
@@ -81,6 +82,7 @@ SkillService.start() -- Commander Level + skill tree
 GeneralService.start() -- Generals: recruit, field, level
 RelicService.start() -- Relics: boss drops, slots, sets, Dust
 TutorialService.start() -- which tutorial lessons each player has seen
+ChallengeService.start() -- challenge runs: parked main run, rules, tiers
 DebugService.start() -- Studio-only test panel (does nothing in the live game)
 DataService.start() -- last: starts loading players once every listener is connected
 

@@ -137,6 +137,12 @@ local function checkSnapshot(snapshot: Snapshot)
 	if snapshot.legacyCrowns > 0 then
 		trigger(snapshot, "legacyReady")
 	end
+	if snapshot.ascensions >= 1 then
+		trigger(snapshot, "ascended")
+	end
+	if snapshot.challengeActive ~= "" then
+		trigger(snapshot, "inChallenge")
+	end
 	local clan = ClanController.get()
 	if clan ~= nil and clan.inClan then
 		trigger(snapshot, "inClan")

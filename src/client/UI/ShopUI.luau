@@ -43,6 +43,8 @@ local FAIL_MESSAGES: { [string]: string } = {
 	TooEarly = "Reach the required stage first",
 	InRaid = "Finish your raid attack first",
 	Locked = "Unlock this troop first",
+	Challenge = "Not allowed in this challenge",
+	InChallenge = "Saved for your main run (leave the challenge first)",
 	Rejected = "Slow down a little!",
 }
 

@@ -32,6 +32,7 @@ local FAIL_MESSAGES: { [string]: string } = {
 	NoCrowns = "Earn more Honor first: a Legacy right now would give no Crowns.",
 	InRaid = "Finish your raid attack first.",
 	CantAfford = "Not enough Crowns.",
+	InChallenge = "Leave your challenge first (ADVENTURE).",
 	MaxReached = "Already maxed.",
 }
 

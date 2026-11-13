@@ -67,6 +67,7 @@ local FAIL_MESSAGES: { [string]: string } = {
 	AlreadyClaimed = "Already claimed.",
 	QuestNotDone = "That quest isn't finished yet.",
 	InBoss = "Finish your boss fight first.",
+	InChallenge = "Leave your challenge first (ADVENTURE).",
 	AlreadyRaiding = "You're already raiding.",
 }
 

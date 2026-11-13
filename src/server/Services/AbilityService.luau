@@ -105,6 +105,9 @@ local function useAbility(player: Player, abilityId: string)
 	if data.bestStage < def.unlockStage or not isEquipped(data, abilityId) then
 		return -- locked or not equipped
 	end
+	if Formulas.challengeRules(data.challenge.active).noClicks then
+		return -- Hands Off challenge: abilities do nothing
+	end
 
 	local playerTimers = getTimers(player)
 	local t = playerTimers[abilityId]
@@ -113,7 +116,7 @@ local function useAbility(player: Player, abilityId: string)
 		return -- still on cooldown
 	end
 
-	local stats = Formulas.abilityStats(abilityId, data.abilityUpgrades, data.skills.ranks)
+	local stats = Formulas.abilityStats(abilityId, data.abilityUpgrades, (Formulas.fightBuild(data.challenge.active, data.skills.ranks)))
 	local encounter = StageService.getEncounter(player)
 	if def.bossOnly and (encounter == nil or encounter.kind ~= "Boss") then
 		return -- would be wasted (the button says so)

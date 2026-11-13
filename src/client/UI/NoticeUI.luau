@@ -11,6 +11,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
 local Areas = require(Shared:WaitForChild("Areas"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
+local ChallengeConfig = require(Shared:WaitForChild("Config"):WaitForChild("ChallengeConfig"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
 local AudioController = require(Client.Controllers.AudioController)
@@ -118,6 +120,31 @@ local function onNotice(notice: Notice)
 			table.insert(parts, 1, "You were the clan MVP!")
 		end
 		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
+	elseif notice.kind == "ChallengeTier" then
+		local def = ChallengeConfig.CHALLENGES[notice.challengeId or ""]
+		local parts = { `+{NumberFormat.number(notice.honor or 0)} Honor` }
+		if (notice.scrolls or 0) > 0 then
+			table.insert(parts, `+{notice.scrolls} Recruit Scroll{if notice.scrolls == 1 then "" else "s"}`)
+		end
+		if (notice.dust or 0) > 0 then
+			table.insert(parts, `+{notice.dust} Relic Dust`)
+		end
+		if (notice.heroChests or 0) > 0 then
+			table.insert(parts, `+{notice.heroChests} Hero Chest`)
+		end
+		if def ~= nil then
+			table.insert(parts, 1, `Now {Formulas.challengeRewardText(def, notice.tier or 1)} forever`)
+		end
+		NoticeUI.show(`CHALLENGE TIER {notice.tier or 1} CLEARED!`, table.concat(parts, ", "), if def ~= nil then def.color else Theme.Gold)
+	elseif notice.kind == "ChallengeEnded" then
+		local def = ChallengeConfig.CHALLENGES[notice.challengeId or ""]
+		local name = if def ~= nil then string.upper(def.name) else "CHALLENGE"
+		local title = if notice.challengeReason == "Complete"
+			then `{name} COMPLETE!`
+			elseif notice.challengeReason == "Defeated" then `{name}: DEFEATED`
+			else `LEFT {name}`
+		local held = if notice.gold ~= nil then ` (+{NumberFormat.big(notice.gold)} gold from held rewards)` else ""
+		NoticeUI.show(title, `Your main run is back, exactly as you left it.{held}`, if def ~= nil then def.color else Theme.Gold)
 	elseif notice.kind == "LevelUp" then
 		NoticeUI.show(`COMMANDER LEVEL {notice.level or 0}!`, "+1 skill point. Spend it in ARMY > Skills.", Color3.fromRGB(120, 200, 255))
 	elseif notice.kind == "BossFailed" then

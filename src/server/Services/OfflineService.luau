@@ -57,6 +57,7 @@ local function award(player: Player, data: PlayerData)
 	local dps = CombatService.getDps(player)
 	local stage = Formulas.offlineStage(data.highestStage)
 	local gold = Formulas.offlineGold(dps, ModifierService.get(player).gold, stage, seconds, efficiency)
+	gold = BigNum.mulNumber(gold, Formulas.challengeBonuses(data.challenge.tiers).offline) -- Hands Off tiers
 	if BigNum.isZero(gold) then
 		return
 	end

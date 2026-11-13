@@ -60,7 +60,10 @@ end
 -- Grants a reward bundle. Must not yield. Returns the Honor given (zero if none).
 -- `source` names where the reward came from, for analytics (default "Daily").
 function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef, source: string?): BigNum.BigNum
-	if reward.goldMinutes ~= nil then
+	if reward.goldMinutes ~= nil and data.challenge.active ~= "" then
+		-- Inside a challenge run: held and paid on the main run when the challenge ends.
+		data.challenge.goldMinutes += reward.goldMinutes
+	elseif reward.goldMinutes ~= nil then
 		local gold = Formulas.incomeGold(
 			CombatService.getDps(player),
 			ModifierService.get(player).gold,

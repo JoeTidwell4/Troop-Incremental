@@ -90,7 +90,11 @@ end
 
 -- Gives what a developer product promises. Must not yield.
 local function grantProduct(player: Player, data: PlayerData, product: ProductDef)
-	if product.goldMinutes ~= nil then
+	if product.goldMinutes ~= nil and data.challenge.active ~= "" then
+		-- Bought inside a challenge run: held, and paid out on the main run when the
+		-- challenge ends (ChallengeService), so it's never lost with the challenge's gold.
+		data.challenge.goldMinutes += product.goldMinutes
+	elseif product.goldMinutes ~= nil then
 		-- Your army's normal gold rate at your best cleared stage, at full efficiency.
 		local stage = Formulas.offlineStage(data.highestStage)
 		local gold = Formulas.offlineGold(

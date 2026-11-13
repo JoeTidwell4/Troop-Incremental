@@ -24,6 +24,7 @@ local SkillConfig = require(Shared:WaitForChild("Config"):WaitForChild("SkillCon
 local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local RelicConfig = require(Shared:WaitForChild("Config"):WaitForChild("RelicConfig"))
 local TutorialConfig = require(Shared:WaitForChild("Config"):WaitForChild("TutorialConfig"))
+local ChallengeConfig = require(Shared:WaitForChild("Config"):WaitForChild("ChallengeConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -339,6 +340,59 @@ local function sanitize(data: PlayerData)
 	data.tutorial.seen = seenLessons
 	if typeof(data.tutorial.initialized) ~= "boolean" then
 		data.tutorial.initialized = false
+	end
+	do
+		-- Challenge runs: known challenges only, tiers within the ladder, and a parked main
+		-- run that is complete. If the parked run is damaged the challenge is dropped and the
+		-- challenge run simply becomes the main run (nothing better can be rebuilt).
+		local challenge = data.challenge
+		local tiers: { [string]: number } = {}
+		if typeof(challenge.tiers) == "table" then
+			for challengeId, tier in challenge.tiers do
+				if typeof(challengeId) == "string" and ChallengeConfig.CHALLENGES[challengeId] ~= nil then
+					tiers[challengeId] = math.min(wholeNumber(tier, 0, 0), #ChallengeConfig.TIER_GOALS)
+				end
+			end
+		end
+		challenge.tiers = tiers
+		challenge.goldMinutes = wholeNumber(challenge.goldMinutes, 0, 0)
+		local stash = challenge.stash :: any
+		local stashOk = typeof(stash) == "table" and typeof(stash.troops) == "table" and typeof(stash.gear) == "table"
+		if typeof(challenge.active) ~= "string" or ChallengeConfig.CHALLENGES[challenge.active] == nil or not stashOk then
+			challenge.active = ""
+			challenge.stash = nil
+		else
+			stash.gold = BigNum.sanitize(stash.gold)
+			stash.stage = wholeNumber(stash.stage, 1, 1)
+			stash.highestStage = math.max(wholeNumber(stash.highestStage, 1, 1), stash.stage)
+			stash.killsInStage = wholeNumber(stash.killsInStage, 0, 0)
+			if typeof(stash.autoAdvance) ~= "boolean" then
+				stash.autoAdvance = true
+			end
+			stash.highestBossDefeated = wholeNumber(stash.highestBossDefeated, 0, 0)
+			stash.rewardedBossStage = wholeNumber(stash.rewardedBossStage, 0, 0)
+			stash.weakenStage = wholeNumber(stash.weakenStage, 0, 0)
+			stash.weakenFails = wholeNumber(stash.weakenFails, 0, 0)
+			for troopId in data.troops do
+				stash.troops[troopId] = wholeNumber(stash.troops[troopId], 0, 0)
+				local troopGear = stash.gear[troopId]
+				if typeof(troopGear) ~= "table" then
+					troopGear = {}
+					stash.gear[troopId] = troopGear
+				end
+				for _, slot in GearConfig.SLOTS do
+					local state = troopGear[slot]
+					if typeof(state) ~= "table" then
+						troopGear[slot] = { level = 0, rarity = 1 }
+					else
+						state.level = math.min(wholeNumber(state.level, 0, 0), GearConfig.MAX_LEVEL)
+						state.rarity = math.clamp(wholeNumber(state.rarity, 1, 1), 1, #GearConfig.RARITIES)
+					end
+				end
+			end
+			-- The parked run's best counts as the all-time best too.
+			data.bestStage = math.max(data.bestStage, stash.highestStage)
+		end
 	end
 	-- Ability loadout: exactly as many known, different abilities as there are slots.
 	local loadout: { string } = {}

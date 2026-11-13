@@ -249,7 +249,7 @@ function SkillsTab.build(parent: Instance): { title: string, frame: Frame, rende
 		levelLabel.Text = `Commander Level {level}`
 		if need > 0 then
 			barFill.Size = UDim2.new(math.clamp(into / need, 0, 1), 0, 1, 0)
-			barLabel.Text = `{fmt(into)} / {fmt(need)} XP`
+			barLabel.Text = `{fmt(math.floor(into))} / {fmt(need)} XP`
 		else
 			barFill.Size = UDim2.new(1, 0, 1, 0)
 			barLabel.Text = "MAX LEVEL"

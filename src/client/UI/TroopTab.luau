@@ -154,8 +154,12 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 
 	local function render(snapshot: Snapshot)
 		-- DPS is shown for the current fight: faction, area trait, and boss/normal jobs.
-		local factionBonus = Formulas.troopHpMultipliers(snapshot.faction, snapshot.generals)
-		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal", snapshot.generals)
+		-- Challenge rules change the numbers too (no Generals / no gear / one troop type).
+		local rules = Formulas.challengeRules(snapshot.challengeActive)
+		local _, generals = Formulas.fightBuild(snapshot.challengeActive, nil, snapshot.generals, nil)
+		local gear = if rules.noGear then nil else snapshot.gear
+		local factionBonus = Formulas.troopHpMultipliers(snapshot.faction, generals)
+		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal", generals)
 		local trait = Areas.forStage(snapshot.stage).theme.trait
 		for _, troopId in TroopConfig.ORDER do
 			local row = rows[troopId]
@@ -169,11 +173,20 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 				row.button.AutoButtonColor = false
 				continue
 			end
+			if rules.onlyTroop ~= nil and troopId ~= rules.onlyTroop then
+				row.frame.BackgroundTransparency = 0.5
+				row.owned.Text = "CHALLENGE"
+				row.info.Text = `Only {TroopConfig.TROOPS[rules.onlyTroop].displayName} can be trained in this challenge`
+				row.button.Text = "Not in this\nchallenge"
+				row.button.BackgroundColor3 = Theme.Disabled
+				row.button.AutoButtonColor = false
+				continue
+			end
 			row.frame.BackgroundTransparency = 0
 			local count = snapshot.troops[troopId] or 0
 			row.owned.Text = `Owned: {count}`
-			local dps = format(Formulas.troopDps(troopId, count, snapshot.gear, fightBonus))
-			local hp = format(Formulas.troopHp(troopId, count, snapshot.gear, factionBonus))
+			local dps = format(Formulas.troopDps(troopId, count, gear, fightBonus))
+			local hp = format(Formulas.troopHp(troopId, count, gear, factionBonus))
 			local nextMilestone = Formulas.nextMilestone(count)
 			local weak = if trait ~= nil and trait.troopId == troopId
 				then `  <font color="#FF6E6E">({trait.name} area: -{math.floor((1 - trait.damageMultiplier) * 100 + 0.5)}%)</font>`

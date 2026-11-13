@@ -55,7 +55,10 @@ end
 local function update(player: Player)
 	local encounter = StageService.getEncounter(player)
 	local state = states[player]
-	if not fighting(encounter) then
+	local data = DataService.get(player)
+	-- Hands Off challenge: no weak points at all.
+	local handsOff = data ~= nil and Formulas.challengeRules(data.challenge.active).noClicks == true
+	if not fighting(encounter) or handsOff then
 		if state ~= nil then
 			states[player] = nil
 			RemoteService.fireClient(Remotes.Events.WeakPoint, player, { kind = "Clear", id = 0, expiresAt = 0, x = 0, y = 0 })
@@ -120,7 +123,7 @@ local function hit(player: Player, id: number): WeakPointResult
 	local bonus = math.min(state.streak * WeakPointConfig.STREAK_BONUS, WeakPointConfig.MAX_STREAK_BONUS)
 	state.streak += 1
 	local data = DataService.get(player)
-	local skill = if data ~= nil then Formulas.skillEffects(data.skills.ranks).weakPointDamage else 0 -- Weak Spot
+	local skill = if data ~= nil then Formulas.skillEffects((Formulas.fightBuild(data.challenge.active, data.skills.ranks))).weakPointDamage else 0 -- Weak Spot
 	local damage = BigNum.mulNumber(CombatService.getDps(player), WeakPointConfig.BURST_SECONDS * (1 + bonus) * (1 + skill))
 	CombatService.queueDamage(player, damage)
 	ActivityService.record(player, "WeakPoint", 1)

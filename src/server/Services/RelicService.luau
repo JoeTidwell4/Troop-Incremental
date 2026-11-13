@@ -316,6 +316,9 @@ function RelicService.start()
 		if data == nil then
 			return nil
 		end
+		if Formulas.challengeRules(data.challenge.active).noExtras then
+			return nil -- Back to Basics challenge
+		end
 		local bonuses = Formulas.relicBonuses(data.relics)
 		local damage = bonuses.damage
 		local encounter = StageService.getEncounter(player)

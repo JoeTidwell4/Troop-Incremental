@@ -42,6 +42,7 @@ local SkillConfig = {
 		QUEST = { 20, 40, 60 }, -- by quest difficulty
 		ACHIEVEMENT = 30,
 		WEAK_POINT = 1,
+		CHALLENGE_TIER = 40, -- each challenge tier cleared (ChallengeConfig)
 	},
 
 	TIER_POINTS = { 0, 3, 6, 9, 14 } :: { number }, -- tier n needs TIER_POINTS[n] spent in the branch

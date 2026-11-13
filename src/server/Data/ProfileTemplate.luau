@@ -35,6 +35,8 @@ local template: Types.PlayerData = {
 	commanderXp = 0, -- Commander Level (never resets)
 	relics = { items = {}, equipped = {}, dust = 0, nextId = 1, pity = { sinceLegendary = 0, sinceMythic = 0 } }, -- RelicConfig
 	tutorial = { seen = {}, initialized = false }, -- TutorialConfig lessons already shown
+	-- Challenge runs. `stash` (the parked main run) is only present while one is active.
+	challenge = { active = "", tiers = {}, goldMinutes = 0 },
 	generals = { -- Generals roster (GeneralConfig; kept forever)
 		owned = {},
 		fielded = { "", "", "" },

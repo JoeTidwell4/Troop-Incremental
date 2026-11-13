@@ -62,6 +62,9 @@ local function ascend(player: Player, _payload: boolean): AscendResult
 	if data == nil then
 		return { ok = false, reason = "NotLoaded" }
 	end
+	if data.challenge.active ~= "" then
+		return { ok = false, reason = "InChallenge" } -- a challenge run can't be Ascended
+	end
 	if data.highestStage < AscendConfig.MIN_STAGE then
 		return { ok = false, reason = "TooEarly" }
 	end

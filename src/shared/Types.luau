@@ -415,6 +415,7 @@ export type PlayerData = {
 	generals: GeneralsData, -- Generals roster (kept forever)
 	relics: RelicsData, -- relic inventory (kept on Ascend, turned to Dust on Legacy)
 	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
+	challenge: ChallengeState, -- challenge runs (tiers kept forever)
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
@@ -489,6 +490,8 @@ export type Snapshot = {
 	generals: GeneralsData,
 	relicDust: number, -- (the relic inventory itself comes on RelicSync, only when it changes)
 	tutorialSeen: { [string]: boolean },
+	challengeActive: string, -- challenge id you're in ("" = none)
+	challengeTiers: { [string]: number }, -- challenge id -> tiers cleared
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
 	enemyGolden: boolean, -- the current enemy is a golden one
@@ -518,7 +521,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -545,6 +548,12 @@ export type Notice = {
 	-- Relic only: what dropped, and whether it went straight to Dust (inventory full).
 	relic: RelicItem?,
 	dust: number?,
+	-- ChallengeTier: challengeId, tier (cleared), honor, scrolls, dust (Relic Dust),
+	-- heroChests. ChallengeEnded: challengeId, reason "Left" | "Complete" | "Defeated",
+	-- gold = held gold rewards paid out.
+	challengeId: string?,
+	challengeReason: string?,
+	scrolls: number?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"
@@ -608,6 +617,61 @@ export type TutorialLesson = {
 	stage: number,
 	steps: { TutorialStep },
 }
+
+-- Challenge runs (ChallengeConfig).
+export type ChallengeRules = {
+	onlyTroop: string?,
+	noClicks: boolean?,
+	oneLife: boolean?,
+	bossTimeScale: number?,
+	goldScale: number?,
+	noGear: boolean?,
+	allBossMoves: boolean?,
+	bossHpScale: number?,
+	noExtras: boolean?,
+}
+export type ChallengeDef = {
+	id: string,
+	name: string,
+	rule: string, -- shown to the player
+	color: Color3,
+	unlockAscends: number,
+	rules: ChallengeRules,
+	reward: { stat: string, perTier: number, text: string }, -- permanent, per tier cleared
+}
+export type ChallengeTierReward = { honorShare: number, honor: number, scrolls: number?, relicDust: number?, heroChests: number? }
+-- Permanent bonuses from cleared tiers, added up (Formulas.challengeBonuses).
+export type ChallengeBonuses = {
+	damage: number, -- multipliers
+	armyHp: number,
+	gold: number,
+	tap: number,
+	bossDamageDealt: number,
+	offline: number,
+	xp: number,
+	bossTime: number, -- seconds
+}
+-- The main run, parked while a challenge is on.
+export type ChallengeStash = {
+	gold: BigNum,
+	stage: number,
+	highestStage: number,
+	killsInStage: number,
+	autoAdvance: boolean,
+	highestBossDefeated: number,
+	rewardedBossStage: number,
+	weakenStage: number,
+	weakenFails: number,
+	troops: TroopCounts,
+	gear: GearSet,
+}
+export type ChallengeState = {
+	active: string, -- challenge id, "" = not in one
+	tiers: { [string]: number }, -- challenge id -> tiers cleared
+	goldMinutes: number, -- gold rewards / purchases held until the main run is back
+	stash: ChallengeStash?, -- only while active
+}
+export type ChallengeResult = { ok: boolean, reason: string? }
 
 -- Relics (RelicConfig).
 export type RelicSetDef = {

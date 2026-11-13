@@ -383,6 +383,9 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 			previewLabel.Text = `Ascend now for +{format(snapshot.ascendHonor)} Honor.\n`
 				.. `Reach stage {nextStage} for +{format(nextHonor)}.`
 			previewLabel.TextColor3 = Theme.Text
+		elseif snapshot.challengeActive ~= "" then
+			previewLabel.Text = "A challenge run can't be Ascended.\nLeave it in ADVENTURE to get your main run back."
+			previewLabel.TextColor3 = Theme.Muted
 		else
 			previewLabel.Text = `Reach stage {AscendConfig.MIN_STAGE} to Ascend.\n`
 				.. `(Best this run: {snapshot.highestStage})`

@@ -191,6 +191,9 @@ local function attack(player: Player, data: PlayerData, _arg: any): ClanResult
 	if clan == nil then
 		return { ok = false, reason = "NotInClan" }
 	end
+	if data.challenge.active ~= "" then
+		return { ok = false, reason = "InChallenge" } -- challenge rules would cripple the attack
+	end
 	claimIfDue(player, data)
 	local fresh = DataService.get(player)
 	if fresh == nil or fresh.raid.weekId ~= currentWeek() then

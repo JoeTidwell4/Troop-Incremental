@@ -41,6 +41,13 @@ local DebugConfig = {
 			},
 		},
 		{
+			title = "Challenges",
+			buttons = {
+				{ label = "+10 Ascends (unlock all)", action = "Ascends", arg = 10 },
+				{ label = "Clear next tier", action = "ChallengeTier" },
+			},
+		},
+		{
 			title = "Daily + clan",
 			buttons = {
 				{ label = "New day (login + quests)", action = "NewDay" },

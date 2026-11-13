@@ -18,6 +18,7 @@
 --   "ascendReady"      you can Ascend                 "legacyReady" a Legacy would give Crowns
 --   "inClan"           you're in a clan               "golden"      a golden enemy appears
 --   "relic"            your first relic drops
+--   "ascended"         you have Ascended at least once   "inChallenge"  you're in a challenge run
 --   "offline"          you come back to offline earnings
 -- `stage` on event lessons = the earliest stage it can matter. When the tutorial system
 -- first runs on an old save, lessons below the player's best stage count as already seen
@@ -35,7 +36,7 @@ local ClanConfig = require(script.Parent.ClanConfig)
 
 type Lesson = Types.TutorialLesson
 
-local TOPICS = { "Basics", "Bosses", "Army", "Troops", "Gear and packs", "Generals", "Relics", "Progress", "Clans and factions", "Prestige" }
+local TOPICS = { "Basics", "Bosses", "Army", "Troops", "Gear and packs", "Generals", "Relics", "Progress", "Clans and factions", "Prestige", "Adventure" }
 
 local LESSONS: { Lesson } = {
 	---------------------------------------------------------------- Basics
@@ -189,6 +190,23 @@ local LESSONS: { Lesson } = {
 		},
 	},
 
+	---------------------------------------------------------------- Adventure
+	{
+		id = "Challenges", topic = "Adventure", title = "Challenges", when = "ascended", stage = 50,
+		steps = {
+			{ text = "New: Challenges! A challenge is a fresh run from stage 1 with one nasty rule, like Swordsmen only or no clicking.", spotlight = "Menu:Adventure" },
+			{ text = "Your main run is parked while you're in one and comes back exactly as it was when you leave. Trying one never costs you progress.", open = "Adventure:Challenges", spotlight = "Adventure:Challenges" },
+			{ text = "Beat the boss of each goal stage to clear a tier. Every tier is a small bonus you keep forever, plus a one-off prize. More challenges unlock as you Ascend." },
+		},
+	},
+	{
+		id = "InChallenge", topic = "Adventure", title = "You're in a challenge", when = "inChallenge", stage = 50,
+		steps = {
+			{ text = "This shows your challenge and the next goal. {tap} it to see your progress, or to leave and get your main run back.", spotlight = "ChallengeBanner" },
+			{ text = "No Ascending, raid attacks or free boss packs in here. Free packs, Hero Chests and gold rewards are saved for your main run." },
+			{ text = "Your main run earns nothing while it's parked (offline too), so don't camp in a challenge. Tiers you clear are kept even if you leave early." },
+		},
+	},
 	---------------------------------------------------------------- Prestige
 	{
 		id = "Ascend", topic = "Prestige", title = "Ascend", when = "ascendReady", stage = 50,

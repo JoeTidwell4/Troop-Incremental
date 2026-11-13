@@ -23,6 +23,7 @@ local LegacyConfig = require(Shared.Config.LegacyConfig)
 local SkillConfig = require(Shared.Config.SkillConfig)
 local GeneralConfig = require(Shared.Config.GeneralConfig)
 local RelicConfig = require(Shared.Config.RelicConfig)
+local ChallengeConfig = require(Shared.Config.ChallengeConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -679,6 +680,68 @@ function Formulas.extras(skillRanks: { [string]: number }?, generals: Types.Gene
 		bossTime = skills.bossTime + gen.bossTime + rel.bossTime,
 		goldenChance = skills.goldenChance + gen.goldenChance + rel.goldenChance,
 	}
+end
+
+---------------------------------------------------------------- challenge runs
+
+local NO_RULES: Types.ChallengeRules = table.freeze({})
+
+-- The rules of the challenge a player is in ({} when not in one).
+function Formulas.challengeRules(activeId: string?): Types.ChallengeRules
+	local def = if activeId ~= nil then ChallengeConfig.CHALLENGES[activeId] else nil
+	return if def ~= nil then def.rules else NO_RULES
+end
+
+-- The (skill ranks, Generals, relics) the fight math should count: all three are off in
+-- a `noExtras` challenge (nil = none; every function here treats nil as empty).
+function Formulas.fightBuild(
+	activeId: string?,
+	skillRanks: { [string]: number }?,
+	generals: Types.GeneralsData?,
+	relics: Types.RelicsData?
+): ({ [string]: number }?, Types.GeneralsData?, Types.RelicsData?)
+	if Formulas.challengeRules(activeId).noExtras then
+		return nil, nil, nil
+	end
+	return skillRanks, generals, relics
+end
+
+-- The stage whose boss must be beaten for tier `tier` (nil past the last tier).
+function Formulas.challengeGoal(tier: number): number?
+	return ChallengeConfig.TIER_GOALS[tier]
+end
+
+-- Permanent bonuses from every tier cleared so far.
+function Formulas.challengeBonuses(tiers: { [string]: number }?): Types.ChallengeBonuses
+	local add: { [string]: number } = {}
+	if tiers ~= nil then
+		for challengeId, cleared in tiers do
+			local def = ChallengeConfig.CHALLENGES[challengeId]
+			if def ~= nil and cleared > 0 then
+				add[def.reward.stat] = (add[def.reward.stat] or 0) + def.reward.perTier * cleared
+			end
+		end
+	end
+	return {
+		damage = 1 + (add.damage or 0),
+		armyHp = 1 + (add.armyHp or 0),
+		gold = 1 + (add.gold or 0),
+		tap = 1 + (add.tap or 0),
+		bossDamageDealt = 1 + (add.bossDamageDealt or 0),
+		offline = 1 + (add.offline or 0),
+		xp = 1 + (add.xp or 0),
+		bossTime = add.bossTime or 0,
+	}
+end
+
+-- Reward text for a challenge at `tiers` cleared, e.g. "+12% army damage".
+function Formulas.challengeRewardText(def: Types.ChallengeDef, tiers: number): string
+	local value = def.reward.perTier * tiers
+	if def.reward.stat ~= "bossTime" then
+		value *= 100
+	end
+	local text = string.gsub(def.reward.text, "{v}", string.format("%g", math.floor(value * 10 + 0.5) / 10))
+	return text
 end
 
 ---------------------------------------------------------------- commander level + skills

@@ -106,11 +106,24 @@ end
 local function newEncounter(stage: number, data: PlayerData?): Encounter
 	if Formulas.isBossStage(stage) then
 		local weakened = weakenFor(data, stage)
-		local hp = BigNum.round(BigNum.mulNumber(Formulas.bossHp(stage), 1 - weakened))
+		-- Challenge rules (Tyrants: every move + more HP; Against the Clock: less time).
+		local rules = Formulas.challengeRules(if data ~= nil then data.challenge.active else nil)
+		local hp = BigNum.round(BigNum.mulNumber(Formulas.bossHp(stage), (1 - weakened) * (rules.bossHpScale or 1)))
 		local moves: { [string]: boolean } = {}
 		for _, move in Areas.forStage(stage).theme.bossMoves do
 			moves[move] = true
 		end
+		if rules.allBossMoves then
+			moves.Enrage = true
+			moves.Shield = true
+			moves.Summon = true
+		end
+		local bossTime = BossConfig.BOSS_TIME_LIMIT
+		if data ~= nil then
+			local ranks, generals, relics = Formulas.fightBuild(data.challenge.active, data.skills.ranks, data.generals, data.relics)
+			bossTime += Formulas.extras(ranks, generals, relics).bossTime + Formulas.challengeBonuses(data.challenge.tiers).bossTime
+		end
+		bossTime *= rules.bossTimeScale or 1
 		local introUntil = now() + BossConfig.INTRO_SECONDS
 		return {
 			moves = moves,
@@ -128,9 +141,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 			enemyHp = hp,
 			enemyMaxHp = hp,
 			goldPerKill = Formulas.bossGold(stage),
-			bossEndsAt = introUntil + BossConfig.BOSS_TIME_LIMIT + (if data ~= nil
-				then Formulas.extras(data.skills.ranks, data.generals, data.relics).bossTime
-				else 0),
+			bossEndsAt = introUntil + bossTime,
 			bossDps = Formulas.bossDps(stage),
 			armyDamageTaken = BigNum.ZERO,
 			raidDamage = BigNum.ZERO,
@@ -337,7 +348,8 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 		return true
 	end
 	local goldMultiplier = ModifierService.get(player).gold
-	local skills = Formulas.skillEffects(data.skills.ranks)
+	local ranks, generals, relics = Formulas.fightBuild(data.challenge.active, data.skills.ranks, data.generals, data.relics)
+	local skills = Formulas.skillEffects(ranks)
 	if encounter.kind == "Boss" then
 		goldMultiplier *= 1 + skills.bossGold -- War Profits
 	end
@@ -411,7 +423,7 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	else
 		-- The next enemy: sometimes a golden one (tougher, much richer).
 		local baseHp = Formulas.enemyHp(data.stage)
-		local goldenChance = StageConfig.GOLDEN_CHANCE * (1 + Formulas.extras(data.skills.ranks, data.generals, data.relics).goldenChance)
+		local goldenChance = StageConfig.GOLDEN_CHANCE * (1 + Formulas.extras(ranks, generals, relics).goldenChance)
 		encounter.golden = encounter.kind == "Normal" and random:NextNumber() < goldenChance
 		encounter.enemyMaxHp = if encounter.golden then BigNum.mulNumber(baseHp, StageConfig.GOLDEN_HP_MULTIPLIER) else baseHp
 		encounter.enemyHp = BigNum.max(BigNum.sub(encounter.enemyMaxHp, damage), BigNum.ONE)

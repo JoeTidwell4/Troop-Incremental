@@ -42,7 +42,7 @@ end
 
 -- Crowns a Legacy right now would give (0 if not allowed yet).
 function LegacyService.preview(data: PlayerData): number
-	if bestThisLegacy(data) < LegacyConfig.MIN_STAGE then
+	if data.challenge.active ~= "" or bestThisLegacy(data) < LegacyConfig.MIN_STAGE then
 		return 0
 	end
 	local earned = BigNum.max(BigNum.sub(data.stats.honorEarned, data.legacy.honorAtStart), BigNum.ZERO)
@@ -53,6 +53,9 @@ local function doLegacy(player: Player, _payload: boolean): LegacyResult
 	local data = DataService.get(player)
 	if data == nil then
 		return { ok = false, reason = "NotLoaded" }
+	end
+	if data.challenge.active ~= "" then
+		return { ok = false, reason = "InChallenge" } -- leave the challenge first
 	end
 	if bestThisLegacy(data) < LegacyConfig.MIN_STAGE then
 		return { ok = false, reason = "TooEarly" }

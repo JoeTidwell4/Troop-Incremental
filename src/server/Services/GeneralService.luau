@@ -279,6 +279,9 @@ function GeneralService.start()
 		if data == nil then
 			return nil
 		end
+		if Formulas.challengeRules(data.challenge.active).noExtras then
+			return nil -- Back to Basics challenge
+		end
 		local bonuses = Formulas.generalBonuses(data.generals)
 		return {
 			damage = bonuses.damage,

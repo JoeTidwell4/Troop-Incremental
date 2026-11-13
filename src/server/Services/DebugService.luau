@@ -32,6 +32,7 @@ local ClanWarService = require(Services.ClanWarService)
 local ClanShopService = require(Services.ClanShopService)
 local SkillService = require(Services.SkillService)
 local RelicService = require(Services.RelicService)
+local ChallengeService = require(Services.ChallengeService)
 
 type PlayerData = Types.PlayerData
 type Result = { ok: boolean, message: string }
@@ -132,6 +133,16 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 	CommanderXp = function(player, _data, arg)
 		SkillService.addXp(player, arg or 5000)
 		return done(`+{arg} Commander XP.`)
+	end,
+	Ascends = function(_player, data, arg)
+		data.stats.ascensions += arg or 10
+		return done(`+{arg} Ascends counted (unlocks challenges).`)
+	end,
+	ChallengeTier = function(player, _data, _arg)
+		if not ChallengeService.debugClearTier(player) then
+			return failed("Start a challenge first (ADVENTURE > Challenges).")
+		end
+		return done("Cleared the next tier.")
 	end,
 	Crowns = function(_player, data, arg)
 		data.legacy.crowns += arg or 50

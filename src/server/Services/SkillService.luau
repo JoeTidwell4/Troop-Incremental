@@ -54,7 +54,7 @@ function SkillService.addXp(player: Player, xp: number)
 		return
 	end
 	local before = Formulas.commanderLevel(data.commanderXp)
-	data.commanderXp += xp
+	data.commanderXp += xp * Formulas.challengeBonuses(data.challenge.tiers).xp -- Back to Basics tiers
 	local after = Formulas.commanderLevel(data.commanderXp)
 	if after > before then
 		RemoteService.fireClient(Remotes.Events.Notice, player, { kind = "LevelUp", stage = 0, level = after })
@@ -133,6 +133,8 @@ function SkillService.start()
 			SkillService.addXp(player, xp.ACHIEVEMENT * amount)
 		elseif activity == "WeakPoint" then
 			SkillService.addXp(player, xp.WEAK_POINT * amount)
+		elseif activity == "ChallengeTier" then
+			SkillService.addXp(player, xp.CHALLENGE_TIER * amount)
 		end
 	end)
 
@@ -141,6 +143,9 @@ function SkillService.start()
 		local data = DataService.get(player)
 		if data == nil then
 			return nil
+		end
+		if Formulas.challengeRules(data.challenge.active).noExtras then
+			return nil -- Back to Basics challenge
 		end
 		local effects = Formulas.skillEffects(data.skills.ranks)
 		local damage = 1 + effects.damage

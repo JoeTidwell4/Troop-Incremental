@@ -68,6 +68,12 @@ end
 
 -- Grants any free packs owed for bosses beaten but not yet rewarded.
 local function grantOwedPacks(player: Player, data: PlayerData)
+	if data.challenge.active ~= "" then
+		-- No free boss packs inside a challenge run (they could be farmed without ever
+		-- risking the main run).
+		data.packs.rewardedBossStage = data.highestBossDefeated
+		return
+	end
 	local owedBosses = (data.highestBossDefeated - data.packs.rewardedBossStage) // BossConfig.BOSS_EVERY
 	if owedBosses > 0 then
 		data.packs.free += owedBosses * PackConfig.FREE_PACKS_PER_NEW_BOSS
@@ -91,6 +97,10 @@ local function openPack(player: Player, mode: PackMode): PackResult
 		return { ok = false, reason = "TooEarly" }
 	end
 	local price = Formulas.packPrice(data.highestStage, tier.id)
+	if (mode == "Hero" or mode == "Free") and data.challenge.active ~= "" then
+		-- Gear found now would vanish with the challenge run: keep these for the main run.
+		return { ok = false, reason = "InChallenge" }
+	end
 	if mode == "Hero" then
 		if data.packs.hero <= 0 then
 			return { ok = false, reason = "NoHeroChests" }
@@ -160,6 +170,9 @@ local function useForge(player: Player, request: ForgeRequest): PackResult
 	end
 	if data.packs.forge <= 0 then
 		return { ok = false, reason = "NoForgeTokens" }
+	end
+	if data.challenge.active ~= "" then
+		return { ok = false, reason = "InChallenge" } -- the token is kept for the main run
 	end
 	if not Formulas.troopUnlocked(request.troopId, data.bestStage) then
 		return { ok = false, reason = "Locked" }

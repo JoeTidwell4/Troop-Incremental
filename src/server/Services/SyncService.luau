@@ -98,7 +98,10 @@ local function buildSnapshot(player: Player): Snapshot?
 		honor = data.honor,
 		honorUpgrades = data.honorUpgrades,
 		abilityUpgrades = data.abilityUpgrades,
-		ascendHonor = Formulas.ascendHonor(data.highestStage, data.legacy.upgrades, data.skills.ranks),
+		-- (zero inside a challenge run: those can't be Ascended)
+		ascendHonor = if data.challenge.active ~= ""
+			then BigNum.ZERO
+			else Formulas.ascendHonor(data.highestStage, data.legacy.upgrades, data.skills.ranks),
 		ascensions = data.stats.ascensions,
 
 		-- Filled in by FactionService below; defaults keep the shape complete.
