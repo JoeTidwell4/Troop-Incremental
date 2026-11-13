@@ -42,14 +42,18 @@ local ClanService = require(Services.ClanService)
 local ClanStore = require(Services.ClanStore)
 local DailyService = require(Services.DailyService)
 local CommanderService = require(Services.CommanderService)
+local ClanShopService = require(Services.ClanShopService)
 
 type ClanRecord = Types.ClanRecord
 type ClanWarEntry = Types.ClanWarEntry
 type PlayerData = Types.PlayerData
 type WarScore = ClanStore.WarScore
 
--- XP not yet saved: clanId -> weekId -> { total, members = userId -> XP }.
-type Batch = { total: number, members: { [string]: number } }
+-- XP not yet saved: clanId -> weekId -> { total, members = userId -> XP, activities =
+-- activity -> count (for clan quests) }.
+type Batch = { total: number, members: { [string]: number }, activities: { [string]: number } }
+type Quest = { key: string, target: number, progress: number }
+type Matchup = { bye: boolean, opponentId: string?, opponentName: string?, opponentTag: string?, opponentXp: number?, at: number }
 local pending: { [string]: { [number]: Batch } } = {}
 local fractions: { [Player]: number } = {} -- leftover fractions of XP (kills, donations)
 local dirty: { [Player]: boolean } = {} -- contribution changed; refresh their clan view
@@ -57,6 +61,13 @@ local claiming: { [Player]: boolean } = {}
 local results: { [number]: { WarScore } } = {} -- finished weeks' locked-in top lists
 local names: { [string]: { name: string, tag: string } } = {}
 local board: { weekId: number, top: { ClanWarEntry } } = { weekId = -1, top = {} }
+local matchups: { [string]: Matchup } = {} -- this week's head-to-head per clan (cached)
+
+-- Activities that count toward some clan quest.
+local QUEST_ACTIVITIES: { [string]: boolean } = {}
+for _, def in ClanConfig.QUEST_POOL do
+	QUEST_ACTIVITIES[def.activity] = true
+end
 
 local ClanWarService = {}
 
@@ -88,9 +99,24 @@ end
 
 ---------------------------------------------------------------- earning XP
 
+local function batchFor(clanId: string, weekId: number): Batch
+	local byWeek = pending[clanId]
+	if byWeek == nil then
+		byWeek = {}
+		pending[clanId] = byWeek
+	end
+	local batch = byWeek[weekId]
+	if batch == nil then
+		batch = { total = 0, members = {}, activities = {} }
+		byWeek[weekId] = batch
+	end
+	return batch
+end
+
 local function onActivity(player: Player, activity: string, amount: number)
 	local perUnit = ClanConfig.XP_PER_ACTIVITY[activity]
-	if perUnit == nil then
+	local forQuests = QUEST_ACTIVITIES[activity] == true
+	if perUnit == nil and not forQuests then
 		return
 	end
 	local data = DataService.get(player)
@@ -100,6 +126,15 @@ local function onActivity(player: Player, activity: string, amount: number)
 	end
 	rollover(data)
 	local record = data.clanWar
+	if forQuests then
+		-- Quest progress counts everything (no daily cap: rewards need your own XP anyway).
+		local batch = batchFor(clan.id, record.weekId)
+		batch.activities[activity] = (batch.activities[activity] or 0) + amount
+		dirty[player] = true
+	end
+	if perUnit == nil then
+		return
+	end
 	local total = (fractions[player] or 0) + amount * perUnit
 	local whole = math.floor(total)
 	fractions[player] = total - whole
@@ -114,20 +149,58 @@ local function onActivity(player: Player, activity: string, amount: number)
 	end
 	record.dayXp += whole
 	record.xp += whole
-	local byWeek = pending[clan.id]
-	if byWeek == nil then
-		byWeek = {}
-		pending[clan.id] = byWeek
-	end
-	local batch = byWeek[record.weekId]
-	if batch == nil then
-		batch = { total = 0, members = {} }
-		byWeek[record.weekId] = batch
-	end
+	local batch = batchFor(clan.id, record.weekId)
 	local userKey = tostring(player.UserId)
 	batch.total += whole
 	batch.members[userKey] = (batch.members[userKey] or 0) + whole
 	dirty[player] = true
+end
+
+---------------------------------------------------------------- clan quests
+
+-- A simple stable number from a string (same on every server).
+local function hash(text: string): number
+	local value = 7
+	for i = 1, #text do
+		value = (value * 31 + string.byte(text, i)) % 2147483647
+	end
+	return value
+end
+
+-- This week's quests for a clan: picked from QUEST_POOL by clan + week (every server
+-- agrees), targets scaled to the member count.
+local function rollQuests(clanId: string, weekId: number, memberCount: number): { Quest }
+	local rng = Random.new(hash(clanId) + weekId * 7919)
+	local pool = table.clone(ClanConfig.QUEST_POOL)
+	local quests: { Quest } = {}
+	local members = math.max(ClanConfig.QUEST_MIN_MEMBERS, memberCount)
+	for _ = 1, math.min(ClanConfig.QUESTS_PER_WEEK, #pool) do
+		local def = table.remove(pool, rng:NextInteger(1, #pool)) :: any
+		table.insert(quests, { key = def.key, target = math.max(1, math.floor(def.perMember * members)), progress = 0 })
+	end
+	return quests
+end
+
+local function questActivity(key: string): string
+	for _, def in ClanConfig.QUEST_POOL do
+		if def.key == key then
+			return def.activity
+		end
+	end
+	return ""
+end
+
+-- The clan's quests for `weekId` as stored (or freshly rolled if this week hasn't been
+-- saved yet), as copies.
+local function questsOf(record: ClanRecord, weekId: number): { Quest }
+	local list: { Quest } = {}
+	if record.questWeek == weekId and record.quests ~= nil then
+		for _, quest in record.quests do
+			table.insert(list, { key = quest.key, target = quest.target, progress = quest.progress })
+		end
+		return list
+	end
+	return rollQuests(record.id, weekId, record.memberCount)
 end
 
 ---------------------------------------------------------------- saving XP
@@ -156,6 +229,16 @@ local function applyXp(r: ClanRecord, byWeek: { [number]: Batch })
 	for _, week in weeks do
 		local batch = byWeek[week]
 		local xp = batch.total
+		-- Clan quests: the first save of a new week rolls that week's quests.
+		if week > (r.questWeek or -1) then
+			r.questWeek = week
+			r.quests = rollQuests(r.id, week, r.memberCount)
+		end
+		if week == r.questWeek and r.quests ~= nil then
+			for _, quest in r.quests do
+				quest.progress += batch.activities[questActivity(quest.key)] or 0
+			end
+		end
 		if week > (r.weekId :: number) then
 			r.lastWeekId = r.weekId
 			r.lastWeekXp = r.weekXp
@@ -188,6 +271,7 @@ local function requeue(clanId: string, byWeek: { [number]: Batch })
 		else
 			into.total += batch.total
 			addMembers(into.members, batch.members)
+			addMembers(into.activities, batch.activities)
 		end
 	end
 end
@@ -235,7 +319,10 @@ local function flush()
 		if record ~= nil then
 			ClanService.afterChange(record)
 			for week in byWeek do
-				ClanStore.setWarScore(week, clanId, weekXpOf(record, week))
+				local xp = weekXpOf(record, week)
+				if xp > 0 then -- quest-only progress doesn't put a clan on the board
+					ClanStore.setWarScore(week, clanId, xp)
+				end
 			end
 		elseif reason ~= "ClanNotFound" then
 			requeue(clanId, byWeek)
@@ -283,7 +370,7 @@ local function getResult(weekId: number): { WarScore }?
 		return nil
 	end
 	if stored == nil then
-		local top = ClanStore.getWarTop(weekId, ClanConfig.WAR_TOP_COUNT)
+		local top = ClanStore.getWarTop(weekId, ClanConfig.WAR_RESULT_COUNT)
 		if top == nil then
 			return nil
 		end
@@ -310,12 +397,80 @@ local function pushWar(player: Player)
 		end
 	end
 	local week = currentWeek()
+	local matchup = if data ~= nil and data.clanId ~= "" then matchups[data.clanId] else nil
 	RemoteService.fireClient(Remotes.Events.ClanWarSync, player, {
 		weekId = week,
 		secondsLeft = math.max(0, Formulas.clanWarWeekStart(week + 1) - os.time()),
 		top = if board.weekId == week then board.top else {},
 		myRank = myRank,
+		matchup = if matchup ~= nil
+			then { bye = matchup.bye, opponentName = matchup.opponentName, opponentTag = matchup.opponentTag, opponentXp = matchup.opponentXp }
+			else nil,
 	})
+end
+
+---------------------------------------------------------------- head-to-head
+
+-- Who a clan faces in `weekId`: paired by last week's locked-in ranking (1 v 2, 3 v 4...).
+-- Returns (opponentId or nil for a bye, decided); decided = false while last week's
+-- results aren't in yet.
+local function opponentOf(clanId: string, weekId: number): (string?, boolean)
+	local previous = getResult(weekId - 1)
+	if previous == nil then
+		return nil, false
+	end
+	for index, score in previous do
+		if score.clanId == clanId then
+			local partner = if index % 2 == 1 then index + 1 else index - 1
+			local other = previous[partner]
+			return if other ~= nil then other.clanId else nil, true
+		end
+	end
+	return nil, true -- didn't place last week: a bye
+end
+
+-- Refreshes the cached matchup for a clan with members online here (yields).
+local function refreshMatchup(clanId: string)
+	local week = currentWeek()
+	local cached = matchups[clanId]
+	if cached ~= nil and os.clock() - cached.at < ClanConfig.OPPONENT_REFRESH then
+		return
+	end
+	local opponent, decided = opponentOf(clanId, week)
+	if not decided then
+		matchups[clanId] = nil
+		return
+	end
+	if opponent == nil then
+		matchups[clanId] = { bye = true, at = os.clock() }
+		return
+	end
+	local info = nameOf(opponent)
+	local xp = ClanStore.getWarScore(week, opponent)
+	matchups[clanId] = {
+		bye = false,
+		opponentId = opponent,
+		opponentName = info.name,
+		opponentTag = info.tag,
+		opponentXp = xp,
+		at = os.clock(),
+	}
+end
+
+-- Did this clan win its head-to-head in `weekId`? "win" | "bye" | "loss" | nil (unknown yet).
+local function headToHeadResult(clanId: string, myXp: number, weekId: number): string?
+	local opponent, decided = opponentOf(clanId, weekId)
+	if not decided then
+		return nil
+	end
+	if opponent == nil then
+		return if myXp >= ClanConfig.WAR_PARTICIPATION_XP then "bye" else "loss"
+	end
+	local theirXp, ok = ClanStore.getWarScore(weekId, opponent)
+	if not ok then
+		return nil
+	end
+	return if myXp >= theirXp and myXp > 0 then "win" else "loss"
 end
 
 ---------------------------------------------------------------- rewards
@@ -340,6 +495,8 @@ local function claimIfDue(player: Player)
 	local rank: number? = nil
 	local decided = result ~= nil
 	local mvp = false
+	local tokens = 0
+	local headToHead: string? = nil
 	if result ~= nil and record.lastXp >= ClanConfig.WAR_MIN_CONTRIBUTION then
 		for index, score in result do
 			if score.clanId == record.lastClanId then
@@ -351,12 +508,38 @@ local function claimIfDue(player: Player)
 		if not ok then
 			decided = false -- couldn't check; try again on the next poll
 		elseif clan ~= nil then
-			if reward == nil and weekXpOf(clan, weekId) >= ClanConfig.WAR_PARTICIPATION_XP then
+			local clanXp = weekXpOf(clan, weekId)
+			if reward == nil and clanXp >= ClanConfig.WAR_PARTICIPATION_XP then
 				-- Not on the board: the small reward if the clan still had a solid week.
 				reward = ClanConfig.WAR_PARTICIPATION_REWARD
+				tokens += ClanConfig.TOKENS_PARTICIPATION
 			end
 			mvp = mvpOf(clan, weekId) == tostring(player.UserId)
+			headToHead = headToHeadResult(clan.id, clanXp, weekId)
+			if headToHead == nil then
+				decided = false -- opponent's score not readable yet; try again later
+			end
 		end
+		if rank ~= nil then
+			for _, tier in ClanConfig.TOKENS_FOR_RANK do
+				if rank <= tier.maxRank then
+					tokens += tier.tokens
+					break
+				end
+			end
+		end
+	end
+	if mvp then
+		tokens += ClanConfig.TOKENS_MVP
+	end
+	if headToHead == "win" or headToHead == "bye" then
+		tokens += ClanConfig.TOKENS_HEAD_TO_HEAD_WIN
+		local base = reward or {}
+		reward = {
+			honor = (base.honor or 0) + ClanConfig.HEAD_TO_HEAD_WIN_HONOR,
+			heroChests = base.heroChests,
+			packs = base.packs,
+		}
 	end
 	if mvp then
 		-- Last week's top contributor in the clan: extra Honor on top.
@@ -378,20 +561,26 @@ local function claimIfDue(player: Player)
 	if rank ~= nil and record.lastXp >= ClanConfig.WAR_MIN_CONTRIBUTION then
 		CommanderService.grantForClanWar(player, rank) -- War Banner / Seraph Wings
 	end
-	if reward ~= nil then
+	if tokens > 0 then
+		ClanShopService.addTokens(player, tokens)
+	end
+	if reward ~= nil or tokens > 0 then
+		local given = reward or {}
 		DailyService.grant(player, fresh, {
-			honor = reward.honor,
-			heroChests = reward.heroChests,
-			packs = reward.packs,
+			honor = given.honor,
+			heroChests = given.heroChests,
+			packs = given.packs,
 		}, "ClanWar")
 		RemoteService.fireClient(Remotes.Events.Notice, player, {
 			kind = "ClanWarRewards",
 			stage = 0,
 			rank = rank,
 			mvp = mvp,
-			honor = reward.honor,
-			heroChests = reward.heroChests,
-			packs = reward.packs,
+			tokens = tokens,
+			headToHead = headToHead,
+			honor = given.honor,
+			heroChests = given.heroChests,
+			packs = given.packs,
 		})
 	end
 end
@@ -404,13 +593,66 @@ local function refreshBoard()
 	if top ~= nil then
 		board = { weekId = week, top = toEntries(top) }
 	end
+	local clansHere: { [string]: boolean } = {}
+	for _, player in Players:GetPlayers() do
+		local data = DataService.get(player)
+		if data ~= nil and data.clanId ~= "" then
+			clansHere[data.clanId] = true
+		end
+	end
+	for clanId in clansHere do
+		refreshMatchup(clanId)
+	end
 	for _, player in Players:GetPlayers() do
 		pushWar(player)
 		task.spawn(claimIfDue, player)
 	end
 end
 
+-- "ClaimClanQuest" action: collect a finished clan quest's reward (once per week each).
+local function claimQuest(player: Player, data: PlayerData, index: number): Types.ClanResult
+	local clan = ClanService.getClan(player)
+	if clan == nil then
+		return { ok = false, reason = "NotInClan" }
+	end
+	rollover(data)
+	local week = currentWeek()
+	local record = data.clanWar
+	if record.clanId ~= clan.id or record.xp < ClanConfig.QUEST_MIN_XP then
+		return { ok = false, reason = "NeedContribution" }
+	end
+	local claims = data.clanQuestClaims
+	if claims.weekId ~= week then
+		claims.weekId = week
+		claims.claimed = {}
+	end
+	local slot = tostring(index)
+	if claims.claimed[slot] then
+		return { ok = false, reason = "AlreadyClaimed" }
+	end
+	local quest = questsOf(clan, week)[index]
+	if quest == nil then
+		return { ok = false, reason = "Rejected" }
+	end
+	local byWeek = pending[clan.id]
+	local batch = if byWeek ~= nil then byWeek[week] else nil
+	local progress = quest.progress + (if batch ~= nil then batch.activities[questActivity(quest.key)] or 0 else 0)
+	if progress < quest.target then
+		return { ok = false, reason = "QuestNotDone" }
+	end
+	claims.claimed[slot] = true
+	ClanShopService.addTokens(player, ClanConfig.QUEST_REWARD.tokens)
+	DailyService.grant(player, data, { goldMinutes = ClanConfig.QUEST_REWARD.goldMinutes }, "ClanQuest")
+	dirty[player] = true
+	return { ok = true }
+end
+
 function ClanWarService.start()
+	ClanService.registerAction("ClaimClanQuest", function(arg: unknown): (boolean, any)
+		local valid = typeof(arg) == "number" and arg == arg and (arg :: number) % 1 == 0
+			and (arg :: number) >= 1 and (arg :: number) <= ClanConfig.QUESTS_PER_WEEK
+		return valid, arg
+	end, claimQuest)
 	ActivityService.Recorded:Connect(onActivity)
 
 	-- What members see: include XP still buffered here, and their own contribution.
@@ -440,6 +682,18 @@ function ClanWarService.start()
 			clan.lastWeekId = week - 1
 			clan.lastWeekXp = weekXpOf(clan, week - 1)
 		end
+		-- This week's clan quests, with this server's unsaved progress added.
+		local quests = questsOf(clan, week)
+		local thisWeek = if byWeek ~= nil then byWeek[week] else nil
+		if thisWeek ~= nil then
+			for _, quest in quests do
+				quest.progress += thisWeek.activities[questActivity(quest.key)] or 0
+			end
+		end
+		clan.quests = quests
+		clan.questWeek = week
+		local claims = data.clanQuestClaims
+		view.questClaims = if claims.weekId == week then table.clone(claims.claimed) else {}
 		clan.xp = (clan.xp or 0) + buffered
 		clan.weekXp = weekXpOf(clan, week) + bufferedThisWeek
 		clan.memberWeekXp = members

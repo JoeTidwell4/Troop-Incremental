@@ -112,6 +112,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		passToggles = table.clone(data.passToggles),
 		settings = {}, -- filled in by SettingsService
 		commander = { owned = {}, equipped = {}, pity = {} }, -- filled in by CommanderService
+		clanTokens = data.clanTokens,
 	}
 	for _, provider in extraProviders do
 		for key, value in provider(player, data) do

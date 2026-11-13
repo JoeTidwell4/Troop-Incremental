@@ -77,6 +77,11 @@ local CommanderConfig = {
 		"GildedShield",
 		"DragonBanner",
 		"EmberWings",
+		-- Clan shop
+		"ClanWarhelm",
+		"ClanCloak",
+		"ClanBlade",
+		"ClanStandard",
 	} :: { string },
 
 	ITEMS = {
@@ -120,6 +125,11 @@ local CommanderConfig = {
 		GildedShield = { id = "GildedShield", slot = "Back", displayName = "Gilded Shield", rarity = 3, multiplier = 1.1, style = "Shield", color = Color3.fromRGB(220, 170, 60), unlock = { kind = "chest", chest = "Regalia" } },
 		DragonBanner = { id = "DragonBanner", slot = "Back", displayName = "Dragon Banner", rarity = 4, multiplier = 1.2, style = "Banner", color = Color3.fromRGB(40, 30, 30), unlock = { kind = "chest", chest = "Regalia" } },
 		EmberWings = { id = "EmberWings", slot = "Back", displayName = "Ember Wings", rarity = 5, multiplier = 1.35, style = "Wings", color = Color3.fromRGB(255, 130, 40), unlock = { kind = "chest", chest = "Regalia" } },
+		-- Clan shop (Clan Tokens)
+		ClanWarhelm = { id = "ClanWarhelm", slot = "Helmet", displayName = "Clan Warhelm", rarity = 4, multiplier = 1.2, style = "Horned", color = Color3.fromRGB(90, 100, 120), unlock = { kind = "clanShop" } },
+		ClanCloak = { id = "ClanCloak", slot = "Cape", displayName = "Clan Cloak", rarity = 4, multiplier = 1.2, style = "Mantle", color = Color3.fromRGB(40, 70, 130), unlock = { kind = "clanShop" } },
+		ClanBlade = { id = "ClanBlade", slot = "Weapon", displayName = "Clan Blade", rarity = 4, multiplier = 1.3, style = "Glow", color = Color3.fromRGB(80, 160, 255), unlock = { kind = "clanShop" } },
+		ClanStandard = { id = "ClanStandard", slot = "Back", displayName = "Clan Standard", rarity = 4, multiplier = 1.2, style = "Banner", color = Color3.fromRGB(40, 70, 130), unlock = { kind = "clanShop" } },
 	} :: { [string]: Types.CommanderItemDef },
 
 	CHEST_ORDER = { "Armory", "Regalia" } :: { string },

@@ -23,6 +23,9 @@ local ClanMembersTab = require(script.Parent.ClanMembersTab)
 local ClanBankTab = require(script.Parent.ClanBankTab)
 local ClanRaidTab = require(script.Parent.ClanRaidTab)
 local ClanWarTab = require(script.Parent.ClanWarTab)
+local ClanQuestsTab = require(script.Parent.ClanQuestsTab)
+local ClanShopTab = require(script.Parent.ClanShopTab)
+local ClanChatTab = require(script.Parent.ClanChatTab)
 local Spotlight = require(script.Parent.Spotlight)
 local StateController = require(Client.Controllers.StateController)
 local ClanController = require(Client.Controllers.ClanController)
@@ -58,6 +61,11 @@ local FAIL_MESSAGES: { [string]: string } = {
 	Rejected = "Slow down a little!",
 	StoreError = "Couldn't reach Roblox servers. Try again.",
 	NoAttacksLeft = "No raid attacks left today.",
+	NotEnoughTokens = "Not enough Clan Tokens.",
+	AlreadyOwned = "You already own that.",
+	NeedContribution = `Give at least {ClanConfig.QUEST_MIN_XP} clan XP this week to claim quests.`,
+	AlreadyClaimed = "Already claimed.",
+	QuestNotDone = "That quest isn't finished yet.",
 	InBoss = "Finish your boss fight first.",
 	AlreadyRaiding = "You're already raiding.",
 }
@@ -118,14 +126,15 @@ function ClanUI.start()
 		Size = UDim2.new(1, -120, 0, 26),
 		Parent = window,
 	})
-	-- Leader / Officer: change the clan's color, emblem and motto.
+	-- Clan settings: everyone can leave; Leader / Officer change color, emblem and motto;
+	-- the Leader opens or closes the clan.
 	local editButton = UIKit.button({
-		Text = "Edit",
+		Text = "Settings",
 		TextSize = 13,
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -(Layout.CLOSE_SIZE + 6), 0, 0),
-		Size = UDim2.new(0, 64, 0, Layout.CLOSE_SIZE),
+		Size = UDim2.new(0, 84, 0, Layout.CLOSE_SIZE),
 		Visible = false,
 		Parent = window,
 	})
@@ -200,10 +209,27 @@ function ClanUI.start()
 		ZIndex = 10,
 		Parent = body,
 	}, { UIKit.corner(8) }) :: Frame
+	-- The customize controls (Leader / Officer only); members just see a note instead.
+	local customize = UIKit.create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, -44),
+		ZIndex = 11,
+		Parent = editPanel,
+	}) :: Frame
+	local memberNote = UIKit.label({
+		Text = "Only the Leader and Officers can change the clan's color, emblem and motto.",
+		TextColor3 = Theme.Muted,
+		TextSize = 13,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.new(1, 0, 0, 40),
+		ZIndex = 11,
+		Parent = editPanel,
+	})
 	local chosenColor, chosenEmblem = 6, 1
 	local colorButtons: { TextButton } = {}
 	local emblemButtons: { TextButton } = {}
-	UIKit.label({ Text = "Color", Font = Theme.FontBold, TextSize = 14, Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = editPanel })
+	UIKit.label({ Text = "Color", Font = Theme.FontBold, TextSize = 14, Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = customize })
 	for index, color in ClanConfig.COLORS do
 		local button = UIKit.button({
 			Text = "",
@@ -211,7 +237,7 @@ function ClanUI.start()
 			Position = UDim2.new((index - 1) / #ClanConfig.COLORS, 2, 0, 20),
 			Size = UDim2.new(1 / #ClanConfig.COLORS, -4, 0, 30),
 			ZIndex = 11,
-			Parent = editPanel,
+			Parent = customize,
 		})
 		button.Activated:Connect(function()
 			chosenColor = index
@@ -221,7 +247,7 @@ function ClanUI.start()
 		end)
 		colorButtons[index] = button
 	end
-	UIKit.label({ Text = "Emblem", Font = Theme.FontBold, TextSize = 14, Position = UDim2.new(0, 0, 0, 56), Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = editPanel })
+	UIKit.label({ Text = "Emblem", Font = Theme.FontBold, TextSize = 14, Position = UDim2.new(0, 0, 0, 56), Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = customize })
 	for index, emblem in ClanConfig.EMBLEMS do
 		local button = UIKit.button({
 			Text = emblem,
@@ -230,7 +256,7 @@ function ClanUI.start()
 			Position = UDim2.new((index - 1) / #ClanConfig.EMBLEMS, 2, 0, 76),
 			Size = UDim2.new(1 / #ClanConfig.EMBLEMS, -4, 0, 34),
 			ZIndex = 11,
-			Parent = editPanel,
+			Parent = customize,
 		})
 		button.Activated:Connect(function()
 			chosenEmblem = index
@@ -240,7 +266,7 @@ function ClanUI.start()
 		end)
 		emblemButtons[index] = button
 	end
-	UIKit.label({ Text = `Motto (up to {ClanConfig.MOTTO_MAX_LENGTH} letters)`, Font = Theme.FontBold, TextSize = 14, Position = UDim2.new(0, 0, 0, 116), Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = editPanel })
+	UIKit.label({ Text = `Motto (up to {ClanConfig.MOTTO_MAX_LENGTH} letters)`, Font = Theme.FontBold, TextSize = 14, Position = UDim2.new(0, 0, 0, 116), Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = customize })
 	local mottoBox = UIKit.create("TextBox", {
 		Text = "",
 		PlaceholderText = "Glory to the clan!",
@@ -255,7 +281,7 @@ function ClanUI.start()
 		Position = UDim2.new(0, 0, 0, 136),
 		Size = UDim2.new(1, 0, 0, 32),
 		ZIndex = 11,
-		Parent = editPanel,
+		Parent = customize,
 	}, { UIKit.corner(6), UIKit.padding(6) }) :: TextBox
 	local saveButton = UIKit.button({
 		Text = "Save",
@@ -268,12 +294,32 @@ function ClanUI.start()
 		Parent = editPanel,
 	})
 	local cancelButton = UIKit.button({
-		Text = "Cancel",
+		Text = "Close",
 		TextSize = 15,
 		BackgroundColor3 = Theme.PanelLight,
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -126, 1, 0),
 		Size = UDim2.new(0, 100, 0, 38),
+		ZIndex = 11,
+		Parent = editPanel,
+	})
+	local leaveButton = UIKit.button({
+		Text = "Leave clan",
+		TextSize = 13,
+		BackgroundColor3 = Theme.HpFill,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(0, 110, 0, 38),
+		ZIndex = 11,
+		Parent = editPanel,
+	})
+	local openButton = UIKit.button({
+		Text = "",
+		TextSize = 13,
+		BackgroundColor3 = Theme.PanelLight,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 116, 1, 0),
+		Size = UDim2.new(0, 110, 0, 38),
 		ZIndex = 11,
 		Parent = editPanel,
 	})
@@ -291,6 +337,12 @@ function ClanUI.start()
 			button.BackgroundColor3 = if i == chosenEmblem then Theme.Accent else Theme.PanelLight
 		end
 		mottoBox.Text = clan.motto or ""
+		local canCustomize = view.myRole == "Leader" or view.myRole == "Officer"
+		customize.Visible = canCustomize
+		saveButton.Visible = canCustomize
+		memberNote.Visible = not canCustomize
+		openButton.Visible = view.myRole == "Leader"
+		openButton.Text = if clan.open then "Close clan" else "Open clan"
 		editPanel.Visible = true
 	end
 	editButton.Activated:Connect(openEditor)
@@ -533,28 +585,12 @@ function ClanUI.start()
 		ClanBankTab.build(content, context),
 		ClanRaidTab.build(content, context),
 		ClanWarTab.build(content, context),
+		ClanQuestsTab.build(content, context),
+		ClanShopTab.build(content, context),
+		ClanChatTab.build(content, context),
 	}
 	local activeTab = tabs[1]
 	local tabButtons: { [ClanTypes.Tab]: TextButton } = {}
-
-	local leaveButton = UIKit.button({
-		Text = "Leave clan",
-		TextSize = 12,
-		BackgroundColor3 = Theme.HpFill,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.new(0, 96, 0, 30),
-		Parent = inClan,
-	})
-	local openButton = UIKit.button({
-		Text = "",
-		TextSize = 12,
-		BackgroundColor3 = Theme.PanelLight,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -102, 0, 0),
-		Size = UDim2.new(0, 110, 0, 30),
-		Parent = inClan,
-	})
 
 	local function render()
 		local view = ClanController.get()
@@ -585,7 +621,7 @@ function ClanUI.start()
 		local motto = if clan.motto ~= nil and clan.motto ~= "" then `"{clan.motto}"  |  ` else ""
 		subtitle.Text = `{motto}Level {level}  |  {clan.memberCount}/{ClanConfig.MAX_MEMBERS}  |  {if clan.open then "Open" else "Requests only"}`
 			.. `  |  You: {view.myRole or "Member"}`
-		editButton.Visible = view.myRole == "Leader" or view.myRole == "Officer"
+		editButton.Visible = true
 		openButton.Visible = view.myRole == "Leader"
 		openButton.Text = if clan.open then "Close clan" else "Open clan"
 
@@ -600,10 +636,10 @@ function ClanUI.start()
 	for index, tab in tabs do
 		local button = UIKit.button({
 			Text = tab.title,
-			TextSize = 13,
+			TextSize = 12,
 			BackgroundColor3 = Theme.PanelLight,
-			Position = UDim2.new(0, (index - 1) * 86, 0, 0),
-			Size = UDim2.new(0, 80, 0, 30),
+			Position = UDim2.new((index - 1) / #tabs, 2, 0, 0),
+			Size = UDim2.new(1 / #tabs, -4, 0, 30),
 			Parent = inClan,
 		})
 		button.Activated:Connect(function()

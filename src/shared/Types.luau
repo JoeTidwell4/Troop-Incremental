@@ -259,6 +259,8 @@ export type ClanRecord = {
 	emblem: number?, -- index into ClanConfig.EMBLEMS
 	motto: string?,
 	requests: { [string]: { name: string, at: number, bestStage: number } }?, -- userId -> pending join request
+	questWeek: number?, -- Clan War week the quests below belong to
+	quests: { { key: string, target: number, progress: number } }?, -- this week's clan quests
 	memberWeekXp: { [string]: number }?, -- userId -> XP this Clan War week (weekId)
 	lastMemberWeekXp: { [string]: number }?, -- same for lastWeekId (MVP)
 	-- Clan XP (Phase 10c; missing on older records = 0 / -1):
@@ -288,6 +290,17 @@ export type ClanView = {
 	myWeekXp: number?, -- XP you gave this clan this Clan War week
 	myDayXp: number?, -- XP you gave today (daily cap ClanConfig.XP_DAILY_CAP)
 	requestClanId: string?, -- not in a clan: the clan you asked to join
+	questClaims: { [string]: boolean }?, -- clan quests you've claimed this week (index as string)
+}
+
+-- One clan chat message (already filtered on the sender's server).
+export type ClanChatMessage = {
+	id: string,
+	clanId: string,
+	userId: number,
+	name: string,
+	text: string,
+	at: number,
 }
 
 -- One row of the weekly Clan War board.
@@ -305,6 +318,8 @@ export type ClanWarView = {
 	secondsLeft: number,
 	top: { ClanWarEntry },
 	myRank: number?, -- your clan's place if it's on the board
+	-- Head-to-head this week (nil until last week's results are in):
+	matchup: { bye: boolean, opponentName: string?, opponentTag: string?, opponentXp: number? }?,
 }
 
 -- Per-player Clan War record in the save.
@@ -377,6 +392,8 @@ export type PlayerData = {
 	passToggles: { [string]: boolean }, -- toggleable passes switched OFF (missing = on)
 	clanWar: ClanWarRecord,
 	clanRequest: { clanId: string, at: number }, -- pending join request ("" = none)
+	clanTokens: number, -- Clan Tokens for the clan shop (kept on Ascend)
+	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
 	bossWeaken: { stage: number, fails: number }, -- failed attempts in a row on that boss stage
@@ -457,6 +474,7 @@ export type Snapshot = {
 
 	passToggles: { [string]: boolean },
 	settings: { [string]: string }, -- every SettingsConfig key, filled with defaults
+	clanTokens: number,
 	commander: CommanderView,
 }
 
@@ -481,6 +499,8 @@ export type Notice = {
 	-- ClanWarRewards only (also uses honor / packs):
 	rank: number?, -- nil = participation reward
 	mvp: boolean?, -- you were your clan's top contributor that week (extra Honor)
+	tokens: number?, -- Clan Tokens earned
+	headToHead: string?, -- "win" | "bye" | "loss" for that week's head-to-head
 	heroChests: number?,
 }
 

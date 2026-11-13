@@ -132,6 +132,59 @@ local ClanConfig = {
 	-- Battlefield banner (Phase 11d A): extra decorations unlock at these clan levels.
 	BANNER_LEVELS = { finial = 5, pennants = 10, glow = 15, sparkles = 20, crown = 25 } :: { [string]: number },
 
+	-- Clan Tokens (Phase 11d D): a personal currency (kept on Ascend) for the clan shop.
+	TOKENS_FOR_RANK = { { maxRank = 1, tokens = 50 }, { maxRank = 3, tokens = 30 }, { maxRank = 10, tokens = 20 } } :: {
+		{ maxRank: number, tokens: number }
+	},
+	TOKENS_PARTICIPATION = 5, -- clan reached WAR_PARTICIPATION_XP but wasn't on the board
+	TOKENS_MVP = 10,
+	TOKENS_HEAD_TO_HEAD_WIN = 15,
+	HEAD_TO_HEAD_WIN_HONOR = 5,
+	-- The clan shop. kind "gear" = commander gear (CommanderConfig, unlock kind "clanShop",
+	-- bought once); "heroChests" / "packs" = buy as often as you like.
+	SHOP = {
+		{ id = "ClanWarhelm", kind = "gear", cost = 120 },
+		{ id = "ClanCloak", kind = "gear", cost = 120 },
+		{ id = "ClanBlade", kind = "gear", cost = 150 },
+		{ id = "ClanStandard", kind = "gear", cost = 120 },
+		{ id = "HeroChest", kind = "heroChests", amount = 1, cost = 40, displayName = "Hero Chest (Epic+ gear pack)" },
+		{ id = "FreePacks", kind = "packs", amount = 2, cost = 15, displayName = "2 Free Gear Packs" },
+	} :: { { id: string, kind: string, cost: number, amount: number?, displayName: string? } },
+
+	-- Weekly clan quests (Phase 11d C): 3 shared goals per Clan War week, picked from this
+	-- pool by clan + week. target = perMember x members (at least QUEST_MIN_MEMBERS), fixed
+	-- when the week's first XP is saved. Members who gave at least QUEST_MIN_XP clan XP
+	-- that week can claim each finished quest once (before the week ends).
+	QUEST_POOL = {
+		{ key = "Bosses", activity = "BossWin", text = "Beat {n} bosses", perMember = 15 },
+		{ key = "Kills", activity = "Kill", text = "Defeat {n} enemies", perMember = 4000 },
+		{ key = "Raids", activity = "RaidAttack", text = "Make {n} raid attacks", perMember = 3 },
+		{ key = "WeakPoints", activity = "WeakPoint", text = "Hit {n} weak points", perMember = 20 },
+		{ key = "Donations", activity = "Donate", text = "Donate {n} Supplies", perMember = 150 },
+		{ key = "Packs", activity = "PackOpen", text = "Open {n} packs", perMember = 5 },
+		{ key = "Abilities", activity = "Ability", text = "Use abilities {n} times", perMember = 30 },
+	} :: { { key: string, activity: string, text: string, perMember: number } },
+	QUESTS_PER_WEEK = 3,
+	QUEST_MIN_MEMBERS = 3,
+	QUEST_MIN_XP = if isStudio then 5 else 20,
+	QUEST_REWARD = { tokens = 10, goldMinutes = 20 } :: { tokens: number, goldMinutes: number },
+
+	-- Head-to-head (Phase 11d I): each week clans are paired by LAST week's final ranking
+	-- (1 v 2, 3 v 4, ... among the top WAR_RESULT_COUNT). More clan XP that week wins; an
+	-- unpaired clan with WAR_PARTICIPATION_XP gets a free win (bye).
+	WAR_RESULT_COUNT = 50, -- clans kept in each week's locked-in result (board shows WAR_TOP_COUNT)
+	OPPONENT_REFRESH = if isStudio then 20 else 120, -- seconds between reads of an opponent's score
+
+	-- Clan chat (Phase 11d H). Filtered with Roblox's strictest (broadcast) filter on the
+	-- sender's server before it goes anywhere; players who can't chat (privacy settings,
+	-- parental controls) can't send, and messages only reach members Roblox lets that
+	-- sender chat with.
+	CHAT_MAX_LENGTH = 150,
+	CHAT_HISTORY = 30, -- messages kept (1 day) and shown when you open the chat
+	CHAT_HISTORY_SECONDS = 86400,
+	CHAT_RATE_BURST = 3,
+	CHAT_RATE_PER_SECOND = 0.5, -- one message every 2 seconds on average
+
 	-- Cross-server sync (see ClanStore).
 	FLUSH_INTERVAL = if isStudio then 10 else 30, -- seconds between sending buffered donations
 	POLL_INTERVAL = if isStudio then 15 else 60, -- seconds between re-reading clans with members online

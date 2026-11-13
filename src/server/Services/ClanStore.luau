@@ -10,6 +10,8 @@
 --   MessagingService topic "ClanUpdate" -> clan id ("refresh this clan now")
 --   OrderedDataStore "ClanWar_{week}" key = clan id, value = that week's clan XP (only goes up)
 --   DataStore "ClanWarResult" "result_{week}" -> final top list, written once (set-if-absent)
+--   MemoryStore SortedMap "ClanChat" key = clan id -> last CHAT_HISTORY messages (1 day)
+--   MessagingService topic "ClanChat" -> one new (already filtered) chat message
 --
 -- Race conditions: every change to a clan goes through UpdateAsync, which re-runs the
 -- change on the freshest stored value if another server wrote in between. Checks like
@@ -17,6 +19,7 @@
 -- servers can't both pass a check that only one should.
 
 local DataStoreService = game:GetService("DataStoreService")
+local MemoryStoreService = game:GetService("MemoryStoreService")
 local MessagingService = game:GetService("MessagingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -30,6 +33,8 @@ local nameStore = DataStoreService:GetDataStore("ClanNames")
 local raidStore = DataStoreService:GetDataStore("ClanRaid")
 local openList = DataStoreService:GetOrderedDataStore("OpenClans")
 local warResultStore = DataStoreService:GetDataStore("ClanWarResult")
+local chatMap = MemoryStoreService:GetSortedMap("ClanChat")
+local CHAT_TOPIC = "ClanChat"
 
 local TOPIC = "ClanUpdate"
 
@@ -258,6 +263,18 @@ function ClanStore.getWarTop(weekId: number, count: number): { WarScore }?
 	return result
 end
 
+-- One clan's score for a week. Returns (xp, requestSucceeded); a missing entry is 0.
+function ClanStore.getWarScore(weekId: number, clanId: string): (number, boolean)
+	local ok, result = pcall(function(): any
+		return warBoard(weekId):GetAsync(clanId)
+	end)
+	if not ok then
+		warn_("get war score", result)
+		return 0, false
+	end
+	return tonumber(result) or 0, true
+end
+
 -- The locked-in results of a finished week: the first server to call this with `top`
 -- writes it; everyone gets back the same stored list. With `top` = nil it only reads.
 -- Returns (list or nil, requestSucceeded).
@@ -282,6 +299,60 @@ function ClanStore.warResult(weekId: number, top: { WarScore }?): ({ WarScore }?
 		return nil, false
 	end
 	return if typeof(stored) == "table" then stored else nil, true
+end
+
+---------------------------------------------------------------- clan chat
+
+-- Adds a message to the clan's recent history (keeps the last `keep`, for `seconds`).
+function ClanStore.appendChat(clanId: string, message: Types.ClanChatMessage, keep: number, seconds: number)
+	local ok, err = pcall(function()
+		chatMap:UpdateAsync(clanId, function(old: any): any
+			local list = if typeof(old) == "table" then old else {}
+			table.insert(list, message)
+			while #list > keep do
+				table.remove(list, 1)
+			end
+			return list
+		end, seconds)
+	end)
+	if not ok then
+		warn_("append chat", err)
+	end
+end
+
+-- The clan's recent messages, oldest first ({} if none or on error).
+function ClanStore.getChat(clanId: string): { Types.ClanChatMessage }
+	local ok, result = pcall(function(): any
+		return chatMap:GetAsync(clanId)
+	end)
+	if ok and typeof(result) == "table" then
+		return result :: { Types.ClanChatMessage }
+	end
+	return {}
+end
+
+-- Sends a new message to every server (best effort; this server shows it right away).
+function ClanStore.publishChat(message: Types.ClanChatMessage)
+	task.spawn(function()
+		pcall(function()
+			MessagingService:PublishAsync(CHAT_TOPIC, message)
+		end)
+	end)
+end
+
+function ClanStore.subscribeChat(callback: (message: Types.ClanChatMessage) -> ())
+	task.spawn(function()
+		local ok, err = pcall(function()
+			MessagingService:SubscribeAsync(CHAT_TOPIC, function(packet: any)
+				if typeof(packet) == "table" and typeof(packet.Data) == "table" then
+					callback(packet.Data :: Types.ClanChatMessage)
+				end
+			end)
+		end)
+		if not ok then
+			warn_("subscribe chat", err)
+		end
+	end)
 end
 
 ---------------------------------------------------------------- live nudges

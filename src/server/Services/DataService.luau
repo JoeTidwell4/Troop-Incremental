@@ -223,6 +223,8 @@ local function sanitize(data: PlayerData)
 		data.clanRequest.clanId = ""
 	end
 	data.clanRequest.at = wholeNumber(data.clanRequest.at, 0, 0)
+	data.clanTokens = wholeNumber(data.clanTokens, 0, 0)
+	data.clanQuestClaims.weekId = wholeNumber(data.clanQuestClaims.weekId, -1, -1)
 	data.bossWeaken.stage = wholeNumber(data.bossWeaken.stage, 0, 0)
 	data.bossWeaken.fails = wholeNumber(data.bossWeaken.fails, 0, 0)
 	for _, field in { "weekId", "dayId", "lastWeekId", "claimedWeek" } do

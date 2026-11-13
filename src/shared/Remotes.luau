@@ -33,6 +33,8 @@
 -- WeakPoint      server -> client   (event: Types.WeakPointEvent)  boss/raid weak point spawned or cleared
 -- ClanWarSync    server -> client   (view: Types.ClanWarView)  this week's Clan War standings
 -- EquipCommander client -> server   (slot: string, itemId: string)  wear commander gear ("" = take off)
+-- ClanChatSend   client -> server   (text: string)  a clan chat message
+-- ClanChat       server -> client   (messages: { Types.ClanChatMessage }, replace: boolean)  new messages / history
 -- HitWeakPoint   client -> server, returns Types.WeakPointResult (id: number)
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
@@ -60,6 +62,8 @@ local Remotes = {
 		WeakPoint = "WeakPoint",
 		ClanWarSync = "ClanWarSync",
 		EquipCommander = "EquipCommander",
+		ClanChatSend = "ClanChatSend",
+		ClanChat = "ClanChat",
 		ProgressSync = "ProgressSync",
 	}),
 

@@ -38,6 +38,8 @@ local template: Types.PlayerData = {
 	lastWar = newWarRecord(),
 	clanId = "",
 	clanRequest = { clanId = "", at = 0 },
+	clanTokens = 0,
+	clanQuestClaims = { weekId = -1, claimed = {} },
 	clanDonation = { dayId = -1, amount = 0 },
 	purchases = {},
 	daily = { lastClaimDay = -1, streak = 0 },

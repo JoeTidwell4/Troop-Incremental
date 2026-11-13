@@ -56,6 +56,15 @@ local function rewardText(): string
 	end
 	local participation = ClanConfig.WAR_PARTICIPATION_REWARD.honor or 0
 	table.insert(lines, `Any clan with {fmt(ClanConfig.WAR_PARTICIPATION_XP)}+ XP: {participation} Honor`)
+	local tokenParts: { string } = {}
+	local previousRank = 0
+	for _, tier in ClanConfig.TOKENS_FOR_RANK do
+		local place = if tier.maxRank == previousRank + 1 then `#{tier.maxRank}` else `#{previousRank + 1}-{tier.maxRank}`
+		table.insert(tokenParts, `{place} {tier.tokens}`)
+		previousRank = tier.maxRank
+	end
+	table.insert(lines, `Clan Tokens: {table.concat(tokenParts, ", ")}, others {ClanConfig.TOKENS_PARTICIPATION}, MVP +{ClanConfig.TOKENS_MVP}`)
+	table.insert(lines, `Head-to-head win: +{ClanConfig.TOKENS_HEAD_TO_HEAD_WIN} tokens, +{ClanConfig.HEAD_TO_HEAD_WIN_HONOR} Honor`)
 	return table.concat(lines, "\n")
 end
 
@@ -118,8 +127,9 @@ function ClanWarTab.build(parent: Instance, _context: ClanTypes.Context): ClanTy
 		TextTruncate = Enum.TextTruncate.None,
 		TextYAlignment = Enum.TextYAlignment.Top,
 	})
-	local endsLabel = line(132, 16, { Text = "", Font = Theme.FontBold, TextSize = 13, TextColor3 = XP_COLOR })
-	line(152, 70, {
+	local matchupLabel = line(132, 16, { Text = "", TextSize = 12, RichText = true })
+	local endsLabel = line(150, 16, { Text = "", Font = Theme.FontBold, TextSize = 13, TextColor3 = XP_COLOR })
+	line(170, 110, {
 		Text = rewardText(),
 		TextColor3 = Theme.Muted,
 		TextSize = 11,
@@ -172,6 +182,18 @@ function ClanWarTab.build(parent: Instance, _context: ClanTypes.Context): ClanTy
 		local needed = ClanConfig.WAR_MIN_CONTRIBUTION
 		local status = if mine >= needed then "you'll get this week's rewards" else `{needed - mine} more for rewards`
 		myLabel.Text = `You: {fmt(mine)} XP this week ({status}). Today: {view.myDayXp or 0}/{ClanConfig.XP_DAILY_CAP}.`
+		local matchup = if war ~= nil then war.matchup else nil
+		if matchup == nil then
+			matchupLabel.Text = "Head-to-head: opponent announced once last week's results are in."
+		elseif matchup.bye then
+			matchupLabel.Text = "Head-to-head: no opponent this week. Reach the participation XP for a free win."
+		else
+			local theirs = matchup.opponentXp or 0
+			local ours = clan.weekXp or 0
+			local color = if ours > theirs then "#78DC78" elseif ours < theirs then "#FF7878" else "#DDDDDD"
+			matchupLabel.Text = `Head-to-head vs [{matchup.opponentTag or "?"}] {matchup.opponentName or "?"}: `
+				.. `<font color="{color}"><b>{fmt(ours)}</b> vs <b>{fmt(theirs)}</b></font>`
+		end
 		endsLabel.Text = `Week ends in {duration(ClanController.warSecondsLeft())}`
 
 		local top = if war ~= nil then war.top else {}

@@ -71,7 +71,7 @@ end
 ---------------------------------------------------------------- customize
 
 local function trim(text: string): string
-	return (string.gsub(string.gsub(text, "^%s+", ""), "%s+$", ""))
+	return (string.gsub((string.gsub(text, "^%s+", "")), "%s+$", ""))
 end
 
 local function customize(player: Player, data: PlayerData, arg: any): ClanResult

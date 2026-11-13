@@ -104,7 +104,15 @@ local function onNotice(notice: Notice)
 		if (notice.packs or 0) > 0 then
 			table.insert(parts, `+{notice.packs} free pack{if notice.packs == 1 then "" else "s"}`)
 		end
+		if (notice.tokens or 0) > 0 then
+			table.insert(parts, `+{notice.tokens} Clan Tokens`)
+		end
 		local title = if notice.rank ~= nil then `CLAN WAR: YOUR CLAN PLACED #{notice.rank}!` else "CLAN WAR REWARDS"
+		if notice.headToHead == "win" then
+			table.insert(parts, 1, "Won the head-to-head!")
+		elseif notice.headToHead == "bye" then
+			table.insert(parts, 1, "Free head-to-head win (no opponent)!")
+		end
 		if notice.mvp then
 			table.insert(parts, 1, "You were the clan MVP!")
 		end

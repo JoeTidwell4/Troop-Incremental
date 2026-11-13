@@ -13,19 +13,36 @@ type ClanView = Types.ClanView
 type RaidView = Types.RaidView
 type ClanResult = Types.ClanResult
 type ClanWarView = Types.ClanWarView
+type ChatMessage = Types.ClanChatMessage
+
+local CHAT_KEEP = 60 -- messages kept on screen
 
 local requestRemote: RemoteFunction? = nil
 local view: ClanView? = nil
 local raid: RaidView? = nil
 local raidReceivedAt = 0
 local war: ClanWarView? = nil
+local chat: { ChatMessage } = {}
+local chatRemote: RemoteEvent? = nil
 local warReceivedAt = 0
 
 local ClanController = {
 	Changed = Signal.new() :: Signal.Signal<ClanView>,
 	RaidChanged = Signal.new() :: Signal.Signal<RaidView>,
 	WarChanged = Signal.new() :: Signal.Signal<ClanWarView>,
+	ChatChanged = Signal.new() :: Signal.Signal<()>,
 }
+
+-- Clan chat messages, oldest first (already filtered by the server).
+function ClanController.getChat(): { ChatMessage }
+	return chat
+end
+
+function ClanController.sendChat(text: string)
+	if chatRemote ~= nil and #text > 0 then
+		chatRemote:FireServer(text)
+	end
+end
 
 -- This week's Clan War standings (ClanWarSync), or nil before the first update.
 function ClanController.getWar(): ClanWarView?
@@ -78,6 +95,19 @@ function ClanController.start()
 	Remotes.waitForEvent(Remotes.Events.ClanSync).OnClientEvent:Connect(function(newView: ClanView)
 		view = newView
 		ClanController.Changed:Fire(newView)
+	end)
+	chatRemote = Remotes.waitForEvent(Remotes.Events.ClanChatSend)
+	Remotes.waitForEvent(Remotes.Events.ClanChat).OnClientEvent:Connect(function(messages: { ChatMessage }, replace: boolean)
+		if replace then
+			chat = {}
+		end
+		for _, message in messages do
+			table.insert(chat, message)
+		end
+		while #chat > CHAT_KEEP do
+			table.remove(chat, 1)
+		end
+		ClanController.ChatChanged:Fire()
 	end)
 	Remotes.waitForEvent(Remotes.Events.ClanWarSync).OnClientEvent:Connect(function(newWar: ClanWarView)
 		war = newWar

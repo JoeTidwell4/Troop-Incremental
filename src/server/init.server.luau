@@ -34,6 +34,8 @@ local WeakPointService = require(Services.WeakPointService)
 local ClanWarService = require(Services.ClanWarService)
 local CommanderService = require(Services.CommanderService)
 local ClanExtrasService = require(Services.ClanExtrasService)
+local ClanShopService = require(Services.ClanShopService)
+local ClanChatService = require(Services.ClanChatService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
 
@@ -66,6 +68,8 @@ WeakPointService.start() -- tap targets during bosses and raids
 ClanWarService.start() -- clan XP, levels and the weekly Clan War league
 CommanderService.start() -- commander gear and its bonuses
 ClanExtrasService.start() -- clan customization and join requests
+ClanShopService.start() -- Clan Tokens and the clan shop
+ClanChatService.start() -- cross-server clan chat
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)
