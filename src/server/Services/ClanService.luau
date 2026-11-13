@@ -56,6 +56,9 @@ local browseCache: { at: number, list: { ClanSummary } }? = nil
 local ClanService = {
 	-- Fires after a clan's cached record changes on this server: (clanId).
 	ClanChanged = Signal.new() :: Signal.Signal<string>,
+	-- Fires when another server says a clan changed (MessagingService), even if no one
+	-- here is in it (ClanExtrasService uses it to notice accepted join requests).
+	Nudged = Signal.new() :: Signal.Signal<string>,
 	-- Extra Supplies to show in a clan's bank (donations buffered on this server).
 	-- ClanBankService replaces this.
 	bankBonus = function(_clanId: string): number
@@ -126,7 +129,13 @@ function ClanService.pushView(player: Player)
 	local record = ClanService.getClan(player)
 	local view: Types.ClanView
 	if record == nil then
-		view = { inClan = false, clan = nil, myRole = nil, donatedToday = 0 }
+		view = {
+			inClan = false,
+			clan = nil,
+			myRole = nil,
+			donatedToday = 0,
+			requestClanId = if data.clanRequest.clanId ~= "" then data.clanRequest.clanId else nil,
+		}
 	else
 		-- Copy so the display bank can include donations still waiting to be sent.
 		local shown = table.clone(record)
@@ -223,6 +232,7 @@ local function passesFilter(text: string, userId: number): boolean
 	end)
 	return ok and filtered == text
 end
+ClanService.passesFilter = passesFilter
 
 local function summary(record: ClanRecord): ClanSummary
 	return {
@@ -285,6 +295,7 @@ local function create(player: Player, data: PlayerData, arg: any): ClanResult
 		return fail("NotLoaded")
 	end
 	fresh.clanId = clanId
+	fresh.clanRequest = { clanId = "", at = 0 } -- in a clan now: drop any pending request
 	afterChange(record)
 	browseCache = nil
 	return { ok = true }
@@ -324,6 +335,9 @@ local function join(player: Player, data: PlayerData, clanId: string): ClanResul
 			fresh.clanId = ""
 		end
 		return fail(reason or "StoreError")
+	end
+	if fresh ~= nil then
+		fresh.clanRequest = { clanId = "", at = 0 } -- in a clan now: drop any pending request
 	end
 	afterChange(record)
 	browseCache = nil
@@ -635,6 +649,7 @@ function ClanService.start()
 		if clans[clanId] ~= nil then
 			ClanService.refresh(clanId)
 		end
+		ClanService.Nudged:Fire(clanId)
 	end)
 
 	task.spawn(function()

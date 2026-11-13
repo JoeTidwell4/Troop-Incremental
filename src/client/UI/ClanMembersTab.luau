@@ -1,6 +1,8 @@
 --!strict
--- Clan window tab: member list with roles, donations, and management buttons.
--- Buttons only appear if your role allows them; the server checks again anyway.
+-- Clan window tab: member list with roles, this week's clan XP, donations, and management
+-- buttons; last week's top contributor (MVP) gets a star. Leaders and Officers also see
+-- pending join requests at the top with Accept / Decline. Buttons only appear if your
+-- role allows them; the server checks again anyway.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -61,7 +63,7 @@ function ClanMembersTab.build(parent: Instance, context: ClanTypes.Context): Cla
 		if clan == nil then
 			return
 		end
-		local buildKey = `{clan.id}:{clan.version}:{view.myRole}:{confirmKick or ""}`
+		local buildKey = `{clan.id}:{clan.version}:{view.myRole}:{confirmKick or ""}:{clan.weekXp or 0}`
 		if buildKey == lastBuilt then
 			return
 		end
@@ -72,8 +74,59 @@ function ClanMembersTab.build(parent: Instance, context: ClanTypes.Context): Cla
 		rows = {}
 		local myRank = RANK[view.myRole or "Member"] or 1
 		local me = tostring(Players.LocalPlayer.UserId)
+		local weekXp = clan.memberWeekXp or {}
 
-		-- Sort: role, then most donated.
+		-- Last week's MVP: whoever gave the most XP.
+		local mvp: string? = nil
+		local mvpXp = 0
+		for userKey, xp in clan.lastMemberWeekXp or {} do
+			if xp > mvpXp then
+				mvp, mvpXp = userKey, xp
+			end
+		end
+
+		-- Join requests (Leader / Officer only).
+		local order = 0
+		if myRank >= 2 then
+			for userKey, request in clan.requests or {} do
+				order += 1
+				local userId = tonumber(userKey) or 0
+				local row = UIKit.create("Frame", {
+					Name = "Request" .. userKey,
+					LayoutOrder = order,
+					BackgroundColor3 = Color3.fromRGB(50, 70, 60),
+					BorderSizePixel = 0,
+					Size = UDim2.new(1, -8, 0, ROW_HEIGHT),
+					Parent = list,
+				}, { UIKit.corner(6) }) :: Frame
+				table.insert(rows, row)
+				UIKit.label({
+					Text = `Wants to join: {request.name}  (best stage {request.bestStage})`,
+					TextSize = 12,
+					Position = UDim2.new(0, 8, 0, 0),
+					Size = UDim2.new(1, -170, 1, 0),
+					Parent = row,
+				})
+				for index, choice in { { text = "Decline", color = Theme.HpFill, accept = false }, { text = "Accept", color = Theme.Good, accept = true } } do
+					local button = UIKit.button({
+						Text = choice.text,
+						TextSize = 11,
+						BackgroundColor3 = choice.color,
+						AnchorPoint = Vector2.new(1, 0.5),
+						Position = UDim2.new(1, -4 - (index - 1) * 76, 0.5, 0),
+						Size = UDim2.new(0, 72, 1, -8),
+						Parent = row,
+					})
+					button.Activated:Connect(function()
+						task.spawn(function()
+							context.request("AnswerRequest", { userId = userId, accept = choice.accept })
+						end)
+					end)
+				end
+			end
+		end
+
+		-- Sort: role, then most XP this week.
 		local entries: { { key: string, member: ClanMember } } = {}
 		for userKey, member in clan.members do
 			table.insert(entries, { key = userKey, member = member })
@@ -83,10 +136,11 @@ function ClanMembersTab.build(parent: Instance, context: ClanTypes.Context): Cla
 			if ra ~= rb then
 				return ra > rb
 			end
-			return a.member.donated > b.member.donated
+			return (weekXp[a.key] or 0) > (weekXp[b.key] or 0)
 		end)
 
-		for order, entry in entries do
+		for _, entry in entries do
+			order += 1
 			local member = entry.member
 			local theirRank = RANK[member.role] or 0
 			local isMe = entry.key == me
@@ -101,7 +155,7 @@ function ClanMembersTab.build(parent: Instance, context: ClanTypes.Context): Cla
 			table.insert(rows, row)
 
 			UIKit.label({
-				Text = member.name .. (if isMe then "  (you)" else ""),
+				Text = (if entry.key == mvp then "⭐ " else "") .. member.name .. (if isMe then "  (you)" else ""),
 				Font = Theme.FontBold,
 				TextSize = 13,
 				Position = UDim2.new(0, 8, 0, 0),
@@ -117,11 +171,11 @@ function ClanMembersTab.build(parent: Instance, context: ClanTypes.Context): Cla
 				Parent = row,
 			})
 			UIKit.label({
-				Text = `Donated {NumberFormat.number(member.donated)}`,
+				Text = `{NumberFormat.number(weekXp[entry.key] or 0)} XP this week  |  Donated {NumberFormat.number(member.donated)}`,
 				TextColor3 = Theme.Muted,
-				TextSize = 12,
+				TextSize = 11,
 				Position = UDim2.new(0.5, 0, 0, 0),
-				Size = UDim2.new(0.2, 0, 1, 0),
+				Size = UDim2.new(0.5, -160, 1, 0),
 				Parent = row,
 			})
 

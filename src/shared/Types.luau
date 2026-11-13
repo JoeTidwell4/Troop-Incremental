@@ -213,6 +213,7 @@ export type RaidProgress = {
 -- Sent to clan members (RaidSync remote).
 export type RaidView = {
 	weekId: number,
+	bossId: string, -- this week's raid boss (RaidConfig.BOSSES)
 	secondsLeft: number,
 	units: number,
 	tier: number,
@@ -253,6 +254,13 @@ export type ClanRecord = {
 	bank: number, -- Supplies
 	perks: { [string]: number }, -- perk id -> level
 	version: number, -- +1 on every change
+	-- Customization + requests (Phase 11d; missing on older records):
+	color: number?, -- index into ClanConfig.COLORS
+	emblem: number?, -- index into ClanConfig.EMBLEMS
+	motto: string?,
+	requests: { [string]: { name: string, at: number, bestStage: number } }?, -- userId -> pending join request
+	memberWeekXp: { [string]: number }?, -- userId -> XP this Clan War week (weekId)
+	lastMemberWeekXp: { [string]: number }?, -- same for lastWeekId (MVP)
 	-- Clan XP (Phase 10c; missing on older records = 0 / -1):
 	xp: number?, -- lifetime, sets the clan level
 	weekId: number?, -- Clan War week that weekXp belongs to
@@ -279,6 +287,7 @@ export type ClanView = {
 	donatedToday: number,
 	myWeekXp: number?, -- XP you gave this clan this Clan War week
 	myDayXp: number?, -- XP you gave today (daily cap ClanConfig.XP_DAILY_CAP)
+	requestClanId: string?, -- not in a clan: the clan you asked to join
 }
 
 -- One row of the weekly Clan War board.
@@ -367,6 +376,7 @@ export type PlayerData = {
 	lifetime: { [string]: number }, -- lifetime activity counters (see ActivityService)
 	passToggles: { [string]: boolean }, -- toggleable passes switched OFF (missing = on)
 	clanWar: ClanWarRecord,
+	clanRequest: { clanId: string, at: number }, -- pending join request ("" = none)
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
 	bossWeaken: { stage: number, fails: number }, -- failed attempts in a row on that boss stage
@@ -443,6 +453,7 @@ export type Snapshot = {
 	raidAttacksLeft: number, -- today
 	raidUnitsWeek: number, -- your contribution this raid week
 	raidUnitsLive: number, -- units so far in the raid attack you're doing right now
+	raidBossId: string, -- the boss of the raid attack in progress ("" when not raiding)
 
 	passToggles: { [string]: boolean },
 	settings: { [string]: string }, -- every SettingsConfig key, filled with defaults
@@ -451,7 +462,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -469,6 +480,7 @@ export type Notice = {
 	-- CommanderItem: itemName = the new item's name.
 	-- ClanWarRewards only (also uses honor / packs):
 	rank: number?, -- nil = participation reward
+	mvp: boolean?, -- you were your clan's top contributor that week (extra Honor)
 	heroChests: number?,
 }
 

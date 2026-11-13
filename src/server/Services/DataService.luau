@@ -219,6 +219,10 @@ local function sanitize(data: PlayerData)
 		data.lifetime[key] = wholeNumber(value, 0, 0)
 	end
 	data.packs.forge = wholeNumber(data.packs.forge, 0, 0)
+	if typeof(data.clanRequest.clanId) ~= "string" then
+		data.clanRequest.clanId = ""
+	end
+	data.clanRequest.at = wholeNumber(data.clanRequest.at, 0, 0)
 	data.bossWeaken.stage = wholeNumber(data.bossWeaken.stage, 0, 0)
 	data.bossWeaken.fails = wholeNumber(data.bossWeaken.fails, 0, 0)
 	for _, field in { "weekId", "dayId", "lastWeekId", "claimedWeek" } do

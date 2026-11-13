@@ -25,6 +25,7 @@ local Config = Shared:WaitForChild("Config")
 local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local VisualConfig = require(Config:WaitForChild("VisualConfig"))
 local RaidConfig = require(Config:WaitForChild("RaidConfig"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local Environment = require(Visuals:WaitForChild("Environment"))
 local TroopModels = require(Visuals:WaitForChild("TroopModels"))
 local EnemyModels = require(Visuals:WaitForChild("EnemyModels"))
@@ -512,7 +513,8 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 
 	isBoss = snapshot.encounter == "Boss"
 	if snapshot.encounter == "Raid" then
-		setEnemy("Colossus", RaidConfig.BOSS_COLOR, RAID_SCALE, false, "Raid")
+		local raidBoss = Formulas.raidBossById(snapshot.raidBossId)
+		setEnemy(raidBoss.kind, raidBoss.color, RAID_SCALE, false, "Raid")
 	elseif isBoss then
 		-- The area's own boss model; older areas without one get a crowned big enemy.
 		local bossKind = area.theme.bossKind

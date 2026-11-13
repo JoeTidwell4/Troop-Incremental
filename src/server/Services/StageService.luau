@@ -64,6 +64,7 @@ export type Encounter = {
 	summoned: boolean,
 	introUntil: number, -- bosses: no damage either way until then (entrance)
 	weakened: number, -- bosses: HP taken off for failed attempts (0..WEAKEN_MAX)
+	raidBoss: string, -- raids: which RaidConfig.BOSSES boss ("" otherwise)
 }
 
 local encounters: { [Player]: Encounter } = {}
@@ -114,6 +115,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 			nextShieldAt = if moves.Shield then introUntil + BossConfig.SHIELD_EVERY else math.huge,
 			introUntil = introUntil,
 			weakened = weakened,
+			raidBoss = "",
 			minionHp = BigNum.ZERO,
 			minionMaxHp = BigNum.ZERO,
 			summoned = false,
@@ -135,6 +137,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 		nextShieldAt = math.huge,
 		introUntil = 0,
 		weakened = 0,
+		raidBoss = "",
 		minionHp = BigNum.ZERO,
 		minionMaxHp = BigNum.ZERO,
 		summoned = false,
@@ -215,7 +218,7 @@ end
 
 -- Starts a raid attack lasting `seconds`. The HP bar is sized so emptying it means you hit
 -- the per-attack unit cap (`maxDamage`), which also ends the attack early.
-function StageService.startRaid(player: Player, seconds: number, maxDamage: BigNum): boolean
+function StageService.startRaid(player: Player, seconds: number, maxDamage: BigNum, bossId: string): boolean
 	local encounter = encounters[player]
 	local data = DataService.get(player)
 	if encounter == nil or data == nil or encounter.kind ~= "Normal" then
@@ -228,6 +231,7 @@ function StageService.startRaid(player: Player, seconds: number, maxDamage: BigN
 		nextShieldAt = math.huge,
 		introUntil = 0,
 		weakened = 0,
+		raidBoss = bossId,
 		minionHp = BigNum.ZERO,
 		minionMaxHp = BigNum.ZERO,
 		summoned = false,
@@ -402,7 +406,14 @@ local function tick(dt: number)
 		if data ~= nil then
 			local current = encounters[player]
 			local shielded = current ~= nil and current.kind == "Boss" and now() < current.shieldUntil
-			local damage = CombatService.takeDamage(player, dt, shielded)
+			local damage: BigNum
+			if current ~= nil and current.kind == "Raid" then
+				-- This week's raid boss changes how troops vs clicks/abilities count.
+				local boss = Formulas.raidBossById(current.raidBoss)
+				damage = CombatService.takeDamage(player, dt, false, boss.troopMultiplier, boss.queuedMultiplier)
+			else
+				damage = CombatService.takeDamage(player, dt, shielded)
+			end
 			if current ~= nil and current.kind == "Boss" then
 				if now() < current.introUntil then
 					damage = BigNum.ZERO -- making its entrance

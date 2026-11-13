@@ -42,7 +42,10 @@ local FAIL_MESSAGES: { [string]: string } = {
 	NameNotAllowed = "That name isn't allowed. Try another.",
 	NameTaken = "That name is taken.",
 	ClanNotFound = "That clan doesn't exist anymore.",
-	ClanClosed = "That clan is closed.",
+	ClanClosed = "That clan takes join requests. Press Request instead.",
+	ClanOpen = "That clan is open: just press Join.",
+	TooManyRequests = "That clan has too many requests waiting. Try later.",
+	NoRequest = "That request is gone.",
 	ClanFull = "That clan is full.",
 	WrongFaction = "That clan is for another faction.",
 	NotAllowed = "Your role can't do that.",
@@ -112,7 +115,18 @@ function ClanUI.start()
 		Text = "Clans",
 		Font = Theme.FontBold,
 		TextSize = 22,
-		Size = UDim2.new(1, -40, 0, 26),
+		Size = UDim2.new(1, -120, 0, 26),
+		Parent = window,
+	})
+	-- Leader / Officer: change the clan's color, emblem and motto.
+	local editButton = UIKit.button({
+		Text = "Edit",
+		TextSize = 13,
+		BackgroundColor3 = Theme.PanelLight,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -(Layout.CLOSE_SIZE + 6), 0, 0),
+		Size = UDim2.new(0, 64, 0, Layout.CLOSE_SIZE),
+		Visible = false,
 		Parent = window,
 	})
 	local subtitle = UIKit.label({
@@ -175,6 +189,124 @@ function ClanUI.start()
 		Size = UDim2.new(1, 0, 1, -48),
 		Parent = window,
 	}) :: Frame
+
+	---------------------------------------------------------------- customize panel
+	local editPanel = UIKit.create("Frame", {
+		Name = "Customize",
+		BackgroundColor3 = Theme.Panel,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 1, 0),
+		Visible = false,
+		ZIndex = 10,
+		Parent = body,
+	}, { UIKit.corner(8) }) :: Frame
+	local chosenColor, chosenEmblem = 6, 1
+	local colorButtons: { TextButton } = {}
+	local emblemButtons: { TextButton } = {}
+	UIKit.label({ Text = "Color", Font = Theme.FontBold, TextSize = 14, Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = editPanel })
+	for index, color in ClanConfig.COLORS do
+		local button = UIKit.button({
+			Text = "",
+			BackgroundColor3 = color,
+			Position = UDim2.new((index - 1) / #ClanConfig.COLORS, 2, 0, 20),
+			Size = UDim2.new(1 / #ClanConfig.COLORS, -4, 0, 30),
+			ZIndex = 11,
+			Parent = editPanel,
+		})
+		button.Activated:Connect(function()
+			chosenColor = index
+			for i, other in colorButtons do
+				other.Text = if i == chosenColor then "✓" else ""
+			end
+		end)
+		colorButtons[index] = button
+	end
+	UIKit.label({ Text = "Emblem", Font = Theme.FontBold, TextSize = 14, Position = UDim2.new(0, 0, 0, 56), Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = editPanel })
+	for index, emblem in ClanConfig.EMBLEMS do
+		local button = UIKit.button({
+			Text = emblem,
+			TextSize = 20,
+			BackgroundColor3 = Theme.PanelLight,
+			Position = UDim2.new((index - 1) / #ClanConfig.EMBLEMS, 2, 0, 76),
+			Size = UDim2.new(1 / #ClanConfig.EMBLEMS, -4, 0, 34),
+			ZIndex = 11,
+			Parent = editPanel,
+		})
+		button.Activated:Connect(function()
+			chosenEmblem = index
+			for i, other in emblemButtons do
+				other.BackgroundColor3 = if i == chosenEmblem then Theme.Accent else Theme.PanelLight
+			end
+		end)
+		emblemButtons[index] = button
+	end
+	UIKit.label({ Text = `Motto (up to {ClanConfig.MOTTO_MAX_LENGTH} letters)`, Font = Theme.FontBold, TextSize = 14, Position = UDim2.new(0, 0, 0, 116), Size = UDim2.new(1, 0, 0, 18), ZIndex = 11, Parent = editPanel })
+	local mottoBox = UIKit.create("TextBox", {
+		Text = "",
+		PlaceholderText = "Glory to the clan!",
+		ClearTextOnFocus = false,
+		TextColor3 = Theme.Text,
+		PlaceholderColor3 = Theme.Muted,
+		BackgroundColor3 = Theme.PanelLight,
+		BorderSizePixel = 0,
+		Font = Theme.Font,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.new(0, 0, 0, 136),
+		Size = UDim2.new(1, 0, 0, 32),
+		ZIndex = 11,
+		Parent = editPanel,
+	}, { UIKit.corner(6), UIKit.padding(6) }) :: TextBox
+	local saveButton = UIKit.button({
+		Text = "Save",
+		TextSize = 15,
+		BackgroundColor3 = Theme.Good,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(0, 120, 0, 38),
+		ZIndex = 11,
+		Parent = editPanel,
+	})
+	local cancelButton = UIKit.button({
+		Text = "Cancel",
+		TextSize = 15,
+		BackgroundColor3 = Theme.PanelLight,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -126, 1, 0),
+		Size = UDim2.new(0, 100, 0, 38),
+		ZIndex = 11,
+		Parent = editPanel,
+	})
+	local function openEditor()
+		local view = ClanController.get()
+		local clan = if view ~= nil then view.clan else nil
+		if clan == nil then
+			return
+		end
+		chosenColor, chosenEmblem = clan.color or 6, clan.emblem or 1
+		for i, button in colorButtons do
+			button.Text = if i == chosenColor then "✓" else ""
+		end
+		for i, button in emblemButtons do
+			button.BackgroundColor3 = if i == chosenEmblem then Theme.Accent else Theme.PanelLight
+		end
+		mottoBox.Text = clan.motto or ""
+		editPanel.Visible = true
+	end
+	editButton.Activated:Connect(openEditor)
+	cancelButton.Activated:Connect(function()
+		editPanel.Visible = false
+	end)
+	saveButton.Activated:Connect(function()
+		task.spawn(function()
+			local motto = string.sub(mottoBox.Text, 1, ClanConfig.MOTTO_MAX_LENGTH)
+			local result = context.request("Customize", { color = chosenColor, emblem = chosenEmblem, motto = motto })
+			if result.ok then
+				editPanel.Visible = false
+				showStatus("Saved!")
+			end
+		end)
+	end)
 
 	---------------------------------------------------------------- not in a clan
 	local noClan = UIKit.create("Frame", {
@@ -273,8 +405,10 @@ function ClanUI.start()
 		UIKit.create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
 	}) :: ScrollingFrame
 	local resultRows: { Instance } = {}
+	local lastList: { ClanSummary } = {}
 
 	local function showClans(list: { ClanSummary })
+		lastList = list
 		for _, row in resultRows do
 			row:Destroy()
 		end
@@ -315,19 +449,34 @@ function ClanUI.start()
 				Size = UDim2.new(0, 50, 1, 0),
 				Parent = row,
 			})
+			-- Open clans: join right away. Closed clans: send a join request (or cancel yours).
+			local currentView = ClanController.get()
+			local requested = currentView ~= nil and currentView.requestClanId == clan.id
 			local join = UIKit.button({
-				Text = if clan.open then "Join" else "Closed",
+				Text = if clan.open then "Join" elseif requested then "Cancel" else "Request",
 				TextSize = 12,
-				BackgroundColor3 = if clan.open then Theme.Good else Theme.Disabled,
+				BackgroundColor3 = if clan.open then Theme.Good elseif requested then Theme.PanelLight else Theme.Accent,
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -4, 0.5, 0),
 				Size = UDim2.new(0, 68, 1, -8),
 				Parent = row,
 			})
 			join.Activated:Connect(function()
-				if clan.open then
-					task.spawn(context.request, "Join", clan.id)
-				end
+				task.spawn(function()
+					if clan.open then
+						context.request("Join", clan.id)
+					elseif requested then
+						context.request("CancelRequest")
+						showStatus("Request cancelled.")
+					else
+						local result = context.request("RequestJoin", clan.id)
+						if result.ok then
+							showStatus("Request sent! An officer has to accept it.")
+						end
+					end
+					task.wait(0.3)
+					showClans(lastList)
+				end)
 			end)
 		end
 	end
@@ -416,7 +565,12 @@ function ClanUI.start()
 
 		if not hasClan or view == nil then
 			title.Text = "Clans"
-			subtitle.Text = "Team up: share a bank, buy clan perks, and fight a weekly raid boss."
+			title.TextColor3 = Theme.Text
+			editButton.Visible = false
+			editPanel.Visible = false
+			subtitle.Text = if view ~= nil and view.requestClanId ~= nil
+				then "Your join request is waiting for an officer to accept it."
+				else "Team up: share a bank, buy clan perks, and fight a weekly raid boss."
 			local best = if snapshot ~= nil then snapshot.bestStage else 0
 			local needsFaction = ClanConfig.CLAN_REQUIRES_SAME_FACTION and snapshot ~= nil and snapshot.faction == ""
 			requirementLabel.Text = `Needs best stage {ClanConfig.CREATE_MIN_BEST_STAGE} (yours: {best}).`
@@ -424,10 +578,14 @@ function ClanUI.start()
 			return
 		end
 		local clan = view.clan :: Types.ClanRecord
-		title.Text = `[{clan.tag}] {clan.name}`
+		local emblem = ClanConfig.EMBLEMS[clan.emblem or 1] or ""
+		title.Text = `{emblem} [{clan.tag}] {clan.name}`
+		title.TextColor3 = ClanConfig.COLORS[clan.color or 6] or Theme.Text
 		local level = Formulas.clanLevel(clan.xp or 0)
-		subtitle.Text = `Level {level}  |  {clan.memberCount}/{ClanConfig.MAX_MEMBERS} members  |  {if clan.open then "Open" else "Closed"}`
+		local motto = if clan.motto ~= nil and clan.motto ~= "" then `"{clan.motto}"  |  ` else ""
+		subtitle.Text = `{motto}Level {level}  |  {clan.memberCount}/{ClanConfig.MAX_MEMBERS}  |  {if clan.open then "Open" else "Requests only"}`
 			.. `  |  You: {view.myRole or "Member"}`
+		editButton.Visible = view.myRole == "Leader" or view.myRole == "Officer"
 		openButton.Visible = view.myRole == "Leader"
 		openButton.Text = if clan.open then "Close clan" else "Open clan"
 

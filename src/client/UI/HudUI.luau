@@ -386,9 +386,10 @@ function HudUI.start()
 		hpLabel.Text = `{format(snapshot.enemyHp)} / {format(snapshot.enemyMaxHp)}`
 
 		if snapshot.encounter == "Raid" then
-			stageLabel.Text = `CLAN RAID: {RaidConfig.BOSS_NAME}`
-			stageLabel.TextColor3 = RaidConfig.BOSS_COLOR
-			hpFill.BackgroundColor3 = RaidConfig.BOSS_COLOR
+			local raidBoss = Formulas.raidBossById(snapshot.raidBossId)
+			stageLabel.Text = `CLAN RAID: {raidBoss.name}`
+			stageLabel.TextColor3 = raidBoss.color
+			hpFill.BackgroundColor3 = raidBoss.color
 			local timeLeft = math.max(0, math.ceil(snapshot.bossEndsAt - workspace:GetServerTimeNow()))
 			hpLabel.Text = `{snapshot.raidUnitsLive} / {RaidConfig.UNITS_CAP_PER_ATTACK} raid units`
 			infoLabel.Text = `Time left: {timeLeft}s  |  Click and use abilities!`

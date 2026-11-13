@@ -103,13 +103,14 @@ end
 
 -- Returns all damage the army deals over `dt` seconds, plus queued damage (which is cleared).
 -- `troopsBlocked`: a boss shield is up, so only clicks and abilities (queued damage) count.
-function CombatService.takeDamage(player: Player, dt: number, troopsBlocked: boolean?): BigNum
+-- `troopMultiplier` / `queuedMultiplier` scale the two parts (raid boss rules).
+function CombatService.takeDamage(player: Player, dt: number, troopsBlocked: boolean?, troopMultiplier: number?, queuedMultiplier: number?): BigNum
 	local army = armies[player]
 	if army == nil then
 		return BigNum.ZERO
 	end
-	local troopDamage = if troopsBlocked then BigNum.ZERO else BigNum.mulNumber(CombatService.getDps(player), dt)
-	local damage = BigNum.add(troopDamage, army.pendingDamage)
+	local troopDamage = if troopsBlocked then BigNum.ZERO else BigNum.mulNumber(CombatService.getDps(player), dt * (troopMultiplier or 1))
+	local damage = BigNum.add(troopDamage, BigNum.mulNumber(army.pendingDamage, queuedMultiplier or 1))
 	army.pendingDamage = BigNum.ZERO
 	return damage
 end

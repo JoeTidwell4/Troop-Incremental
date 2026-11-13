@@ -108,6 +108,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		raidAttacksLeft = 0,
 		raidUnitsWeek = 0,
 		raidUnitsLive = 0,
+		raidBossId = encounter.raidBoss,
 		passToggles = table.clone(data.passToggles),
 		settings = {}, -- filled in by SettingsService
 		commander = { owned = {}, equipped = {}, pity = {} }, -- filled in by CommanderService

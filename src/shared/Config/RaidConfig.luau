@@ -15,8 +15,55 @@ local RunService = game:GetService("RunService")
 local isStudio = RunService:IsStudio()
 
 local RaidConfig = {
-	BOSS_NAME = "The Iron Colossus",
+	BOSS_NAME = "The Iron Colossus", -- the first boss in the rotation (older code / fallback)
 	BOSS_COLOR = Color3.fromRGB(230, 120, 40),
+
+	-- Raid boss rotation (Phase 11d G): a different boss each raid week, in this order.
+	-- Multipliers change how each damage source counts against this boss:
+	--   troopMultiplier  your army's damage    queuedMultiplier  clicks, abilities, weak points
+	--   weakPointInterval  how often weak points appear (x the normal gap; lower = more often)
+	BOSSES = {
+		{
+			id = "Colossus",
+			name = "The Iron Colossus",
+			kind = "Colossus",
+			color = Color3.fromRGB(230, 120, 40),
+			description = "A steady giant. No tricks.",
+			troopMultiplier = 1,
+			queuedMultiplier = 1,
+			weakPointInterval = 1,
+		},
+		{
+			id = "Kraken",
+			name = "The Abyssal Kraken",
+			kind = "Kraken",
+			color = Color3.fromRGB(120, 50, 140),
+			description = "Thick hide: troops -20%, clicks and abilities +50%.",
+			troopMultiplier = 0.8,
+			queuedMultiplier = 1.5,
+			weakPointInterval = 1,
+		},
+		{
+			id = "FrostWyrm",
+			name = "The Elder Frost Wyrm",
+			kind = "FrostWyrm",
+			color = Color3.fromRGB(140, 200, 255),
+			description = "Brittle scales: weak points appear twice as often.",
+			troopMultiplier = 1,
+			queuedMultiplier = 1,
+			weakPointInterval = 0.5,
+		},
+		{
+			id = "MagmaTitan",
+			name = "The Molten Titan",
+			kind = "MagmaTitan",
+			color = Color3.fromRGB(150, 50, 25),
+			description = "Slow and huge: troops +30%, clicks and abilities -30%.",
+			troopMultiplier = 1.3,
+			queuedMultiplier = 0.7,
+			weakPointInterval = 1,
+		},
+	} :: { { id: string, name: string, kind: string, color: Color3, description: string, troopMultiplier: number, queuedMultiplier: number, weakPointInterval: number } },
 
 	ATTACKS_PER_DAY = 3,
 	ATTACK_SECONDS = 30,

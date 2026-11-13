@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local WeakPointConfig = require(Shared:WaitForChild("Config"):WaitForChild("WeakPointConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local Validate = require(Server.Util.Validate)
@@ -84,7 +85,9 @@ local function update(player: Player)
 		current.nextId += 1
 		local spawned: Active = { id = current.nextId, expiresAt = time + WeakPointConfig.WINDOW }
 		current.active = spawned
-		current.nextAt = time + rng:NextNumber(WeakPointConfig.INTERVAL_MIN, WeakPointConfig.INTERVAL_MAX)
+		-- Some raid bosses show weak points more often (RaidConfig.BOSSES weakPointInterval).
+		local gapScale = if encounter.kind == "Raid" then Formulas.raidBossById(encounter.raidBoss).weakPointInterval else 1
+		current.nextAt = time + rng:NextNumber(WeakPointConfig.INTERVAL_MIN, WeakPointConfig.INTERVAL_MAX) * gapScale
 		RemoteService.fireClient(Remotes.Events.WeakPoint, player, {
 			kind = "Spawn",
 			id = spawned.id,

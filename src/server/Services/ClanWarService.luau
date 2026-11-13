@@ -48,7 +48,9 @@ type ClanWarEntry = Types.ClanWarEntry
 type PlayerData = Types.PlayerData
 type WarScore = ClanStore.WarScore
 
-local pending: { [string]: { [number]: number } } = {} -- clanId -> weekId -> XP not yet saved
+-- XP not yet saved: clanId -> weekId -> { total, members = userId -> XP }.
+type Batch = { total: number, members: { [string]: number } }
+local pending: { [string]: { [number]: Batch } } = {}
 local fractions: { [Player]: number } = {} -- leftover fractions of XP (kills, donations)
 local dirty: { [Player]: boolean } = {} -- contribution changed; refresh their clan view
 local claiming: { [Player]: boolean } = {}
@@ -117,50 +119,99 @@ local function onActivity(player: Player, activity: string, amount: number)
 		byWeek = {}
 		pending[clan.id] = byWeek
 	end
-	byWeek[record.weekId] = (byWeek[record.weekId] or 0) + whole
+	local batch = byWeek[record.weekId]
+	if batch == nil then
+		batch = { total = 0, members = {} }
+		byWeek[record.weekId] = batch
+	end
+	local userKey = tostring(player.UserId)
+	batch.total += whole
+	batch.members[userKey] = (batch.members[userKey] or 0) + whole
 	dirty[player] = true
 end
 
 ---------------------------------------------------------------- saving XP
 
--- Adds a batch (week -> XP) to a clan record. Older records get the new fields here.
-local function applyXp(r: ClanRecord, byWeek: { [number]: number })
+local function addMembers(target: { [string]: number }, from: { [string]: number })
+	for userKey, xp in from do
+		target[userKey] = (target[userKey] or 0) + xp
+	end
+end
+
+-- Adds batches (week -> XP) to a clan record, including each member's share (for the
+-- MVP). Older records get the new fields here.
+local function applyXp(r: ClanRecord, byWeek: { [number]: Batch })
 	r.xp = r.xp or 0
 	r.weekId = r.weekId or -1
 	r.weekXp = r.weekXp or 0
 	r.lastWeekId = r.lastWeekId or -1
 	r.lastWeekXp = r.lastWeekXp or 0
+	r.memberWeekXp = r.memberWeekXp or {}
+	r.lastMemberWeekXp = r.lastMemberWeekXp or {}
 	local weeks: { number } = {}
 	for week in byWeek do
 		table.insert(weeks, week)
 	end
 	table.sort(weeks)
 	for _, week in weeks do
-		local xp = byWeek[week]
+		local batch = byWeek[week]
+		local xp = batch.total
 		if week > (r.weekId :: number) then
 			r.lastWeekId = r.weekId
 			r.lastWeekXp = r.weekXp
+			r.lastMemberWeekXp = r.memberWeekXp
 			r.weekId = week
 			r.weekXp = 0
+			r.memberWeekXp = {}
 		end
 		if week == r.weekId then
 			r.weekXp = (r.weekXp :: number) + xp
+			addMembers(r.memberWeekXp :: { [string]: number }, batch.members)
 		elseif week == r.lastWeekId then
 			r.lastWeekXp = (r.lastWeekXp :: number) + xp
+			addMembers(r.lastMemberWeekXp :: { [string]: number }, batch.members)
 		end
 		r.xp = (r.xp :: number) + xp
 	end
 end
 
-local function requeue(clanId: string, byWeek: { [number]: number })
+local function requeue(clanId: string, byWeek: { [number]: Batch })
 	local current = pending[clanId]
 	if current == nil then
 		pending[clanId] = byWeek
 		return
 	end
-	for week, xp in byWeek do
-		current[week] = (current[week] or 0) + xp
+	for week, batch in byWeek do
+		local into = current[week]
+		if into == nil then
+			current[week] = batch
+		else
+			into.total += batch.total
+			addMembers(into.members, batch.members)
+		end
 	end
+end
+
+-- Each member's XP for one week, from a clan record.
+local function memberXpOf(record: ClanRecord, weekId: number): { [string]: number }
+	if record.weekId == weekId then
+		return record.memberWeekXp or {}
+	elseif record.lastWeekId == weekId then
+		return record.lastMemberWeekXp or {}
+	end
+	return {}
+end
+
+-- The member who gave the most XP that week (nil if nobody did).
+local function mvpOf(record: ClanRecord, weekId: number): string?
+	local best: string? = nil
+	local bestXp = 0
+	for userKey, xp in memberXpOf(record, weekId) do
+		if xp > bestXp then
+			best, bestXp = userKey, xp
+		end
+	end
+	return best
 end
 
 -- A clan's XP for one week, from its record.
@@ -288,6 +339,7 @@ local function claimIfDue(player: Player)
 	local reward: { honor: number?, heroChests: number?, packs: number? }? = nil
 	local rank: number? = nil
 	local decided = result ~= nil
+	local mvp = false
 	if result ~= nil and record.lastXp >= ClanConfig.WAR_MIN_CONTRIBUTION then
 		for index, score in result do
 			if score.clanId == record.lastClanId then
@@ -295,15 +347,25 @@ local function claimIfDue(player: Player)
 			end
 		end
 		reward = Formulas.clanWarReward(rank)
-		if reward == nil then
-			-- Not on the board: the small reward if the clan still had a solid week.
-			local clan, ok = ClanStore.get(record.lastClanId)
-			if not ok then
-				decided = false -- couldn't check; try again on the next poll
-			elseif clan ~= nil and weekXpOf(clan, weekId) >= ClanConfig.WAR_PARTICIPATION_XP then
+		local clan, ok = ClanStore.get(record.lastClanId)
+		if not ok then
+			decided = false -- couldn't check; try again on the next poll
+		elseif clan ~= nil then
+			if reward == nil and weekXpOf(clan, weekId) >= ClanConfig.WAR_PARTICIPATION_XP then
+				-- Not on the board: the small reward if the clan still had a solid week.
 				reward = ClanConfig.WAR_PARTICIPATION_REWARD
 			end
+			mvp = mvpOf(clan, weekId) == tostring(player.UserId)
 		end
+	end
+	if mvp then
+		-- Last week's top contributor in the clan: extra Honor on top.
+		local base = reward or {}
+		reward = {
+			honor = (base.honor or 0) + ClanConfig.MVP_HONOR,
+			heroChests = base.heroChests,
+			packs = base.packs,
+		}
 	end
 	claiming[player] = nil
 
@@ -326,6 +388,7 @@ local function claimIfDue(player: Player)
 			kind = "ClanWarRewards",
 			stage = 0,
 			rank = rank,
+			mvp = mvp,
 			honor = reward.honor,
 			heroChests = reward.heroChests,
 			packs = reward.packs,
@@ -360,16 +423,26 @@ function ClanWarService.start()
 		local week = currentWeek()
 		local byWeek = pending[clan.id]
 		local buffered, bufferedThisWeek = 0, 0
+		-- Copy before adding buffered XP: `clan` is a shallow copy of the cached record.
+		local members = table.clone(memberXpOf(clan, week))
 		if byWeek ~= nil then
-			for weekId, xp in byWeek do
-				buffered += xp
+			for weekId, batch in byWeek do
+				buffered += batch.total
 				if weekId == week then
-					bufferedThisWeek += xp
+					bufferedThisWeek += batch.total
+					addMembers(members, batch.members)
 				end
 			end
 		end
+		-- Last week's per-member XP stays as stored (the MVP star uses it).
+		if clan.weekId ~= week then
+			clan.lastMemberWeekXp = memberXpOf(clan, week - 1)
+			clan.lastWeekId = week - 1
+			clan.lastWeekXp = weekXpOf(clan, week - 1)
+		end
 		clan.xp = (clan.xp or 0) + buffered
 		clan.weekXp = weekXpOf(clan, week) + bufferedThisWeek
+		clan.memberWeekXp = members
 		clan.weekId = week
 		local record = data.clanWar
 		view.myWeekXp = if record.weekId == week and record.clanId == clan.id then record.xp else 0

@@ -52,7 +52,8 @@ function ClanRaidTab.build(parent: Instance, context: ClanTypes.Context): ClanTy
 		Parent = frame,
 	}, { UIKit.corner(8), UIKit.padding(10) }) :: Frame
 
-	UIKit.label({
+	-- This week's boss (it rotates; see RaidConfig.BOSSES).
+	local bossLabel = UIKit.label({
 		Text = RaidConfig.BOSS_NAME,
 		Font = Theme.FontBold,
 		TextSize = 17,
@@ -172,8 +173,12 @@ function ClanRaidTab.build(parent: Instance, context: ClanTypes.Context): ClanTy
 		local tier = Formulas.raidTier(units)
 		local tiers = RaidConfig.TIERS
 
+		local boss = Formulas.raidBossById(if raid ~= nil then raid.bossId else "")
+		bossLabel.Text = boss.name
+		bossLabel.TextColor3 = boss.color
+		barFill.BackgroundColor3 = boss.color
 		local secondsLeft = ClanController.raidSecondsLeft()
-		weekLabel.Text = `Raid ends in {duration(secondsLeft)}`
+		weekLabel.Text = `{boss.description}  Ends in {duration(secondsLeft)}`
 			.. (if raid ~= nil and raid.studioTestMode then "  (Studio test mode: short raid weeks)" else "")
 
 		local floor = if tier > 0 then tiers[tier] else 0
@@ -203,7 +208,7 @@ function ClanRaidTab.build(parent: Instance, context: ClanTypes.Context): ClanTy
 			elseif inBoss then "Finish your boss fight first"
 			elseif attacksLeft > 0 then `ATTACK  ({attacksLeft} left today)`
 			else "No attacks left today"
-		attackButton.BackgroundColor3 = if canAttack then RaidConfig.BOSS_COLOR else Theme.Disabled
+		attackButton.BackgroundColor3 = if canAttack then boss.color else Theme.Disabled
 		attackButton.AutoButtonColor = canAttack
 
 		local top = if raid ~= nil then raid.top else {}

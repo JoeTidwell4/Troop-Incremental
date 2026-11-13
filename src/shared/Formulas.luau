@@ -267,6 +267,22 @@ end
 
 ---------------------------------------------------------------- clan raid
 
+-- This raid week's boss (RaidConfig.BOSSES rotates one per week).
+function Formulas.raidBoss(weekId: number)
+	local bosses = RaidConfig.BOSSES
+	return bosses[(math.max(0, weekId) % #bosses) + 1]
+end
+
+-- A raid boss by id (falls back to the first boss).
+function Formulas.raidBossById(bossId: string)
+	for _, boss in RaidConfig.BOSSES do
+		if boss.id == bossId then
+			return boss
+		end
+	end
+	return RaidConfig.BOSSES[1]
+end
+
 function Formulas.raidWeek(unixTime: number): number
 	return (unixTime - RaidConfig.WEEK_ANCHOR) // RaidConfig.WEEK_SECONDS
 end

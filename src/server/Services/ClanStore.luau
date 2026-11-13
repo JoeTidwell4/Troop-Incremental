@@ -147,9 +147,10 @@ function ClanStore.findByName(name: string): string?
 	return nil
 end
 
--- Keeps the browse list in step with a clan: listed only while open and not full.
+-- Keeps the browse list in step with a clan: listed while it has free spots. Closed
+-- clans are listed too (players send them join requests instead of joining).
 function ClanStore.updateListing(record: ClanRecord, maxMembers: number)
-	local listed = record.open and record.memberCount < maxMembers and record.memberCount > 0
+	local listed = record.memberCount < maxMembers and record.memberCount > 0
 	local ok, err = pcall(function()
 		if listed then
 			openList:SetAsync(record.id, record.memberCount)

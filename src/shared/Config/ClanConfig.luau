@@ -103,6 +103,35 @@ local ClanConfig = {
 	} :: { { maxRank: number, honor: number?, heroChests: number?, packs: number? } },
 	WAR_PARTICIPATION_REWARD = { honor = 3 } :: { honor: number? },
 
+	-- Customization (Phase 11d B): picked by the Leader or Officers. Shown in the clan
+	-- window and on every member's battlefield banner. Emblems are emoji so they work in
+	-- the UI and on the 3D banner without uploaded images.
+	COLORS = {
+		Color3.fromRGB(200, 55, 50),
+		Color3.fromRGB(230, 130, 40),
+		Color3.fromRGB(235, 200, 60),
+		Color3.fromRGB(70, 170, 80),
+		Color3.fromRGB(50, 160, 170),
+		Color3.fromRGB(60, 110, 210),
+		Color3.fromRGB(120, 70, 200),
+		Color3.fromRGB(200, 80, 170),
+		Color3.fromRGB(60, 60, 70),
+		Color3.fromRGB(235, 235, 240),
+	} :: { Color3 },
+	EMBLEMS = { "⚔️", "🛡️", "👑", "⭐", "🔥", "💀", "🐉", "🦅", "🐺", "🌙", "⚡", "💎" } :: { string },
+	MOTTO_MAX_LENGTH = 60,
+
+	-- Join requests (Phase 11d E): closed clans take requests instead of instant joins.
+	MAX_REQUESTS = 20, -- pending requests a clan keeps
+	REQUEST_EXPIRE_SECONDS = 7 * 86400,
+
+	-- Member MVP (Phase 11d F): last week's top contributor gets this much Honor (with the
+	-- Clan War rewards) and a star in the member list.
+	MVP_HONOR = 5,
+
+	-- Battlefield banner (Phase 11d A): extra decorations unlock at these clan levels.
+	BANNER_LEVELS = { finial = 5, pennants = 10, glow = 15, sparkles = 20, crown = 25 } :: { [string]: number },
+
 	-- Cross-server sync (see ClanStore).
 	FLUSH_INTERVAL = if isStudio then 10 else 30, -- seconds between sending buffered donations
 	POLL_INTERVAL = if isStudio then 15 else 60, -- seconds between re-reading clans with members online

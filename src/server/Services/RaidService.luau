@@ -133,6 +133,7 @@ local function buildView(clanId: string): Types.RaidView
 		tier = Formulas.raidTier(raid.units),
 		top = top,
 		studioTestMode = RaidConfig.IS_STUDIO_TEST_MODE,
+		bossId = Formulas.raidBoss(currentWeek()).id,
 	}
 end
 
@@ -211,7 +212,8 @@ local function attack(player: Player, data: PlayerData, _arg: any): ClanResult
 	-- The HP bar empties exactly when the per-attack unit cap is reached.
 	local multiplier = ClanBankService.getRaidMultiplier(player)
 	local maxDamage = BigNum.mulNumber(Formulas.enemyHp(fresh.highestStage), RaidConfig.UNITS_CAP_PER_ATTACK / multiplier)
-	if not StageService.startRaid(player, RaidConfig.ATTACK_SECONDS, maxDamage) then
+	local bossId = Formulas.raidBoss(currentWeek()).id -- the boss rotates every raid week
+	if not StageService.startRaid(player, RaidConfig.ATTACK_SECONDS, maxDamage, bossId) then
 		return { ok = false, reason = "Busy" }
 	end
 	record.attacksToday += 1

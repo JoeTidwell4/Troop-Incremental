@@ -89,6 +89,8 @@ local function onNotice(notice: Notice)
 			`+{notice.honor or 0} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"}`,
 			Theme.Gold
 		)
+	elseif notice.kind == "ClanJoined" then
+		NoticeUI.show(`WELCOME TO {string.upper(notice.itemName or "YOUR CLAN")}`, "Your join request was accepted.", Theme.Gold)
 	elseif notice.kind == "CommanderItem" then
 		NoticeUI.show(`NEW GEAR: {notice.itemName or "?"}`, "Put it on in the WARDROBE for a bonus.", Theme.Gold)
 	elseif notice.kind == "ClanWarRewards" then
@@ -103,6 +105,9 @@ local function onNotice(notice: Notice)
 			table.insert(parts, `+{notice.packs} free pack{if notice.packs == 1 then "" else "s"}`)
 		end
 		local title = if notice.rank ~= nil then `CLAN WAR: YOUR CLAN PLACED #{notice.rank}!` else "CLAN WAR REWARDS"
+		if notice.mvp then
+			table.insert(parts, 1, "You were the clan MVP!")
+		end
 		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
 	elseif notice.kind == "BossFailed" then
 		local reason = FAIL_REASONS[notice.reason or ""] or "Boss fight lost."
