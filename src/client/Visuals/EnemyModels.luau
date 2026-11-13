@@ -1,11 +1,17 @@
 --!strict
--- Low-poly enemy models, one creature per area theme (AreaConfig enemyKind), plus the
--- clan raid boss. Each faces -Z (toward your troops) and its pivot is at its feet.
--- Bosses are the same creature, bigger, in the boss color, with a crown.
+-- Low-poly enemy models: the first six creatures and the clan raid boss live here; the
+-- rest are in Visuals/Creatures (Beasts, Spirits, Bosses). AreaConfig picks which kinds
+-- appear in each area (enemyKinds) and its boss (bossKind). Each faces -Z (toward your
+-- troops) and its pivot is at its feet. Areas without a bossKind use a bigger, crowned
+-- copy of their first enemy.
 --
 -- Parts tagged "Body" take the main color; everything else keeps its own color.
 
 local Parts = require(script.Parent.Parts)
+local Creatures = script.Parent:WaitForChild("Creatures")
+local Beasts = require(Creatures:WaitForChild("Beasts"))
+local Spirits = require(Creatures:WaitForChild("Spirits"))
+local Bosses = require(Creatures:WaitForChild("Bosses"))
 
 local EnemyModels = {}
 
@@ -156,6 +162,30 @@ local BUILDERS: { [string]: Builder } = {
 	Wraith = wraith,
 	Colossus = colossus,
 }
+for _, set in { Beasts, Spirits, Bosses } do
+	for kind, builder in set :: { [string]: Builder } do
+		BUILDERS[kind] = builder
+	end
+end
+BUILDERS.FrostSprite = BUILDERS.Sprite
+BUILDERS.Wisp = BUILDERS.Sprite
+
+-- Creatures that hover above the ground and bob more.
+local FLOATS: { [string]: boolean } = {
+	Wraith = true,
+	Sprite = true,
+	FrostSprite = true,
+	Wisp = true,
+	Bat = true,
+	Jellyfish = true,
+	Harpy = true,
+	FrostWyrm = true,
+	Griffin = true,
+}
+
+function EnemyModels.floats(kind: string): boolean
+	return FLOATS[kind] == true
+end
 
 local function crown(model: Model, at: CFrame, height: number)
 	local gold = Color3.fromRGB(255, 200, 60)
@@ -179,6 +209,16 @@ local ATTACK_STYLES: { [string]: string } = {
 	Golem = "Stomp",
 	Wraith = "Projectile",
 	Colossus = "Stomp",
+	Treant = "Stomp",
+	Sandworm = "Sweep",
+	FrostWyrm = "Projectile",
+	BogHag = "Projectile",
+	MagmaTitan = "Stomp",
+	HollowKing = "Sweep",
+	JadeIdol = "Stomp",
+	PrismQueen = "Projectile",
+	Kraken = "Sweep",
+	Griffin = "Projectile",
 }
 
 function EnemyModels.attackStyle(kind: string): string

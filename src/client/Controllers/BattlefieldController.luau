@@ -329,7 +329,7 @@ local function setEnemy(kind: string, color: Color3, scale: number, crowned: boo
 	enemyModel = model
 	enemyHeight = height
 	enemyScale = scale
-	enemyFloats = kind == "Wraith"
+	enemyFloats = EnemyModels.floats(kind)
 	enemyMode = mode
 	enemyKind = kind
 	enemyColor = color
@@ -505,17 +505,25 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 		end
 	end
 
+	-- Shatter the enemy that just died before it's swapped for the next creature.
+	if previous ~= nil and snapshot.totalKills > previous.totalKills and not bossDied then
+		onKill()
+	end
+
 	isBoss = snapshot.encounter == "Boss"
 	if snapshot.encounter == "Raid" then
 		setEnemy("Colossus", RaidConfig.BOSS_COLOR, RAID_SCALE, false, "Raid")
 	elseif isBoss then
-		setEnemy(area.theme.enemyKind, area.theme.bossColor, BOSS_SCALE, true, "Boss")
+		-- The area's own boss model; older areas without one get a crowned big enemy.
+		local bossKind = area.theme.bossKind
+		setEnemy(bossKind or area.theme.enemyKind, area.theme.bossColor, BOSS_SCALE, bossKind == nil, "Boss")
 	else
-		setEnemy(area.theme.enemyKind, area.theme.enemyColor, ENEMY_SCALE, false, "Normal")
-	end
-
-	if previous ~= nil and snapshot.totalKills > previous.totalKills and not bossDied then
-		onKill()
+		-- The area's creatures take turns, switching every couple of kills.
+		local kinds = area.theme.enemyKinds
+		local kind = if #kinds > 0
+			then kinds[((snapshot.stage + snapshot.killsInStage // 2) % #kinds) + 1]
+			else area.theme.enemyKind
+		setEnemy(kind, area.theme.enemyColor, ENEMY_SCALE, false, "Normal")
 	end
 
 	-- Boss moves get their own animations: enrage, shield cast.

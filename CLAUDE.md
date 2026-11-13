@@ -23,9 +23,9 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 - **10c: done (owner confirmed in Studio).** Clan XP + levels and a weekly Clan War league (see "Phase 10c" below). Also a loading screen (`UI/LoadingUI`) that covers the game until the first snapshot (slow save loads looked broken).
 - Rejected: Robux for random packs (owner actually meant gold, covered by pack tiers).
 **Phase 11 (approved, from playtester feedback; build in this order, test each):**
-- **11a: boss + raid animations (built, waiting for owner's Studio test).** See "Phase 11a" below.
-- **Boss balance pass (built, waiting for owner's test; playtesters said later bosses were instant or impossible):** see "Boss fairness" below.
-- **11b: 4 new biomes** (Jungle Ruins, Crystal Caverns, Sunken Reef, Sky Citadel; areas repeat after stage 100 instead of 60), traits that weaken the NEW troop types, 2-3 enemy kinds per biome (old ones too), a unique boss model per biome. Parts only, no uploads.
+- **11a: done (owner confirmed).** Boss + raid animations. See "Phase 11a" below.
+- **Boss balance pass: done (owner confirmed; playtesters said later bosses were instant or impossible):** see "Boss fairness" below.
+- **11b (built, waiting for owner's Studio test):** 4 new biomes (Jungle Ruins, Crystal Caverns, Sunken Reef, Sky Citadel; areas repeat after stage 100 instead of 60), traits that weaken the NEW troop types, 2-3 enemy kinds per biome (old ones too), a unique boss model per biome. Parts only, no uploads.
 - **11c: commander gear WITH stats** (owner's choice): Helmet / Cape / Weapon skin / Back slots, Wardrobe UI. Rule: stat gear is earn-only (achievements, milestones, Clan War, clan shop, login); Robux items stay cosmetic (no pay-to-win).
 - **11d: clans, all of A-I** (owner's choice): A battlefield banner, B customization (color, preset emblem, filtered motto), C weekly clan quests, D clan shop (Clan Tokens from Clan War -> commander gear), E join requests, F member MVP, G raid boss rotation, H cross-server clan chat (filter per recipient + respect chat permissions; flagged as the riskiest), I head-to-head weekly pairings (bye = free win when unpaired). Write the cross-server plan before building H and I.
 **After Phase 11 (proposed):** soft launch with playtesters, balance pass from analytics.
@@ -180,6 +180,12 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - `MAX_DAMAGE_PER_SECOND_FRACTION` (0.12): StageService caps damage to a boss per tick at that fraction of its max HP per second (all sources), so fights last 8s+.
 - `StageService.getBossHitRate(player)`: the boss's stage damage clamped to `ARMY_DAMAGE_MIN/MAX_FRACTION` (1.5%-6%) of the army's current max HP per second, x2 when enraged. Used by updateBoss and the snapshot's `bossDps`. Consequence: army HP walls mostly gone (an army survives >= ~16s); bosses are mainly a damage check now. The Python sims still use the old formula.
 - Weakening: `data.bossWeaken = {stage, fails}`; each failed attempt in a row on that boss stage = -`WEAKEN_PER_FAIL` (10%) boss HP, max `WEAKEN_MAX` (50%) (`newEncounter(stage, data)`); reset when that boss is beaten. Snapshot `bossWeakened`, HUD "WEAKENED -X%".
+
+### Phase 11b: biomes and creatures
+- 10 area themes now (areas repeat with "II" after stage 100). New: Jungle Ruins (Overgrown: Siege -30%; boss moves Summon + Shield), Crystal Caverns (Reflective: Mage; Shield + Enrage), Sunken Reef (Slippery: Cavalry; Summon + Enrage), Sky Citadel (Gale: Archer; all three).
+- `AreaTheme.enemyKinds` (3 per area; normal stages rotate `kinds[((stage + killsInStage // 2) % #kinds) + 1]`, so the creature changes every 2 kills) and `bossKind` (unique boss; nil falls back to a crowned big `enemyKind`). `enemyKind` is still the main creature (summoned minions).
+- Models: `Visuals/Creatures/` = `Common` (builder type, BODY, eyes, shade), `Beasts` (Wolf, Beetle, Toad, Salamander, Serpent, Ape, Crab, Shark, CrystalSpider), `Spirits` (Shroomling, Mummy, Sprite = FrostSprite/Wisp, FireImp, Skeleton, Bat, Jellyfish, Harpy, Gargoyle), `Bosses` (Treant, Sandworm, FrostWyrm, BogHag, MagmaTitan, HollowKing, JadeIdol, PrismQueen, Kraken, Griffin). EnemyModels merges them, `EnemyModels.floats(kind)`, attack styles for every boss. Creatures take the area's enemyColor (bosses the bossColor).
+- Environment: scenery sets Jungle / Crystal / Reef / Sky (new props), rounded mountains for Reef, floating islands for Sky, particles Leaves / Shards / Bubbles / Wind. BattlefieldController shatters the dead enemy BEFORE swapping in the next creature.
 
 ### Releasing (Roblox rules as of Nov 2026, from Roblox/creator-docs on GitHub)
 - Publish (File > Publish) only saves the game online; **release** is the same File > Publish flow: Continue -> first question of the Content Ratings Questionnaire ("age-restricted content?") -> No -> Publish. Result: "Content May Vary" rating, playable only by **age-checked users 16+**. Needs an account in good standing, 2+ days old, and an age check (facial estimation or government ID). Free. The same requirements apply to every later update.

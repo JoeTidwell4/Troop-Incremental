@@ -222,6 +222,137 @@ local function crystal(rng: Random, at: CFrame, parent: Instance)
 	end
 end
 
+-- Jungle: tall trees with broad leaf tops and hanging vines.
+local function jungleTree(rng: Random, at: CFrame, parent: Instance)
+	local height = rng:NextNumber(10, 16)
+	Parts.cylinder(height, rng:NextNumber(1.2, 1.8), Color3.fromRGB(95, 70, 45), at * CFrame.new(0, height / 2, 0), parent, {
+		material = Enum.Material.Wood,
+		shadow = true,
+	})
+	local leaf = Color3.fromRGB(45, 120, 50)
+	for i = 0, 4 do
+		local angle = i / 5 * math.pi * 2 + rng:NextNumber(0, 0.6)
+		Parts.block(
+			Vector3.new(1.6, 0.3, 5),
+			Parts.vary(leaf, rng, 0.06),
+			at * CFrame.new(0, height, 0) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, 2.2) * CFrame.Angles(math.rad(-20), 0, 0),
+			parent,
+			{ material = Enum.Material.Grass, shadow = true }
+		)
+	end
+	for _ = 1, 2 do
+		local vineLength = rng:NextNumber(3, 6)
+		Parts.block(Vector3.new(0.2, vineLength, 0.2), Color3.fromRGB(60, 130, 50), at * CFrame.new(rng:NextNumber(-2, 2), height - vineLength / 2, rng:NextNumber(-2, 2)), parent)
+	end
+end
+
+local function fern(rng: Random, at: CFrame, parent: Instance)
+	for i = 0, 4 do
+		Parts.wedge(
+			Vector3.new(0.2, rng:NextNumber(1.2, 2.2), 1.4),
+			Parts.vary(Color3.fromRGB(60, 140, 60), rng, 0.06),
+			at * CFrame.Angles(0, i / 5 * math.pi * 2, 0) * CFrame.new(0, 0.6, 0.6) * CFrame.Angles(math.rad(25), 0, 0),
+			parent,
+			{ material = Enum.Material.Grass }
+		)
+	end
+end
+
+local function mossyRuin(rng: Random, at: CFrame, parent: Instance)
+	local stone = Color3.fromRGB(120, 125, 105)
+	local height = rng:NextNumber(2, 7)
+	Parts.block(Vector3.new(2.4, height, 2.4), stone, at * CFrame.new(0, height / 2, 0) * CFrame.Angles(rng:NextNumber(-0.1, 0.1), rng:NextNumber(0, 3), 0), parent, {
+		material = Enum.Material.Cobblestone,
+		shadow = true,
+	})
+	Parts.block(Vector3.new(2.6, 0.4, 2.6), Color3.fromRGB(70, 130, 60), at * CFrame.new(0, height + 0.1, 0), parent, { material = Enum.Material.Grass }) -- moss
+end
+
+-- Crystal Caverns: big glowing crystal clusters and stalagmites.
+local function crystalCluster(rng: Random, at: CFrame, parent: Instance)
+	local colors = { Color3.fromRGB(110, 200, 255), Color3.fromRGB(220, 120, 255), Color3.fromRGB(120, 255, 220) }
+	local color = colors[rng:NextInteger(1, #colors)]
+	for _ = 1, rng:NextInteger(3, 5) do
+		local h = rng:NextNumber(2, 7)
+		Parts.block(
+			Vector3.new(1, h, 1),
+			color,
+			at * CFrame.new(rng:NextNumber(-1.2, 1.2), h / 2 - 0.3, rng:NextNumber(-1.2, 1.2)) * CFrame.Angles(rng:NextNumber(-0.5, 0.5), rng:NextNumber(0, 3), rng:NextNumber(-0.5, 0.5)),
+			parent,
+			{ material = Enum.Material.Neon }
+		)
+	end
+end
+
+local function stalagmite(rng: Random, at: CFrame, parent: Instance)
+	local height = rng:NextNumber(3, 9)
+	Parts.wedge(Vector3.new(2, height, 1.2), Color3.fromRGB(70, 60, 95), at * CFrame.new(0, height / 2, 0.6), parent, { material = Enum.Material.Slate, shadow = true })
+	Parts.wedge(Vector3.new(2, height, 1.2), Color3.fromRGB(70, 60, 95), at * CFrame.new(0, height / 2, -0.6) * CFrame.Angles(0, math.pi, 0), parent, { material = Enum.Material.Slate })
+end
+
+-- Sunken Reef: branching coral, swaying seaweed, shells.
+local function coral(rng: Random, at: CFrame, parent: Instance)
+	local colors = { Color3.fromRGB(255, 120, 110), Color3.fromRGB(255, 180, 80), Color3.fromRGB(200, 110, 230) }
+	local color = colors[rng:NextInteger(1, #colors)]
+	for _ = 1, rng:NextInteger(3, 6) do
+		local h = rng:NextNumber(1.5, 4.5)
+		Parts.cylinder(
+			h,
+			0.5,
+			color,
+			at * CFrame.new(rng:NextNumber(-1, 1), h / 2, rng:NextNumber(-1, 1)) * CFrame.Angles(rng:NextNumber(-0.5, 0.5), 0, rng:NextNumber(-0.5, 0.5)),
+			parent
+		)
+	end
+	Parts.ball(1.6, color, at * CFrame.new(0, 0.5, 0), parent)
+end
+
+local function seaweed(rng: Random, at: CFrame, parent: Instance)
+	for _ = 1, 4 do
+		local h = rng:NextNumber(3, 7)
+		Parts.block(
+			Vector3.new(0.3, h, 0.6),
+			Parts.vary(Color3.fromRGB(60, 140, 80), rng, 0.08),
+			at * CFrame.new(rng:NextNumber(-1, 1), h / 2, rng:NextNumber(-1, 1)) * CFrame.Angles(0, rng:NextNumber(0, 3), rng:NextNumber(-0.25, 0.25)),
+			parent
+		)
+	end
+end
+
+local function shell(rng: Random, at: CFrame, parent: Instance)
+	Parts.ball(rng:NextNumber(1, 2), Color3.fromRGB(250, 225, 200), at * CFrame.new(0, 0.2, 0), parent, { material = Enum.Material.Marble })
+end
+
+-- Sky Citadel: cloud puffs, marble columns, floating rocks.
+local function cloud(rng: Random, at: CFrame, parent: Instance)
+	for _ = 1, rng:NextInteger(3, 5) do
+		local d = rng:NextNumber(3, 6)
+		Parts.ball(d, Color3.fromRGB(255, 255, 255), at * CFrame.new(rng:NextNumber(-3, 3), d * 0.2, rng:NextNumber(-2, 2)), parent, {
+			material = Enum.Material.SmoothPlastic,
+			transparency = 0.1,
+		})
+	end
+end
+
+local function marbleColumn(rng: Random, at: CFrame, parent: Instance)
+	local marble = Color3.fromRGB(235, 230, 220)
+	local height = rng:NextNumber(5, 12)
+	Parts.block(Vector3.new(3, 0.8, 3), marble, at * CFrame.new(0, 0.4, 0), parent, { material = Enum.Material.Marble })
+	Parts.cylinder(height, 1.8, marble, at * CFrame.new(0, height / 2 + 0.8, 0), parent, { material = Enum.Material.Marble, shadow = true })
+	if rng:NextNumber() < 0.6 then
+		Parts.block(Vector3.new(3, 0.8, 3), marble, at * CFrame.new(0, height + 1.2, 0), parent, { material = Enum.Material.Marble })
+	end
+end
+
+local function floatingRock(rng: Random, at: CFrame, parent: Instance)
+	local size = rng:NextNumber(3, 7)
+	local y = rng:NextNumber(8, 20)
+	Parts.wedge(Vector3.new(size, size * 0.9, size), Color3.fromRGB(150, 140, 125), at * CFrame.new(0, y, 0) * CFrame.Angles(math.pi, rng:NextNumber(0, 3), 0), parent, {
+		material = Enum.Material.Rock,
+	})
+	Parts.block(Vector3.new(size, 0.5, size), Color3.fromRGB(120, 180, 90), at * CFrame.new(0, y + size * 0.45 + 0.2, 0), parent, { material = Enum.Material.Grass })
+end
+
 local function pick(rng: Random, options: { PropBuilder }): PropBuilder
 	return options[rng:NextInteger(1, #options)]
 end
@@ -304,6 +435,22 @@ local SCENERY: { [string]: { near: { PropBuilder }, far: { PropBuilder } } } = {
 			lavaCrack,
 		},
 	},
+	Jungle = {
+		near = { fern, fern, mossyRuin },
+		far = { jungleTree, jungleTree, jungleTree, mossyRuin, fern },
+	},
+	Crystal = {
+		near = { crystalCluster, stalagmite },
+		far = { crystalCluster, stalagmite, stalagmite },
+	},
+	Reef = {
+		near = { coral, seaweed, shell },
+		far = { coral, coral, seaweed },
+	},
+	Sky = {
+		near = { cloud, marbleColumn },
+		far = { cloud, cloud, marbleColumn, floatingRock, floatingRock },
+	},
 	Shadow = {
 		near = { grave, crystal },
 		far = {
@@ -358,7 +505,8 @@ local function scatter(rng: Random, origin: Vector3, parent: Instance, count: nu
 end
 
 local function mountains(rng: Random, theme: Theme, origin: Vector3, parent: Instance, count: number)
-	local rounded = theme.scenery == "Desert" or theme.scenery == "Swamp"
+	local rounded = theme.scenery == "Desert" or theme.scenery == "Swamp" or theme.scenery == "Reef"
+	local floating = theme.scenery == "Sky" -- far-off islands hanging in the sky instead of mountains
 	for i = 1, count do
 		-- Spread around the front and sides (the camera looks toward +Z).
 		local angle = math.rad(-115 + (i - 1) * (230 / math.max(1, count - 1)) + rng:NextNumber(-6, 6))
@@ -366,7 +514,16 @@ local function mountains(rng: Random, theme: Theme, origin: Vector3, parent: Ins
 		local position = origin + Vector3.new(math.sin(angle) * distance, GROUND_TOP, math.cos(angle) * distance)
 		local facing = CFrame.lookAt(position, origin + Vector3.new(0, GROUND_TOP, 0))
 		local color = Parts.vary(theme.mountainColor, rng, 0.04)
-		if rounded then
+		if floating then
+			local d = rng:NextNumber(60, 120)
+			local lift = rng:NextNumber(40, 110)
+			Parts.wedge(Vector3.new(d, d * 0.8, d), color, facing * CFrame.new(0, lift, 0) * CFrame.Angles(math.pi, 0, 0), parent, {
+				material = Enum.Material.Rock,
+			})
+			Parts.block(Vector3.new(d, 3, d), Color3.fromRGB(120, 180, 90), facing * CFrame.new(0, lift + d * 0.4 + 1.5, 0), parent, {
+				material = Enum.Material.Grass,
+			})
+		elseif rounded then
 			local d = rng:NextNumber(90, 160)
 			Parts.ball(d, color, facing * CFrame.new(0, -d * 0.3, 0), parent, { material = theme.groundMaterial })
 		else
@@ -489,6 +646,63 @@ local PARTICLES: { [string]: ParticleStyle } = {
 		height = 5,
 		boxHeight = 8,
 	},
+}
+
+PARTICLES.Leaves = {
+	color = Color3.fromRGB(90, 170, 70),
+	texture = SPARKLE,
+	size = NumberRange.new(0.3, 0.5),
+	rate = 20,
+	lifetime = NumberRange.new(5, 7),
+	speed = NumberRange.new(2, 4),
+	direction = Enum.NormalId.Bottom,
+	spread = Vector2.new(40, 40),
+	lightEmission = 0,
+	transparency = 0,
+	height = 30,
+	boxHeight = 1,
+}
+PARTICLES.Shards = {
+	color = Color3.fromRGB(140, 220, 255),
+	texture = SPARKLE,
+	size = NumberRange.new(0.2, 0.45),
+	rate = 35,
+	lifetime = NumberRange.new(3, 5),
+	speed = NumberRange.new(0.5, 1.5),
+	direction = Enum.NormalId.Top,
+	spread = Vector2.new(180, 180),
+	lightEmission = 1,
+	transparency = 0.1,
+	height = 4,
+	boxHeight = 8,
+}
+PARTICLES.Bubbles = {
+	color = Color3.fromRGB(200, 240, 255),
+	texture = SPARKLE,
+	size = NumberRange.new(0.3, 0.6),
+	rate = 40,
+	lifetime = NumberRange.new(4, 6),
+	speed = NumberRange.new(2, 4),
+	direction = Enum.NormalId.Top,
+	spread = Vector2.new(15, 15),
+	lightEmission = 0.4,
+	transparency = 0.3,
+	height = 0.5,
+	boxHeight = 1,
+}
+PARTICLES.Wind = {
+	color = Color3.fromRGB(255, 255, 255),
+	texture = SMOKE,
+	size = NumberRange.new(1, 3),
+	rate = 12,
+	lifetime = NumberRange.new(3, 4),
+	speed = NumberRange.new(10, 16),
+	direction = Enum.NormalId.Right,
+	spread = Vector2.new(5, 5),
+	lightEmission = 0.2,
+	transparency = 0.8,
+	height = 6,
+	boxHeight = 10,
 }
 
 local function ambientParticles(theme: Theme, origin: Vector3, parent: Instance)

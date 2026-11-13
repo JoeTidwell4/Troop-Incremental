@@ -293,7 +293,9 @@ export type AreaTheme = {
 	name: string,
 	bossName: string,
 	scenery: string, -- prop set around the battlefield (Client/Visuals/Environment)
-	enemyKind: string, -- creature model (Client/Visuals/EnemyModels)
+	enemyKind: string, -- main creature (also summoned minions)
+	enemyKinds: { string }, -- creatures that take turns in normal stages (Client/Visuals/EnemyModels)
+	bossKind: string?, -- unique boss model (nil = a bigger, crowned enemyKind)
 	groundColor: Color3,
 	groundMaterial: Enum.Material,
 	arenaColor: Color3,
