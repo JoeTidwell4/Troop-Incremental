@@ -431,11 +431,22 @@ function HudUI.start()
 			statusLabel.Text = table.concat(status, "  ")
 			stagePanel.Size = UDim2.new(0, 300, 0, if #status > 0 then PANEL_HEIGHT_BOSS_STATUS else PANEL_HEIGHT_BOSS)
 		else
-			stageLabel.Text = `Stage {snapshot.stage}`
-			stageLabel.TextColor3 = Theme.Text
 			hpFill.BackgroundColor3 = Theme.HpFill
-			infoLabel.Text = `Enemy {snapshot.killsInStage + 1} of {snapshot.enemiesPerStage}`
-			infoLabel.TextColor3 = Theme.Muted
+			if snapshot.autoAdvance then
+				stageLabel.Text = `Stage {snapshot.stage}`
+				stageLabel.TextColor3 = Theme.Text
+				infoLabel.Text = `Enemy {snapshot.killsInStage + 1} of {snapshot.enemiesPerStage}`
+				infoLabel.TextColor3 = Theme.Muted
+			else
+				-- Farming (after a lost boss, or auto-advance switched off): the stage repeats,
+				-- which looks like being stuck unless it says so. Always shown, not just as a tip.
+				stageLabel.Text = `Stage {snapshot.stage} (farming)`
+				stageLabel.TextColor3 = Theme.Gold
+				infoLabel.Text = if Formulas.isBossStage(snapshot.stage + 1)
+					then `Enemy {snapshot.killsInStage + 1}/{snapshot.enemiesPerStage}. Press FIGHT BOSS when ready`
+					else `Enemy {snapshot.killsInStage + 1}/{snapshot.enemiesPerStage}. Turn auto-advance on to move on`
+				infoLabel.TextColor3 = Theme.Gold
+			end
 			armyBack.Visible = false
 			stagePanel.Size = UDim2.new(0, 300, 0, PANEL_HEIGHT_NORMAL)
 		end
