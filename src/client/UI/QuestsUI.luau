@@ -21,6 +21,7 @@ local AchievementConfig = require(Config:WaitForChild("AchievementConfig"))
 local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local ProgressController = require(Client.Controllers.ProgressController)
+local AudioController = require(Client.Controllers.AudioController)
 
 type ProgressView = Types.ProgressView
 type RewardDef = Types.RewardDef
@@ -159,6 +160,9 @@ function QuestsUI.start()
 	local function request(action: string, arg: any?)
 		task.spawn(function()
 			local result = ProgressController.request(action, arg)
+			if result.ok and action ~= "RerollQuest" then
+				AudioController.play("Reward")
+			end
 			if not result.ok then
 				showStatus(FAIL_MESSAGES[result.reason or ""] or "Try again in a moment.")
 			end

@@ -13,6 +13,7 @@ local ClanConfig = require(Shared:WaitForChild("Config"):WaitForChild("ClanConfi
 local UIKit = require(script.Parent.UIKit)
 local ClanTypes = require(script.Parent.ClanTypes)
 local ClanController = require(Client.Controllers.ClanController)
+local AudioController = require(Client.Controllers.AudioController)
 
 type ClanView = Types.ClanView
 
@@ -101,6 +102,7 @@ function ClanQuestsTab.build(parent: Instance, context: ClanTypes.Context): Clan
 			task.spawn(function()
 				local result = context.request("ClaimClanQuest", index)
 				if result.ok then
+					AudioController.play("Reward")
 					context.showStatus(`+{ClanConfig.QUEST_REWARD.tokens} Clan Tokens and some gold!`)
 				end
 			end)

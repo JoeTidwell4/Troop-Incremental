@@ -33,6 +33,9 @@ local AudioConfig = {
 		Purchase = { id = "", volume = 0.7 }, -- Robux purchase went through
 		UIClick = { id = "", volume = 0.3 }, -- any UI button
 		WeakPointHit = { id = "", volume = 0.6 }, -- you tapped a boss weak point in time
+		BossSlam = { id = "", volume = 0.5 }, -- a boss attack lands on your army
+		BossRoar = { id = "", volume = 0.6 }, -- a boss arrives, enrages, or a raid boss rises
+		Reward = { id = "", volume = 0.6 }, -- you claim a reward (daily, quests, achievements, clan, raid)
 	} :: { [string]: SoundDef },
 
 	MUSIC = {

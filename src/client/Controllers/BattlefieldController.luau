@@ -34,6 +34,7 @@ local Quality = require(Visuals:WaitForChild("Quality"))
 local BossAnimator = require(Visuals:WaitForChild("BossAnimator"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
+local AudioController = require(Controllers.AudioController)
 
 type Snapshot = Types.Snapshot
 
@@ -349,6 +350,7 @@ local function setEnemy(kind: string, color: Color3, scale: number, crowned: boo
 				shake = math.max(shake, 1.1)
 			end,
 			roar = function()
+				AudioController.play("BossRoar")
 				Effects.roar(enemyCenter(), color)
 				shake = math.max(shake, 0.5)
 			end,
@@ -360,6 +362,7 @@ local function setEnemy(kind: string, color: Color3, scale: number, crowned: boo
 				shake = math.max(shake, 0.8)
 			end,
 			roar = function()
+				AudioController.play("BossRoar")
 				Effects.roar(enemyCenter(), color)
 				Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, 0), height * 3, color, 0.6)
 				shake = math.max(shake, 0.7)
@@ -421,6 +424,7 @@ local function bossAttack()
 	elseif style == "Sweep" then
 		BossAnimator.play("Sweep", {
 			impact = function()
+				AudioController.play("BossSlam")
 				hurtTroops(0.6)
 				for i = -2, 2 do
 					Effects.hitSparks(origin + Vector3.new(i * 4, ARENA_TOP + 1.5, 6))
@@ -430,6 +434,7 @@ local function bossAttack()
 	else
 		BossAnimator.play("Stomp", {
 			impact = function()
+				AudioController.play("BossSlam")
 				hurtTroops(0.8)
 				Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, -2), enemyHeight * 4, enemyColor, 0.5)
 				Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, -3))
@@ -442,6 +447,7 @@ end
 local function raidSweep()
 	BossAnimator.play("Stomp", {
 		impact = function()
+			AudioController.play("BossSlam")
 			shake = math.max(shake, if raidPhase2 then 0.7 else 0.45)
 			Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, -2), enemyHeight * 3.5, enemyColor, 0.6)
 			Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, -3))
@@ -534,6 +540,7 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 			BossAnimator.setEnraged(true)
 			BossAnimator.play("Roar", {
 				roar = function()
+					AudioController.play("BossRoar")
 					Effects.roar(enemyCenter(), ENRAGE_COLOR)
 					shake = math.max(shake, 0.8)
 				end,
@@ -557,6 +564,7 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 			raidPhase2 = true
 			BossAnimator.play("Roar", {
 				roar = function()
+					AudioController.play("BossRoar")
 					Effects.roar(enemyCenter(), ENRAGE_COLOR)
 					Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, 0), enemyHeight * 4, ENRAGE_COLOR, 0.7)
 					shake = math.max(shake, 1)
