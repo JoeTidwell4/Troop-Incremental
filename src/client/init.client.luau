@@ -34,6 +34,7 @@ local LeaderboardUI = require(UI.LeaderboardUI)
 local SettingsUI = require(UI.SettingsUI)
 local StoreUI = require(UI.StoreUI)
 local QuestsUI = require(UI.QuestsUI)
+local ForgeUI = require(UI.ForgeUI)
 
 ShopController.start()
 InputController.start()
@@ -61,6 +62,7 @@ LeaderboardUI.start()
 SettingsUI.start()
 StoreUI.start()
 QuestsUI.start()
+ForgeUI.start()
 StateController.start() -- last: asks the server for state once everything is listening
 
 print(`[Client] Troop-Incremental {Version} booted`)

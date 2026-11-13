@@ -46,7 +46,7 @@ function SettingsUI.start()
 	local menuButton = UIKit.button({
 		Name = "SettingsButton",
 		Text = "SETTINGS",
-		TextSize = 13,
+		TextSize = Layout.MENU_TEXT_SIZE,
 		BackgroundColor3 = Theme.PanelLight,
 		Position = menuPosition,
 		Size = menuSize,

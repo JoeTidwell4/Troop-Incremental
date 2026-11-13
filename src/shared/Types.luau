@@ -68,9 +68,18 @@ export type TroopGear = {
 -- Gear for every troop type, keyed by TroopId.
 export type GearSet = { [string]: TroopGear }
 
+export type PackTierDef = {
+	id: string,
+	displayName: string,
+	priceInKills: number, -- price = this many kills' worth of gold at your best stage this run
+	odds: { number }, -- percent per rarity, adds up to 100
+	unlockStage: number, -- all-time best stage needed to buy it
+}
+
 export type PackState = {
 	free: number, -- unopened free packs
 	hero: number, -- unopened Hero Chests (guaranteed Epic or better)
+	forge: number, -- unused Epic Forge tokens (Robux product: pick a troop + slot, it becomes Epic)
 	sinceEpic: number, -- packs opened in a row without hitting the pity rarity
 	opened: number, -- lifetime total
 	rewardedBossStage: number, -- highest boss stage that already granted its free pack
@@ -465,6 +474,7 @@ export type ProductDef = {
 	displayName: string,
 	description: string,
 	goldMinutes: number?, -- gives this many minutes of your army's gold
+	forgeTokens: number?, -- gives this many Epic Forge tokens
 }
 
 -- ModuleScripts must return a value; this module only exists for its types.

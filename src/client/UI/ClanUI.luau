@@ -73,7 +73,7 @@ function ClanUI.start()
 	local clanButton = UIKit.button({
 		Name = "ClanButton",
 		Text = "CLAN",
-		TextSize = 15,
+		TextSize = Layout.MENU_TEXT_SIZE,
 		Position = clanPosition,
 		Size = clanSize,
 		BackgroundColor3 = Theme.Accent,

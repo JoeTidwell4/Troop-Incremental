@@ -104,6 +104,9 @@ local function grantProduct(player: Player, data: PlayerData, product: ProductDe
 		data.gold = BigNum.add(data.gold, gold)
 		data.stats.lifetimeGold = BigNum.add(data.stats.lifetimeGold, gold)
 	end
+	if product.forgeTokens ~= nil then
+		data.packs.forge += product.forgeTokens
+	end
 	DataService.markChanged(player)
 end
 

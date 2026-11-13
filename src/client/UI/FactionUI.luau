@@ -76,7 +76,7 @@ function FactionUI.start()
 	local warButton = UIKit.button({
 		Name = "WarButton",
 		Text = "WAR",
-		TextSize = 15,
+		TextSize = Layout.MENU_TEXT_SIZE,
 		Position = warPosition,
 		Size = warSize,
 		BackgroundColor3 = Theme.HpFill,

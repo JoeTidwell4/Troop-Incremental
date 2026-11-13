@@ -107,6 +107,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		raidUnitsWeek = 0,
 		raidUnitsLive = 0,
 		passToggles = table.clone(data.passToggles),
+		settings = {}, -- filled in by SettingsService
 	}
 	for _, provider in extraProviders do
 		for key, value in provider(player, data) do

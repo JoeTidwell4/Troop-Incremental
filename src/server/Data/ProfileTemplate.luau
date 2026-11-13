@@ -65,6 +65,7 @@ local template: Types.PlayerData = {
 	packs = {
 		free = 0,
 		hero = 0,
+		forge = 0,
 		sinceEpic = 0,
 		opened = 0,
 		rewardedBossStage = 0,

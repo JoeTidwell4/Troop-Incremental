@@ -91,6 +91,15 @@ local function useAbility(player: Player, abilityId: string)
 	DataService.markChanged(player)
 end
 
+-- Makes every ability ready right now (active effects keep running). Used when a raid
+-- attack starts, so every raid begins with your full kit.
+function AbilityService.resetCooldowns(player: Player)
+	for _, t in getTimers(player) do
+		t.readyAt = 0
+	end
+	DataService.markChanged(player)
+end
+
 -- Uses an ability if it's unlocked and ready; does nothing otherwise.
 -- (Used by the Auto Abilities pass. Same checks as a player pressing the button.)
 function AbilityService.tryUse(player: Player, abilityId: string)

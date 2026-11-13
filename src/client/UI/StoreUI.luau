@@ -39,7 +39,7 @@ function StoreUI.start()
 	local storeButton = UIKit.button({
 		Name = "StoreButton",
 		Text = "STORE",
-		TextSize = 15,
+		TextSize = Layout.MENU_TEXT_SIZE,
 		BackgroundColor3 = ROBUX_GREEN,
 		Position = storePosition,
 		Size = storeSize,
@@ -203,7 +203,7 @@ function StoreUI.start()
 		end
 	end
 
-	heading("Gold (buy any time)")
+	heading("Gold and items (buy any time)")
 	for _, productKey in MonetizationConfig.PRODUCT_ORDER do
 		local def = MonetizationConfig.PRODUCTS[productKey]
 		if def.id > 0 then
@@ -222,6 +222,8 @@ function StoreUI.start()
 					)
 					gold = BigNum.max(gold, BigNum.fromNumber(MonetizationConfig.GOLD_PRODUCT_MINIMUM))
 					extra.Text = `About {NumberFormat.big(gold)} gold right now`
+				elseif snapshot ~= nil and def.forgeTokens ~= nil then
+					extra.Text = `You have {snapshot.packs.forge} unused (use them in Shop > Packs)`
 				end
 				local price = MonetizationController.getPrice("Product", def.id)
 				button.Text = if price ~= nil then `R$ {price}` else "Buy"

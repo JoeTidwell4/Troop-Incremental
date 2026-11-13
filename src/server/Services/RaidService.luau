@@ -31,6 +31,7 @@ local ClanService = require(Services.ClanService)
 local ClanBankService = require(Services.ClanBankService)
 local ClanStore = require(Services.ClanStore)
 local ActivityService = require(Services.ActivityService)
+local AbilityService = require(Services.AbilityService)
 local Analytics = require(Services.AnalyticsService)
 
 type PlayerData = Types.PlayerData
@@ -216,6 +217,7 @@ local function attack(player: Player, data: PlayerData, _arg: any): ClanResult
 	record.attacksToday += 1
 	record.attacks += 1
 	record.clanId = clan.id
+	AbilityService.resetCooldowns(player)
 	ActivityService.record(player, "RaidAttack", 1)
 	DataService.markChanged(player)
 	return { ok = true }

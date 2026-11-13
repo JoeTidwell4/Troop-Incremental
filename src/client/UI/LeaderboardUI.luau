@@ -36,7 +36,7 @@ function LeaderboardUI.start()
 	local topButton = UIKit.button({
 		Name = "TopButton",
 		Text = "TOP",
-		TextSize = 15,
+		TextSize = Layout.MENU_TEXT_SIZE,
 		BackgroundColor3 = Theme.Gold,
 		TextColor3 = Theme.Panel,
 		Position = topPosition,

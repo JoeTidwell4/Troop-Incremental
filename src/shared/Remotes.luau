@@ -11,7 +11,8 @@
 -- Notice         server -> client   (notice: Types.Notice)  boss won/lost banners
 -- BuyTroop       client -> server, returns Types.BuyResult   (troopId: string, mode: Types.BuyMode)
 -- UpgradeGear    client -> server, returns Types.BuyResult   (troopId: string, slot: GearSlot, mode: GearBuyMode)
--- OpenPack       client -> server, returns Types.PackResult  (mode: "Gold" | "Free" | "Hero")
+-- OpenPack       client -> server, returns Types.PackResult  (mode: "Gold" | "Elite" | "Royal" | "Free" | "Hero")
+-- UseForge       client -> server, returns Types.PackResult  (troopId: string, slot: GearSlot)  spends an Epic Forge token
 -- Ascend         client -> server, returns Types.AscendResult ()
 -- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
 -- ChooseFaction  client -> server, returns Types.FactionResult (factionId: string)
@@ -57,6 +58,7 @@ local Remotes = {
 		BuyTroop = "BuyTroop",
 		UpgradeGear = "UpgradeGear",
 		OpenPack = "OpenPack",
+		UseForge = "UseForge",
 		Ascend = "Ascend",
 		BuyHonorUpgrade = "BuyHonorUpgrade",
 		ChooseFaction = "ChooseFaction",

@@ -47,8 +47,15 @@ function ShopController.upgradeGear(troopId: string, slot: Types.GearSlot, mode:
 end
 
 -- mode: "Gold" (pay), "Free" (boss free pack), "Hero" (Hero Chest, Epic or better)
-function ShopController.openPack(mode: "Gold" | "Free" | "Hero"): PackResult
+-- mode: "Gold" (Basic pack) | "Elite" | "Royal" | "Free" | "Hero".
+function ShopController.openPack(mode: string): PackResult
 	local result = invoke(Remotes.Functions.OpenPack, mode)
+	return if result ~= nil then result :: PackResult else { ok = false, reason = "NoResponse" }
+end
+
+-- Spends an Epic Forge token on this troop's weapon or armor.
+function ShopController.useForge(troopId: string, slot: string): PackResult
+	local result = invoke(Remotes.Functions.UseForge, troopId, slot)
 	return if result ~= nil then result :: PackResult else { ok = false, reason = "NoResponse" }
 end
 

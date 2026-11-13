@@ -176,10 +176,10 @@ function AbilityBarUI.start()
 		Name = "Bar",
 		BackgroundTransparency = 1,
 		-- Desktop: a row centred just above the shop panel.
-		-- Compact (phones): a column on the right edge, where the right thumb rests.
-		AnchorPoint = if Layout.compact then Vector2.new(1, 0.5) else Vector2.new(0.5, 1),
+		-- Compact (phones): a column on the left edge (the menu column has the right side).
+		AnchorPoint = if Layout.compact then Vector2.new(0, 0.5) else Vector2.new(0.5, 1),
 		Position = if Layout.compact
-			then UDim2.new(1, -Layout.ABILITY_RIGHT, 0.45, 0)
+			then UDim2.new(0, Layout.ABILITY_EDGE, 0.45, 0)
 			else UDim2.new(0.5, 0, 1, -(Layout.SHOP_HEIGHT + Layout.SHOP_BOTTOM_MARGIN + 8)),
 		Size = if Layout.compact
 			then UDim2.new(0, BUTTON_SIZE, 0, length)

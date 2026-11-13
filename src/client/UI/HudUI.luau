@@ -4,6 +4,7 @@
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -136,8 +137,26 @@ local function makeBar(parent: Instance, y: number, height: number, fillColor: C
 	return back, fill, label
 end
 
+-- Roblox's player list sits in the top-right corner, where our menu column now is.
+-- Rankings live in the TOP window instead. SetCoreGuiEnabled can fail while the core
+-- scripts are still loading, so retry for a few seconds.
+local function hidePlayerList()
+	task.spawn(function()
+		for _ = 1, 20 do
+			local ok = pcall(function()
+				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+			end)
+			if ok then
+				return
+			end
+			task.wait(0.5)
+		end
+	end)
+end
+
 function HudUI.start()
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	hidePlayerList()
 
 	local gui = UIKit.create("ScreenGui", {
 		Name = "Hud",
@@ -146,67 +165,40 @@ function HudUI.start()
 		DisplayOrder = 2, -- above the shop (tips can overlap it on phones), below popups
 	}) :: ScreenGui
 
-	-- Left column: gold + damage. Compact (phones) drops the "GOLD" header and the
-	-- click-damage line to save height.
+	-- Right column: gold, damage, army HP. Compact (phones) drops the "GOLD" header and
+	-- the click-damage line to save height.
 	local compact = Layout.compact
 	local economy = UIKit.panel({
 		Name = "Economy",
-		Position = UDim2.new(0, Layout.LEFT, 0, Layout.ECONOMY_TOP),
+		Position = Layout.columnPosition(0, Layout.ECONOMY_TOP),
 		Size = UDim2.new(0, Layout.COLUMN_WIDTH, 0, Layout.ECONOMY_HEIGHT),
 		Parent = gui,
 	})
-	UIKit.label({
-		Text = "GOLD",
-		TextColor3 = Theme.Muted,
-		TextSize = 13,
-		Size = UDim2.new(1, 0, 0, 16),
-		Visible = not compact,
-		Parent = economy,
-	})
-	local top = if compact then 0 else 16
-	local goldLabel = UIKit.label({
+	local lineSize = if compact then 13 else 16
+	local lineHeight = if compact then 16 else 18
+	local y = 0
+	-- Adds one text line to the panel and moves down.
+	local function line(props: { [string]: any }, height: number): TextLabel
+		props.Position = UDim2.new(0, 0, 0, y)
+		props.Size = UDim2.new(1, 0, 0, height)
+		props.Parent = economy
+		y += height
+		return UIKit.label(props)
+	end
+	if not compact then
+		line({ Text = "GOLD", TextColor3 = Theme.Muted, TextSize = 14 }, 18)
+	end
+	local goldLabel = line({
 		Text = "0",
 		TextColor3 = Theme.Gold,
 		Font = Theme.FontBold,
-		TextSize = 28,
-		Position = UDim2.new(0, 0, 0, top),
-		Size = UDim2.new(1, 0, 0, 30),
-		Parent = economy,
-	})
-	local perKillLabel = UIKit.label({
-		Text = "",
-		TextColor3 = Theme.Muted,
-		TextSize = 13,
-		RichText = true,
-		Position = UDim2.new(0, 0, 0, top + 30),
-		Size = UDim2.new(1, 0, 0, 16),
-		Parent = economy,
-	})
-	local dpsLabel = UIKit.label({
-		Text = "",
-		TextSize = 14,
-		RichText = true,
-		Position = UDim2.new(0, 0, 0, top + 48),
-		Size = UDim2.new(1, 0, 0, 16),
-		Parent = economy,
-	})
-	local tapLabel = UIKit.label({
-		Text = "",
-		TextSize = 14,
-		Position = UDim2.new(0, 0, 0, top + 66),
-		Size = UDim2.new(1, 0, 0, 16),
-		Visible = not compact,
-		Parent = economy,
-	})
-	local honorLabel = UIKit.label({
-		Text = "",
-		TextColor3 = Theme.Gold,
-		Font = Theme.FontBold,
-		TextSize = 14,
-		Position = UDim2.new(0, 0, 0, if compact then top + 62 else top + 84),
-		Size = UDim2.new(1, 0, 0, 16),
-		Parent = economy,
-	})
+		TextSize = if compact then 28 else 34,
+	}, if compact then 30 else 38)
+	local perKillLabel = line({ Text = "", TextColor3 = Theme.Muted, TextSize = lineSize, RichText = true }, lineHeight)
+	local dpsLabel = line({ Text = "", TextSize = lineSize, RichText = true }, lineHeight)
+	local armyHpLabel = line({ Text = "", TextColor3 = ARMY_HP_COLOR, TextSize = lineSize, Font = Theme.FontBold }, lineHeight)
+	local tapLabel = line({ Text = "", TextSize = lineSize, Visible = not compact }, if compact then 0 else lineHeight)
+	local honorLabel = line({ Text = "", TextColor3 = Theme.Gold, Font = Theme.FontBold, TextSize = lineSize }, lineHeight)
 
 	-- Shows up once Ascending is allowed; opens the Honor tab.
 	local ascendButton = UIKit.button({
@@ -215,7 +207,7 @@ function HudUI.start()
 		TextSize = 14,
 		BackgroundColor3 = Theme.Gold,
 		TextColor3 = Theme.Panel,
-		Position = UDim2.new(0, Layout.LEFT, 0, Layout.ASCEND_TOP),
+		Position = Layout.columnPosition(0, Layout.ASCEND_TOP),
 		Size = UDim2.new(0, Layout.COLUMN_WIDTH, 0, Layout.ASCEND_HEIGHT),
 		Visible = false,
 		Parent = gui,
@@ -353,6 +345,9 @@ function HudUI.start()
 			else ""
 		dpsLabel.Text = `Army DPS: {format(snapshot.armyDps)}{damageBonus}`
 		tapLabel.Text = `Click damage: {format(snapshot.tapDamage)}`
+		armyHpLabel.Text = if snapshot.encounter == "Boss"
+			then `Army HP: {format(snapshot.armyHp)} / {format(snapshot.armyMaxHp)}`
+			else `Army HP: {format(snapshot.armyMaxHp)}`
 		honorLabel.Text = `Honor: {format(snapshot.honor)}`
 		local canAscend = not BigNum.isZero(snapshot.ascendHonor)
 		ascendButton.Visible = canAscend

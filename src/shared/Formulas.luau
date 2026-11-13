@@ -110,8 +110,10 @@ function Formulas.gearMaxAffordable(troopId: string, level: number, gold: BigNum
 	return count, total
 end
 
-function Formulas.packPrice(highestStage: number): BigNum
-	return BigNum.round(BigNum.mulNumber(Formulas.goldPerKill(highestStage), PackConfig.PRICE_IN_KILLS))
+-- Gold price of a pack tier ("Basic" | "Elite" | "Royal"; default Basic).
+function Formulas.packPrice(highestStage: number, tierId: string?): BigNum
+	local tier = PackConfig.TIERS[tierId or "Basic"] or PackConfig.TIERS.Basic
+	return BigNum.round(BigNum.mulNumber(Formulas.goldPerKill(highestStage), tier.priceInKills))
 end
 
 ---------------------------------------------------------------- army

@@ -9,7 +9,8 @@
 --
 -- Design rules (keep these when adding items):
 --   * Nothing random for Robux (no paid packs): Roblox requires odds disclosure for paid
---     random items and some countries restrict them.
+--     random items and some countries restrict them. (Epic Forge is fine: the player picks
+--     exactly what they get.)
 --   * The Auto Clicker clicks at a human pace (AUTO_CLICKS_PER_SECOND) and shares the same
 --     per-second click cap as manual clicking, so it's convenience, not a way past the cap.
 --   * Sell convenience, speed, and looks, not things that let payers win the faction war.
@@ -49,7 +50,7 @@ local MonetizationConfig = {
 		},
 	} :: { [string]: Types.PassDef },
 
-	PRODUCT_ORDER = { "GoldSmall", "GoldLarge" } :: { string },
+	PRODUCT_ORDER = { "GoldSmall", "GoldLarge", "EpicForge" } :: { string },
 	PRODUCTS = {
 		GoldSmall = {
 			key = "GoldSmall",
@@ -64,6 +65,13 @@ local MonetizationConfig = {
 			displayName = "Chest of Gold",
 			description = "4 hours of your army's gold, instantly.",
 			goldMinutes = 240,
+		},
+		EpicForge = {
+			key = "EpicForge",
+			id = 0,
+			displayName = "Epic Forge",
+			description = "Pick any troop's Weapon or Armor: it becomes Epic. Gear resets on Ascend, so save the token until you need it.",
+			forgeTokens = 1,
 		},
 	} :: { [string]: Types.ProductDef },
 

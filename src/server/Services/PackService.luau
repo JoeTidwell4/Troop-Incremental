@@ -7,6 +7,9 @@
 -- Bad-luck protection: after PITY_EVERY - 1 packs in a row without PITY_MIN_RARITY or
 -- better, the next roll is forced to be at least that rarity.
 -- Hero Chests (from the daily login calendar) always roll Epic or better.
+-- Paid packs come in tiers (PackConfig.TIERS: Basic / Elite / Royal), each with its own
+-- price and odds; Elite and Royal unlock at an all-time best stage.
+-- Epic Forge tokens (Robux product) upgrade a slot the player picks to Epic: no roll.
 -- Free packs: one per boss the first time it's beaten. Granted by comparing the highest
 -- boss beaten with the highest boss already rewarded, so it can never double-grant.
 
@@ -35,6 +38,7 @@ local ActivityService = require(Services.ActivityService)
 
 type PackResult = Types.PackResult
 type PlayerData = Types.PlayerData
+type GearSlot = Types.GearSlot
 
 local REJECTED: PackResult = { ok = false, reason = "Rejected" }
 
@@ -42,24 +46,24 @@ local rng = Random.new()
 
 local PackService = {}
 
--- Rolls a rarity index. `minRarity` forces the result to be at least that (pity).
-local function rollRarity(minRarity: number): number
+-- Rolls a rarity index from `odds`. `minRarity` forces the result to be at least that (pity).
+local function rollRarity(odds: { number }, minRarity: number): number
 	local total = 0
-	for index, weight in PackConfig.ODDS do
+	for index, weight in odds do
 		if index >= minRarity then
 			total += weight
 		end
 	end
 	local roll = rng:NextNumber() * total
-	for index, weight in PackConfig.ODDS do
-		if index >= minRarity then
+	for index, weight in odds do
+		if index >= minRarity and weight > 0 then
 			roll -= weight
 			if roll < 0 then
 				return index
 			end
 		end
 	end
-	return #PackConfig.ODDS -- only reachable through floating point edge cases
+	return #odds -- only reachable through floating point edge cases
 end
 
 -- Grants any free packs owed for bosses beaten but not yet rewarded.
@@ -72,7 +76,9 @@ local function grantOwedPacks(player: Player, data: PlayerData)
 	end
 end
 
-type PackMode = "Gold" | "Free" | "Hero"
+-- "Gold" is the Basic pack (its old name, kept so older clients still work).
+type PackMode = "Gold" | "Elite" | "Royal" | "Free" | "Hero"
+local PAID_TIERS: { [string]: string } = { Gold = "Basic", Elite = "Elite", Royal = "Royal" }
 
 local function openPack(player: Player, mode: PackMode): PackResult
 	local data = DataService.get(player)
@@ -80,7 +86,11 @@ local function openPack(player: Player, mode: PackMode): PackResult
 		return { ok = false, reason = "NotLoaded" }
 	end
 
-	local price = Formulas.packPrice(data.highestStage)
+	local tier = PackConfig.TIERS[PAID_TIERS[mode] or "Basic"]
+	if data.bestStage < tier.unlockStage then
+		return { ok = false, reason = "TooEarly" }
+	end
+	local price = Formulas.packPrice(data.highestStage, tier.id)
 	if mode == "Hero" then
 		if data.packs.hero <= 0 then
 			return { ok = false, reason = "NoHeroChests" }
@@ -110,7 +120,7 @@ local function openPack(player: Player, mode: PackMode): PackResult
 	local slot = GearConfig.SLOTS[rng:NextInteger(1, #GearConfig.SLOTS)]
 	local pityDue = data.packs.sinceEpic + 1 >= PackConfig.PITY_EVERY
 	local guaranteed = pityDue or mode == "Hero"
-	local rarity = rollRarity(if guaranteed then PackConfig.PITY_MIN_RARITY else 1)
+	local rarity = rollRarity(tier.odds, if guaranteed then PackConfig.PITY_MIN_RARITY else 1)
 
 	data.packs.opened += 1
 	if rarity >= PackConfig.PITY_MIN_RARITY then
@@ -139,6 +149,33 @@ local function openPack(player: Player, mode: PackMode): PackResult
 	return result
 end
 
+type ForgeRequest = { troopId: string, slot: GearSlot }
+
+-- Spends an Epic Forge token: the chosen troop + slot becomes FORGE_RARITY (Epic).
+-- Refused (token kept) if the troop is locked or the slot is already Epic or better.
+local function useForge(player: Player, request: ForgeRequest): PackResult
+	local data = DataService.get(player)
+	if data == nil then
+		return { ok = false, reason = "NotLoaded" }
+	end
+	if data.packs.forge <= 0 then
+		return { ok = false, reason = "NoForgeTokens" }
+	end
+	if not Formulas.troopUnlocked(request.troopId, data.bestStage) then
+		return { ok = false, reason = "Locked" }
+	end
+	local troopGear = data.gear[request.troopId]
+	local state: Types.GearSlotState = if request.slot == "weapon" then troopGear.weapon else troopGear.armor
+	if state.rarity >= PackConfig.FORGE_RARITY then
+		return { ok = false, reason = "AlreadyEpic" }
+	end
+	data.packs.forge -= 1
+	state.rarity = PackConfig.FORGE_RARITY
+	CombatService.refreshArmy(player)
+	DataService.markChanged(player)
+	return { ok = true, troopId = request.troopId, slot = request.slot, rarity = state.rarity, upgraded = true }
+end
+
 function PackService.start()
 	DataService.ProfileLoaded:Connect(function(player: Player, data: PlayerData)
 		-- StageService fills in highestBossDefeated on load; let it run first.
@@ -158,8 +195,17 @@ function PackService.start()
 
 	local limiter = RateLimiter.new(PackConfig.REQUESTS_BURST, PackConfig.REQUESTS_PER_SECOND)
 	RemoteService.onInvoke(Remotes.Functions.OpenPack, limiter, function(mode: unknown): PackMode?
-		return Validate.oneOf(mode, { "Gold", "Free", "Hero" }) :: PackMode?
+		return Validate.oneOf(mode, { "Gold", "Elite", "Royal", "Free", "Hero" }) :: PackMode?
 	end, openPack, REJECTED)
+
+	RemoteService.onInvoke(Remotes.Functions.UseForge, limiter, function(troopId: unknown, slot: unknown): ForgeRequest?
+		local validTroop = Validate.keyOf(troopId, TroopConfig.TROOPS)
+		local validSlot = Validate.oneOf(slot, GearConfig.SLOTS)
+		if validTroop == nil or validSlot == nil then
+			return nil
+		end
+		return { troopId = validTroop, slot = validSlot :: GearSlot }
+	end, useForge, REJECTED)
 end
 
 return PackService

@@ -87,7 +87,7 @@ function QuestsUI.start()
 	local questsButton = UIKit.button({
 		Name = "QuestsButton",
 		Text = "QUESTS",
-		TextSize = 15,
+		TextSize = Layout.MENU_TEXT_SIZE,
 		BackgroundColor3 = Color3.fromRGB(150, 90, 220),
 		Position = questsPosition,
 		Size = questsSize,

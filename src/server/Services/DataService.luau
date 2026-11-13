@@ -215,6 +215,8 @@ local function sanitize(data: PlayerData)
 	for key, value in data.lifetime do
 		data.lifetime[key] = wholeNumber(value, 0, 0)
 	end
+	data.packs.forge = wholeNumber(data.packs.forge, 0, 0)
+	data.analytics.onboardingStep = wholeNumber(data.analytics.onboardingStep, 0, 0)
 	data.packs.sinceEpic = wholeNumber(data.packs.sinceEpic, 0, 0)
 	data.packs.opened = wholeNumber(data.packs.opened, 0, 0)
 	data.packs.rewardedBossStage = wholeNumber(data.packs.rewardedBossStage, 0, 0)
