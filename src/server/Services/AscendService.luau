@@ -61,6 +61,11 @@ local function ascend(player: Player, _payload: boolean): AscendResult
 	if data.highestStage < AscendConfig.MIN_STAGE then
 		return { ok = false, reason = "TooEarly" }
 	end
+	-- Not mid-raid: raid units are scored against this run's stage, which Ascending resets.
+	local encounter = StageService.getEncounter(player)
+	if encounter ~= nil and encounter.kind == "Raid" then
+		return { ok = false, reason = "InRaid" }
+	end
 
 	local honor = AscendService.preview(data)
 	data.honor = BigNum.add(data.honor, honor)

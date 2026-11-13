@@ -34,6 +34,7 @@ local FAIL_MESSAGES: { [string]: string } = {
 	NoFreePacks = "No free packs left",
 	CantAffordHonor = "Not enough Honor",
 	TooEarly = "Reach the required stage first",
+	InRaid = "Finish your raid attack first",
 	Rejected = "Slow down a little!",
 }
 
