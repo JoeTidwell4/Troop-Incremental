@@ -8,6 +8,8 @@ local UI = script.UI
 local Version = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Version")) :: string
 
 local StateController = require(Controllers.StateController)
+-- First: cover the screen until the save arrives (the rest below takes a moment to load).
+require(UI.LoadingUI).start()
 local InputController = require(Controllers.InputController)
 local ShopController = require(Controllers.ShopController)
 local AbilityController = require(Controllers.AbilityController)
