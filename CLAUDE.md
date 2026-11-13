@@ -7,8 +7,9 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 1: done (owner confirmed in Studio).**
 **Phase 2 is split in two:**
 - **2a: done (owner confirmed in Studio).** Bosses that hit back, troop HP, areas, abilities (Rally/Barrage/Plunder).
-- **2b (code written, waiting for owner to test):** gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
-Do not start Phase 3 until the owner confirms 2b works. Open Phase 3 questions: does gear rarity reset on Ascend (leaning yes)? Does highestBossDefeated / free-pack tracking reset (if so, free packs are re-earned each run)?
+- **2b: done (owner confirmed in Studio).** Gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
+
+**Phase 3 (plan proposed, waiting for OK):** Ascend + Honor shop + offline earnings. Open Phase 3 questions: does gear rarity reset on Ascend (leaning yes)? Does highestBossDefeated / free-pack tracking reset (if so, free packs are re-earned each run)?
 
 Decisions made:
 - No Wally. ProfileStore is vendored at `src/server/Packages/ProfileStore.luau` (unmodified, Apache 2.0, license in `third_party/ProfileStore/`, upstream commit 45c9847). It's the one file without `--!strict`; DataService wraps it with local types.
