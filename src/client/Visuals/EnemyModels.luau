@@ -140,7 +140,7 @@ local function colossus(model: Model, at: CFrame, color: Color3): number
 		Parts.ball(1.4, Color3.fromRGB(80, 80, 90), at * CFrame.new(side * 2.3, 4.5, 0), model, { material = Enum.Material.Metal }) -- shoulders
 	end
 	Parts.block(Vector3.new(3.4, 3, 2.2), color, at * CFrame.new(0, 3.3, 0), model, metal)
-	Parts.cylinderZ(0.2, 1.2, glow, at * CFrame.new(0, 3.5, -1.15), model, { material = Enum.Material.Neon }) -- core
+	Parts.cylinderZ(0.2, 1.2, glow, at * CFrame.new(0, 3.5, -1.15), model, { material = Enum.Material.Neon, name = "Core" }) -- core
 	local head = at * CFrame.new(0, 5.5, 0)
 	Parts.block(Vector3.new(1.8, 1.4, 1.6), color, head, model, metal)
 	Parts.block(Vector3.new(1.4, 0.25, 0.1), glow, head * CFrame.new(0, 0.1, -0.82), model, { material = Enum.Material.Neon }) -- visor
@@ -167,6 +167,22 @@ local function crown(model: Model, at: CFrame, height: number)
 			material = Enum.Material.Neon,
 		})
 	end
+end
+
+-- How each creature attacks when it's a boss (BattlefieldController / BossAnimator):
+-- "Stomp" jumps and slams the ground, "Sweep" swings sideways, "Projectile" throws.
+local ATTACK_STYLES: { [string]: string } = {
+	Goblin = "Sweep",
+	Scorpion = "Sweep",
+	Yeti = "Stomp",
+	Bogling = "Projectile",
+	Golem = "Stomp",
+	Wraith = "Projectile",
+	Colossus = "Stomp",
+}
+
+function EnemyModels.attackStyle(kind: string): string
+	return ATTACK_STYLES[kind] or "Stomp"
 end
 
 -- Builds a creature. `scale` 1 is a normal enemy (~5 studs tall); bosses use more.

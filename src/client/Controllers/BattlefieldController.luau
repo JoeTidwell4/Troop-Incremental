@@ -30,6 +30,7 @@ local TroopModels = require(Visuals:WaitForChild("TroopModels"))
 local EnemyModels = require(Visuals:WaitForChild("EnemyModels"))
 local Effects = require(Visuals:WaitForChild("Effects"))
 local Quality = require(Visuals:WaitForChild("Quality"))
+local BossAnimator = require(Visuals:WaitForChild("BossAnimator"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 
@@ -58,6 +59,13 @@ local ENEMY_SCALE = 1.25
 local BOSS_SCALE = 2
 local RAID_SCALE = 2.3
 local BOSS_ATTACK_INTERVAL = 1.2
+local ENRAGED_ATTACK_INTERVAL = 0.85
+local RAID_SWEEP_INTERVAL = 3.2
+local RAID_SWEEP_INTERVAL_PHASE2 = 2.2
+local CHEER_SECONDS = 2.2
+local EXIT_SECONDS: { [string]: number } = { Death = 1.3, Retreat = 0.8, Sink = 1 }
+local ENRAGE_COLOR = Color3.fromRGB(255, 50, 40)
+local GOLD_COLOR = Color3.fromRGB(255, 215, 80)
 local POP_SECONDS = 0.25
 local SHATTER_COOLDOWN = 0.25
 local BARRAGE_ARROWS = 14
@@ -89,7 +97,19 @@ local enemyScale = 1
 local enemyFloats = false
 local popStartedAt = -math.huge
 local lastShatter = 0
-local lungeStartedAt = -math.huge
+-- Bosses and the raid boss are animated by Visuals/BossAnimator; normal enemies just bob.
+local enemyMode = "Normal" -- "Normal" | "Boss" | "Raid"
+local enemyKind = ""
+local enemyColor = Color3.new()
+local exitStyle: string? = nil -- how the current enemy leaves when replaced: Death / Retreat / Sink
+local cheerUntil = 0
+local raidPhase2 = false
+local raidSweepTimer = 0
+local lastShieldUntil = 0
+local wasEnraged = false
+local enrageSmoke: ParticleEmitter? = nil
+local minionRiseAt = 0
+local minionHomes: { CFrame } = {}
 
 local enemyHighlight: Highlight
 local enrageHighlight: Highlight
@@ -202,6 +222,9 @@ updateShield = function(on: boolean)
 		bubble.Size = Vector3.one * (enemyHeight * 1.5)
 		bubble.CFrame = CFrame.new(enemyCenter())
 		bubble.Material = Enum.Material.ForceField
+		local fullSize = bubble.Size
+		bubble.Size = Vector3.one
+		TweenService:Create(bubble, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = fullSize }):Play()
 		bubble.Color = Color3.fromRGB(120, 190, 255)
 		bubble.Transparency = 0.2
 		bubble.Anchored = true
@@ -225,11 +248,16 @@ updateMinions = function(on: boolean, kind: string, color: Color3)
 		end
 		minionModels = {}
 		minionKind = kind
-		-- Two minions flanking the boss (kept clear of the Cavalry row in front).
+		-- Two minions flanking the boss (kept clear of the Cavalry row in front). They
+		-- climb out of glowing portals.
+		minionHomes = {}
+		minionRiseAt = os.clock()
 		for _, side in { -1, 1 } do
-			local offset = Vector3.new(side * 9, ARENA_TOP, ENEMY_Z - 2)
-			local minion = EnemyModels.build(kind, color, 0.7, false, CFrame.new(origin + offset), folder)
+			local home = CFrame.new(origin + Vector3.new(side * 9, ARENA_TOP, ENEMY_Z - 2))
+			Effects.portal(home.Position + Vector3.new(0, 0.3, 0), 6, Color3.fromRGB(170, 80, 255), 1.2)
+			local minion = EnemyModels.build(kind, color, 0.7, false, home * CFrame.new(0, -5, 0), folder)
 			table.insert(minionModels, minion)
+			table.insert(minionHomes, home)
 		end
 	elseif not on and #minionModels > 0 then
 		for _, minion in minionModels do
@@ -240,24 +268,112 @@ updateMinions = function(on: boolean, kind: string, color: Color3)
 	end
 end
 
-local function setEnemy(kind: string, color: Color3, scale: number, crowned: boolean)
-	local key = `{kind}:{color:ToHex()}:{scale}:{crowned}`
+local function span(t: number, from: number, to: number): number
+	return math.clamp((t - from) / (to - from), 0, 1)
+end
+
+-- Plays the way an old boss leaves (it's no longer the current enemy), then removes it.
+--   Death: staggers, falls forward, bursts into loot. Retreat: leaps away (you lost).
+--   Sink: the raid boss sinks back into the ground.
+local function playExit(model: Model, home: CFrame, height: number, style: string)
+	local start = os.clock()
+	local duration = EXIT_SECONDS[style] or 1
+	local connection: RBXScriptConnection
+	connection = RunService.RenderStepped:Connect(function()
+		local t = (os.clock() - start) / duration
+		if t >= 1 or model.Parent == nil then
+			connection:Disconnect()
+			if style == "Death" and model.Parent ~= nil then
+				local center = home.Position + Vector3.new(0, height * 0.3, 0)
+				Effects.shatter(model, 24)
+				Effects.lootBurst(center)
+				Effects.shockwave(home.Position + Vector3.new(0, 0.6, 0), height * 3, GOLD_COLOR, 0.6)
+				shake = math.max(shake, 0.9)
+			end
+			model:Destroy()
+			return
+		end
+		if style == "Death" then
+			local wobble = math.sin(t * 45) * math.rad(8) * (1 - span(t, 0.35, 0.5))
+			local fall = span(t, 0.45, 1) ^ 2
+			model:PivotTo(home * CFrame.Angles(-math.rad(80) * fall, 0, wobble))
+		elseif style == "Retreat" then
+			local up = 1 - (1 - t) ^ 2
+			model:PivotTo(home * CFrame.new(0, up * height * 2, t * 30) * CFrame.Angles(0, t * math.pi, 0))
+		else
+			model:PivotTo(home * CFrame.new(math.sin(t * 80) * 0.2, -(t ^ 3) * height * 1.2, 0))
+		end
+	end)
+end
+
+local function setEnemy(kind: string, color: Color3, scale: number, crowned: boolean, mode: string)
+	local key = `{kind}:{color:ToHex()}:{scale}:{crowned}:{mode}`
 	if key == enemyKey and enemyModel ~= nil then
 		return
 	end
 	enemyKey = key
+	local delay = 0
 	if enemyModel ~= nil then
-		enemyModel:Destroy()
+		local style = exitStyle
+		if style ~= nil then
+			playExit(enemyModel, enemyModel:GetPivot(), enemyHeight, style)
+			delay = (EXIT_SECONDS[style] or 0) + 0.2 -- the next enemy waits for the show
+		else
+			enemyModel:Destroy()
+		end
 	end
+	exitStyle = nil
+	enrageSmoke = nil -- went with the old model
 	enemyHome = CFrame.new(origin + Vector3.new(0, ARENA_TOP, ENEMY_Z))
-	local model, height = EnemyModels.build(kind, color, scale, crowned, enemyHome, folder)
+	local model, height = EnemyModels.build(kind, color, scale, crowned, enemyHome * CFrame.new(0, -200, 0), folder)
 	enemyModel = model
 	enemyHeight = height
 	enemyScale = scale
 	enemyFloats = kind == "Wraith"
+	enemyMode = mode
+	enemyKind = kind
+	enemyColor = color
 	enemyHighlight.Adornee = model
 	enrageHighlight.Adornee = model
-	popStartedAt = os.clock()
+	popStartedAt = os.clock() + delay
+	raidPhase2 = false
+	raidSweepTimer = 0
+	wasEnraged = false
+	BossAnimator.setTarget(height)
+	if mode == "Boss" then
+		BossAnimator.play("Entrance", {
+			land = function()
+				Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, 0), height * 3.5, color, 0.5)
+				Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, 0))
+				shake = math.max(shake, 1.1)
+			end,
+			roar = function()
+				Effects.roar(enemyCenter(), color)
+				shake = math.max(shake, 0.5)
+			end,
+		}, popStartedAt)
+	elseif mode == "Raid" then
+		BossAnimator.play("Rise", {
+			rumble = function()
+				Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, 0))
+				shake = math.max(shake, 0.8)
+			end,
+			roar = function()
+				Effects.roar(enemyCenter(), color)
+				Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, 0), height * 3, color, 0.6)
+				shake = math.max(shake, 0.7)
+			end,
+		}, popStartedAt)
+	end
+end
+
+-- A weak point was hit: the boss reels back.
+function BattlefieldController.flinch()
+	if enemyMode ~= "Normal" and enemyModel ~= nil then
+		BossAnimator.play("Flinch")
+		enemyHighlight.FillTransparency = 0.1
+		TweenService:Create(enemyHighlight, TweenInfo.new(0.3), { FillTransparency = 1 }):Play()
+	end
 end
 
 local function flashEnemy()
@@ -280,15 +396,56 @@ local function onKill()
 	popStartedAt = now -- the next enemy grows in
 end
 
--- Boss slams the ground: lunges, troops flash red, camera shakes, dust flies.
-local function bossAttack()
-	lungeStartedAt = os.clock()
+local function hurtTroops(strength: number)
 	hurtHighlight.FillTransparency = 0.4
 	TweenService:Create(hurtHighlight, TweenInfo.new(0.35), { FillTransparency = 1 }):Play()
-	shake = 0.6
-	task.delay(0.12, function()
-		Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, -3))
-	end)
+	shake = math.max(shake, strength)
+end
+
+-- One boss attack, in the creature's style (EnemyModels.attackStyle): the boss animates,
+-- and at the hit moment the troops flash red, the camera shakes and effects fly.
+local function bossAttack()
+	local style = EnemyModels.attackStyle(enemyKind)
+	local troopCenter = origin + Vector3.new(0, ARENA_TOP + 2, 0)
+	if style == "Projectile" then
+		BossAnimator.play("Projectile", {
+			throw = function()
+				Effects.orb(enemyCenter() + Vector3.new(0, enemyHeight * 0.2, -2), troopCenter, enemyColor, 2, 0.4, true, function()
+					hurtTroops(0.6)
+					Effects.hitSparks(troopCenter)
+					Effects.dustRing(troopCenter - Vector3.new(0, 1.5, 0))
+				end)
+			end,
+		})
+	elseif style == "Sweep" then
+		BossAnimator.play("Sweep", {
+			impact = function()
+				hurtTroops(0.6)
+				for i = -2, 2 do
+					Effects.hitSparks(origin + Vector3.new(i * 4, ARENA_TOP + 1.5, 6))
+				end
+			end,
+		})
+	else
+		BossAnimator.play("Stomp", {
+			impact = function()
+				hurtTroops(0.8)
+				Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, -2), enemyHeight * 4, enemyColor, 0.5)
+				Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, -3))
+			end,
+		})
+	end
+end
+
+-- Raid boss: big cosmetic sweeps (raid bosses don't hurt your army).
+local function raidSweep()
+	BossAnimator.play("Stomp", {
+		impact = function()
+			shake = math.max(shake, if raidPhase2 then 0.7 else 0.45)
+			Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, -2), enemyHeight * 3.5, enemyColor, 0.6)
+			Effects.dustRing(enemyHome.Position + Vector3.new(0, 0.5, -3))
+		end,
+	})
 end
 
 ---------------------------------------------------------------- abilities
@@ -333,20 +490,73 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 		Environment.applyLighting(area.theme)
 	end
 
-	isBoss = snapshot.encounter == "Boss"
-	if snapshot.encounter == "Raid" then
-		setEnemy("Colossus", RaidConfig.BOSS_COLOR, RAID_SCALE, false)
-	elseif isBoss then
-		setEnemy(area.theme.enemyKind, area.theme.bossColor, BOSS_SCALE, true)
-	else
-		setEnemy(area.theme.enemyKind, area.theme.enemyColor, ENEMY_SCALE, false)
-	end
+	-- How the old boss leaves the stage, decided before the new enemy replaces it.
+	local bossDied = false
 	if previous ~= nil and previous.encounter ~= snapshot.encounter then
 		bossAttackTimer = 0
+		if previous.encounter == "Boss" then
+			bossDied = snapshot.totalKills > previous.totalKills
+			exitStyle = if bossDied then "Death" else "Retreat"
+			if bossDied then
+				cheerUntil = os.clock() + CHEER_SECONDS
+			end
+		elseif previous.encounter == "Raid" then
+			exitStyle = "Sink"
+		end
 	end
 
-	if previous ~= nil and snapshot.totalKills > previous.totalKills then
+	isBoss = snapshot.encounter == "Boss"
+	if snapshot.encounter == "Raid" then
+		setEnemy("Colossus", RaidConfig.BOSS_COLOR, RAID_SCALE, false, "Raid")
+	elseif isBoss then
+		setEnemy(area.theme.enemyKind, area.theme.bossColor, BOSS_SCALE, true, "Boss")
+	else
+		setEnemy(area.theme.enemyKind, area.theme.enemyColor, ENEMY_SCALE, false, "Normal")
+	end
+
+	if previous ~= nil and snapshot.totalKills > previous.totalKills and not bossDied then
 		onKill()
+	end
+
+	-- Boss moves get their own animations: enrage, shield cast.
+	if isBoss then
+		if snapshot.bossEnraged and not wasEnraged then
+			BossAnimator.setEnraged(true)
+			BossAnimator.play("Roar", {
+				roar = function()
+					Effects.roar(enemyCenter(), ENRAGE_COLOR)
+					shake = math.max(shake, 0.8)
+				end,
+			})
+			local root = if enemyModel ~= nil then enemyModel.PrimaryPart else nil
+			if root ~= nil and enrageSmoke == nil then
+				enrageSmoke = Effects.smoke(root, ENRAGE_COLOR)
+			end
+		end
+		wasEnraged = snapshot.bossEnraged
+		if snapshot.bossShieldUntil > lastShieldUntil and workspace:GetServerTimeNow() < snapshot.bossShieldUntil then
+			BossAnimator.play("ShieldCast")
+		end
+		lastShieldUntil = snapshot.bossShieldUntil
+	elseif snapshot.encounter == "Raid" then
+		-- Raid phase change at half HP: roar, the core turns red, sweeps come faster.
+		local fraction = if BigNum.isZero(snapshot.enemyMaxHp)
+			then 1
+			else BigNum.toNumber(BigNum.div(snapshot.enemyHp, snapshot.enemyMaxHp))
+		if not raidPhase2 and fraction < 0.5 then
+			raidPhase2 = true
+			BossAnimator.play("Roar", {
+				roar = function()
+					Effects.roar(enemyCenter(), ENRAGE_COLOR)
+					Effects.shockwave(enemyHome.Position + Vector3.new(0, 0.6, 0), enemyHeight * 4, ENRAGE_COLOR, 0.7)
+					shake = math.max(shake, 1)
+				end,
+			})
+			local core = if enemyModel ~= nil then enemyModel:FindFirstChild("Core", true) else nil
+			if core ~= nil and core:IsA("BasePart") then
+				core.Color = ENRAGE_COLOR
+			end
+		end
 	end
 
 	local rallying = snapshot.damageMultiplier > 1
@@ -388,11 +598,16 @@ end
 local function animate(dt: number)
 	local now = os.clock()
 
-	-- Troops: melee units lunge, archers hold position and loose arrows.
+	-- Troops: melee units lunge, archers hold position and loose arrows. After a boss
+	-- falls they hop and cheer for a moment instead.
+	local cheering = now < cheerUntil
 	for _, units in unitsByType do
 		for _, unit in units do
 			local ranged = RANGED[unit.troopId]
-			if ranged ~= nil then
+			if cheering then
+				local hop = math.abs(math.sin(now * 9 + unit.phase)) * 1.4
+				unit.model:PivotTo(unit.home * CFrame.new(0, hop, 0) * CFrame.Angles(0, math.sin(now * 5 + unit.phase) * 0.3, 0))
+			elseif ranged ~= nil then
 				local recoil = math.max(0, 1 - (now - unit.lastShot) * 6) * 0.3
 				unit.model:PivotTo(unit.home * CFrame.new(0, 0, -recoil))
 				if now >= unit.nextShot then
@@ -418,26 +633,56 @@ local function animate(dt: number)
 		end
 	end
 
-	-- Enemy: grows in after spawning, idles (wraiths float), and lunges when a boss slams.
+	-- Enemy. Normal enemies grow in and bob (wraiths float). Bosses and the raid boss
+	-- follow BossAnimator (entrance, attacks, flinches...) on top of a slow idle sway.
 	local model = enemyModel
 	if model ~= nil then
-		local popT = math.clamp((now - popStartedAt) / POP_SECONDS, 0, 1)
-		local popScale = 0.35 + 0.65 * (1 - (1 - popT) ^ 3)
-		if popT < 1 or math.abs(model:GetScale() - enemyScale) > 0.001 then
-			model:ScaleTo(enemyScale * popScale)
-		end
-		local bob = math.sin(now * 2.2) * (if enemyFloats then 0.5 else 0.12) * enemyScale
 		local float = if enemyFloats then 0.8 * enemyScale else 0
-		local lungeT = (now - lungeStartedAt) / 0.3
-		local lunge = if lungeT >= 0 and lungeT < 1 then math.sin(lungeT * math.pi) * 3 else 0
-		model:PivotTo(enemyHome * CFrame.new(0, bob + float, -lunge))
+		if enemyMode == "Normal" then
+			if now < popStartedAt then
+				model:PivotTo(enemyHome * CFrame.new(0, -200, 0)) -- waiting for a boss exit to finish
+			else
+				local popT = math.clamp((now - popStartedAt) / POP_SECONDS, 0, 1)
+				local popScale = 0.35 + 0.65 * (1 - (1 - popT) ^ 3)
+				if popT < 1 or math.abs(model:GetScale() - enemyScale) > 0.001 then
+					model:ScaleTo(enemyScale * popScale)
+				end
+				local bob = math.sin(now * 2.2) * (if enemyFloats then 0.5 else 0.12) * enemyScale
+				model:PivotTo(enemyHome * CFrame.new(0, bob + float, 0))
+			end
+		else
+			local offset, scaleMultiplier = BossAnimator.sample(now, dt)
+			local targetScale = enemyScale * scaleMultiplier
+			if math.abs(model:GetScale() - targetScale) > 0.002 then
+				model:ScaleTo(targetScale)
+			end
+			local sway = math.sin(now * 1.6) * 0.15 * enemyScale -- breathing
+			model:PivotTo(enemyHome * CFrame.new(0, sway + float, 0) * offset)
+		end
 	end
 
-	if isBoss then
+	-- Summoned minions climb out of their portals.
+	for index, minion in minionModels do
+		local home = minionHomes[index]
+		if home ~= nil then
+			local rise = math.clamp((now - minionRiseAt) / 0.6, 0, 1)
+			local bob = math.sin(now * 3 + index) * 0.1
+			minion:PivotTo(home * CFrame.new(0, (rise - 1) * 5 + bob, 0))
+		end
+	end
+
+	if enemyMode == "Boss" and now >= popStartedAt and not BossAnimator.busy() then
 		bossAttackTimer += dt
-		if bossAttackTimer >= BOSS_ATTACK_INTERVAL then
+		local interval = if wasEnraged then ENRAGED_ATTACK_INTERVAL else BOSS_ATTACK_INTERVAL
+		if bossAttackTimer >= interval then
 			bossAttackTimer = 0
 			bossAttack()
+		end
+	elseif enemyMode == "Raid" and now >= popStartedAt and not BossAnimator.busy() then
+		raidSweepTimer += dt
+		if raidSweepTimer >= (if raidPhase2 then RAID_SWEEP_INTERVAL_PHASE2 else RAID_SWEEP_INTERVAL) then
+			raidSweepTimer = 0
+			raidSweep()
 		end
 	end
 

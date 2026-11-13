@@ -95,6 +95,7 @@ function WeakPointUI.start()
 			local result = WeakPointController.hit(event.id)
 			if result.ok and result.damage ~= nil then
 				AudioController.play("WeakPointHit")
+				BattlefieldController.flinch()
 				local streak = result.streak or 1
 				local streakText = if streak >= 2 then `  x{streak} streak!` else ""
 				DamageNumbersController.show(`WEAK POINT! {NumberFormat.big(result.damage)}{streakText}`, HIT_COLOR, 30)

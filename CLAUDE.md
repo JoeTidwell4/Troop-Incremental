@@ -20,7 +20,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 10 (owner's feature list, approved in 3 parts):**
 - **10a: done (owner confirmed in Studio).** menu column bigger + moved to the RIGHT (owner chose this; Roblox player list hidden), Army HP always in the gold panel, raid start resets ability cooldowns, Elite/Royal gold pack tiers, Epic Forge Robux product (deterministic, live id 2088872399).
 - **10b: done (owner confirmed in Studio; live game updated).** ability upgrades bought with Honor (two capped tracks per ability: Rally power x2->x3.5 / duration 10->15s, Barrage power 20->35s / cooldown 45->35s (toned down from the proposed 40s/30s: maxed it made active ~4x idle), Plunder power x2->x3 / duration 15->22s); boss + raid weak points.
-- **10c (plan approved, built, waiting for owner's Studio test):** clan XP + levels and a weekly Clan War league (see "Phase 10c" below). Also a loading screen (`UI/LoadingUI`) that covers the game until the first snapshot (slow save loads looked broken).
+- **10c (built):** clan XP + levels and a weekly Clan War league (see "Phase 10c" below). Also a loading screen (`UI/LoadingUI`) that covers the game until the first snapshot (slow save loads looked broken).
+- **10c: done (owner confirmed in Studio).**
 - Rejected: Robux for random packs (owner actually meant gold, covered by pack tiers).
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 

@@ -138,6 +138,108 @@ function Effects.shatter(model: Model, maxPieces: number)
 	end
 end
 
+-- A flat ring that expands along the ground and fades (boss slams, landings).
+function Effects.shockwave(position: Vector3, diameter: number, color: Color3, duration: number)
+	local target = folder
+	if target == nil then
+		return
+	end
+	local ring = Parts.cylinder(0.3, 1, color, CFrame.new(position), target, {
+		material = Enum.Material.Neon,
+		name = "Shockwave",
+	})
+	ring.Transparency = 0.2
+	TweenService:Create(ring, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.1, diameter, diameter),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, duration + 0.1)
+end
+
+-- A spinning glowing disc on the ground that grows, holds, then shrinks away (summons).
+function Effects.portal(position: Vector3, diameter: number, color: Color3, duration: number)
+	local target = folder
+	if target == nil then
+		return
+	end
+	local disc = Parts.cylinder(0.2, 0.5, color, CFrame.new(position), target, {
+		material = Enum.Material.Neon,
+		name = "Portal",
+	})
+	disc.Transparency = 0.25
+	local grow = TweenService:Create(disc, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.2, diameter, diameter),
+	})
+	grow:Play()
+	local spin = Instance.new("NumberValue")
+	spin.Changed:Connect(function(angle: number)
+		disc.CFrame = CFrame.new(position) * CFrame.Angles(0, angle, 0) * CFrame.Angles(0, 0, math.rad(90))
+	end)
+	TweenService:Create(spin, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Value = math.pi * 4 }):Play()
+	task.delay(math.max(0, duration - 0.3), function()
+		TweenService:Create(disc, TweenInfo.new(0.3), { Size = Vector3.new(0.2, 0.1, 0.1), Transparency = 1 }):Play()
+	end)
+	Debris:AddItem(disc, duration + 0.1)
+	Debris:AddItem(spin, duration + 0.1)
+end
+
+-- Gems and coins flying out of a defeated boss.
+function Effects.lootBurst(position: Vector3)
+	local target = folder
+	if target == nil then
+		return
+	end
+	emitAt("Coins", position, 30)
+	emitAt("Sparks", position, 20)
+	local count = math.floor(12 * math.max(0.4, Quality.get().debris))
+	local colors = { Color3.fromRGB(255, 205, 60), Color3.fromRGB(90, 200, 255), Color3.fromRGB(200, 90, 255), Color3.fromRGB(80, 230, 120) }
+	for i = 1, count do
+		local gem = Parts.ball(0.6, colors[(i % #colors) + 1], CFrame.new(position), target, {
+			material = Enum.Material.Neon,
+			name = "Loot",
+		})
+		gem.Anchored = false
+		gem.CanCollide = true
+		local angle = math.random() * math.pi * 2
+		gem.AssemblyLinearVelocity = Vector3.new(math.cos(angle) * math.random(8, 18), math.random(25, 40), math.sin(angle) * math.random(8, 18))
+		TweenService:Create(gem, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 1), {
+			Transparency = 1,
+		}):Play()
+		Debris:AddItem(gem, 1.6)
+	end
+end
+
+-- A burst of sparks shooting up (a boss roaring).
+function Effects.roar(position: Vector3, color: Color3)
+	local part = emitterPart
+	local emitter = emitters.Sparks
+	if part == nil or emitter == nil then
+		return
+	end
+	local previous = emitter.Color
+	emitter.Color = ColorSequence.new(color)
+	part.CFrame = CFrame.new(position)
+	emitter:Emit(math.floor(30 * math.max(0.4, Quality.get().particleRate)))
+	emitter.Color = previous
+end
+
+-- Red smoke rising off a part (enraged bosses). Returns the emitter so it can be removed.
+function Effects.smoke(parent: BasePart, color: Color3): ParticleEmitter
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Smoke"
+	emitter.Texture = SMOKE
+	emitter.Color = ColorSequence.new(color)
+	emitter.Size = NumberSequence.new(1.5, 4)
+	emitter.Transparency = NumberSequence.new(0.4, 1)
+	emitter.Lifetime = NumberRange.new(0.8, 1.4)
+	emitter.Speed = NumberRange.new(2, 5)
+	emitter.Rate = 25 * math.max(0.3, Quality.get().particleRate)
+	emitter.SpreadAngle = Vector2.new(30, 30)
+	emitter.EmissionDirection = Enum.NormalId.Top
+	emitter.Parent = parent
+	return emitter
+end
+
 -- A round projectile (magic orb or catapult boulder) arcing from `from` to `to`.
 function Effects.orb(from: Vector3, to: Vector3, color: Color3, diameter: number, duration: number, glowing: boolean, onHit: (() -> ())?)
 	local target = folder
