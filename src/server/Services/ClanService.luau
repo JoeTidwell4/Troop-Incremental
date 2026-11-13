@@ -61,6 +61,9 @@ local ClanService = {
 	bankBonus = function(_clanId: string): number
 		return 0
 	end,
+	-- Adds extra fields to a member's view before it's sent (ClanWarService replaces this
+	-- to add clan XP still buffered here and the player's own contribution).
+	decorateView = function(_player: Player, _view: Types.ClanView) end,
 }
 
 local function fail(reason: string): ClanResult
@@ -135,6 +138,7 @@ function ClanService.pushView(player: Player)
 			myRole = record.members[key(player)].role,
 			donatedToday = if data.clanDonation.dayId == today then data.clanDonation.amount else 0,
 		}
+		ClanService.decorateView(player, view)
 	end
 	RemoteService.fireClient(Remotes.Events.ClanSync, player, view)
 end

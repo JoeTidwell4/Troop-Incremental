@@ -1,5 +1,5 @@
 --!strict
--- Types shared by ClanUI and its tabs (ClanMembersTab, ClanBankTab, ClanRaidTab).
+-- Types shared by ClanUI and its tabs (ClanMembersTab, ClanBankTab, ClanRaidTab, ClanWarTab).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))

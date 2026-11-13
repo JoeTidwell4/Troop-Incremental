@@ -213,6 +213,51 @@ function Formulas.clanDay(unixTime: number): number
 	return unixTime // ClanConfig.DONATION_DAY_SECONDS
 end
 
+---------------------------------------------------------------- clan levels + clan war
+
+-- Clan level from lifetime XP. Returns (level, xp into this level, xp needed for the next;
+-- 0 at max level).
+function Formulas.clanLevel(xp: number): (number, number, number)
+	local level = 1
+	local remaining = math.max(0, xp)
+	while level < ClanConfig.MAX_LEVEL do
+		local need = math.floor(ClanConfig.LEVEL_XP_BASE * ClanConfig.LEVEL_XP_GROWTH ^ (level - 1))
+		if remaining < need then
+			return level, remaining, need
+		end
+		remaining -= need
+		level += 1
+	end
+	return level, 0, 0
+end
+
+-- Gold and damage multipliers every member gets from their clan's level.
+function Formulas.clanLevelBonus(level: number): (number, number)
+	return 1 + ClanConfig.LEVEL_GOLD_BONUS * level, 1 + ClanConfig.LEVEL_DAMAGE_BONUS * level
+end
+
+function Formulas.clanWarWeek(unixTime: number): number
+	return (unixTime - ClanConfig.WAR_WEEK_ANCHOR) // ClanConfig.WAR_WEEK_SECONDS
+end
+
+function Formulas.clanWarWeekStart(weekId: number): number
+	return ClanConfig.WAR_WEEK_ANCHOR + weekId * ClanConfig.WAR_WEEK_SECONDS
+end
+
+-- The Clan War reward for a final rank (nil rank or off the board = none here; the
+-- participation reward is checked separately).
+function Formulas.clanWarReward(rank: number?): { honor: number?, heroChests: number?, packs: number? }?
+	if rank == nil then
+		return nil
+	end
+	for _, tier in ClanConfig.WAR_REWARDS do
+		if rank <= tier.maxRank then
+			return tier
+		end
+	end
+	return nil
+end
+
 ---------------------------------------------------------------- clan raid
 
 function Formulas.raidWeek(unixTime: number): number

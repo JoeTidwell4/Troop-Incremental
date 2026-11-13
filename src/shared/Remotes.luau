@@ -30,6 +30,7 @@
 -- SetPassToggle  client -> server   (passKey: string, enabled: boolean)  Auto Clicker / Auto Abilities on/off
 -- SetSetting     client -> server   (key: string, value: string)  saved settings (see SettingsConfig)
 -- WeakPoint      server -> client   (event: Types.WeakPointEvent)  boss/raid weak point spawned or cleared
+-- ClanWarSync    server -> client   (view: Types.ClanWarView)  this week's Clan War standings
 -- HitWeakPoint   client -> server, returns Types.WeakPointResult (id: number)
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
@@ -55,6 +56,7 @@ local Remotes = {
 		SetPassToggle = "SetPassToggle",
 		SetSetting = "SetSetting",
 		WeakPoint = "WeakPoint",
+		ClanWarSync = "ClanWarSync",
 		ProgressSync = "ProgressSync",
 	}),
 

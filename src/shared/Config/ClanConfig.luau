@@ -70,6 +70,39 @@ local ClanConfig = {
 		},
 	} :: { [string]: Types.ClanPerkDef },
 
+	-- Clan XP and levels (Phase 10c, ClanWarService). Members earn XP for their clan by
+	-- playing; each member adds at most XP_DAILY_CAP per day so one grinder (or alts)
+	-- can't carry a clan. Kill and Donate XP are per kill / per Supply (fractions add up).
+	XP_PER_ACTIVITY = {
+		BossWin = 10,
+		RaidAttack = 15,
+		WeakPoint = 2,
+		Kill = 0.02,
+		Donate = 0.2,
+	} :: { [string]: number },
+	XP_DAILY_CAP = if isStudio then 60 else 200,
+	-- XP to go from level L to L+1 = LEVEL_XP_BASE * LEVEL_XP_GROWTH ^ (L - 1).
+	LEVEL_XP_BASE = if isStudio then 30 else 500,
+	LEVEL_XP_GROWTH = 1.15,
+	MAX_LEVEL = 25,
+	LEVEL_GOLD_BONUS = 0.02, -- +2% gold per clan level for every member
+	LEVEL_DAMAGE_BONUS = 0.02, -- +2% damage per clan level
+
+	-- Weekly Clan War league: clans ranked by XP earned that week (Monday 00:00 UTC).
+	WAR_WEEK_ANCHOR = 345600,
+	WAR_WEEK_SECONDS = if isStudio then 600 else 7 * 86400,
+	WAR_FINALIZE_DELAY = if isStudio then 60 else 600, -- wait for late flushes before results
+	WAR_TOP_COUNT = 10,
+	WAR_BOARD_REFRESH = if isStudio then 20 else 120, -- seconds between leaderboard reads
+	WAR_MIN_CONTRIBUTION = if isStudio then 10 else 100, -- your XP to that clan that week, to get rewards
+	WAR_PARTICIPATION_XP = if isStudio then 30 else 500, -- clan XP that week for the small reward
+	WAR_REWARDS = {
+		{ maxRank = 1, honor = 25, heroChests = 2 },
+		{ maxRank = 3, honor = 15, heroChests = 1 },
+		{ maxRank = 10, honor = 8, packs = 1 },
+	} :: { { maxRank: number, honor: number?, heroChests: number?, packs: number? } },
+	WAR_PARTICIPATION_REWARD = { honor = 3 } :: { honor: number? },
+
 	-- Cross-server sync (see ClanStore).
 	FLUSH_INTERVAL = if isStudio then 10 else 30, -- seconds between sending buffered donations
 	POLL_INTERVAL = if isStudio then 15 else 60, -- seconds between re-reading clans with members online

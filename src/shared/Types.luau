@@ -225,6 +225,12 @@ export type ClanRecord = {
 	bank: number, -- Supplies
 	perks: { [string]: number }, -- perk id -> level
 	version: number, -- +1 on every change
+	-- Clan XP (Phase 10c; missing on older records = 0 / -1):
+	xp: number?, -- lifetime, sets the clan level
+	weekId: number?, -- Clan War week that weekXp belongs to
+	weekXp: number?,
+	lastWeekId: number?, -- the week before weekId, kept for rewards and late XP
+	lastWeekXp: number?,
 }
 
 -- One clan in the browse list.
@@ -243,6 +249,38 @@ export type ClanView = {
 	clan: ClanRecord?,
 	myRole: ClanRole?,
 	donatedToday: number,
+	myWeekXp: number?, -- XP you gave this clan this Clan War week
+	myDayXp: number?, -- XP you gave today (daily cap ClanConfig.XP_DAILY_CAP)
+}
+
+-- One row of the weekly Clan War board.
+export type ClanWarEntry = {
+	rank: number,
+	clanId: string,
+	name: string,
+	tag: string,
+	xp: number,
+}
+
+-- ClanWarSync remote: this week's standings.
+export type ClanWarView = {
+	weekId: number,
+	secondsLeft: number,
+	top: { ClanWarEntry },
+	myRank: number?, -- your clan's place if it's on the board
+}
+
+-- Per-player Clan War record in the save.
+export type ClanWarRecord = {
+	weekId: number,
+	clanId: string, -- the clan your XP this week went to
+	xp: number,
+	dayId: number,
+	dayXp: number,
+	lastWeekId: number, -- previous week you played (for rewards)
+	lastClanId: string,
+	lastXp: number,
+	claimedWeek: number, -- last week whose rewards were handled
 }
 
 export type ClanResult = {
@@ -298,6 +336,7 @@ export type PlayerData = {
 	achievements: { [string]: string }, -- id -> "unlocked" | "claimed"
 	lifetime: { [string]: number }, -- lifetime activity counters (see ActivityService)
 	passToggles: { [string]: boolean }, -- toggleable passes switched OFF (missing = on)
+	clanWar: ClanWarRecord,
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
 	troops: TroopCounts,
@@ -377,7 +416,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -392,6 +431,9 @@ export type Notice = {
 	packs: number?,
 	-- Purchase only:
 	itemName: string?,
+	-- ClanWarRewards only (also uses honor / packs):
+	rank: number?, -- nil = participation reward
+	heroChests: number?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"

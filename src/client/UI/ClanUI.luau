@@ -11,6 +11,7 @@ local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local Config = Shared:WaitForChild("Config")
 local ClanConfig = require(Config:WaitForChild("ClanConfig"))
 local FactionConfig = require(Config:WaitForChild("FactionConfig"))
@@ -21,6 +22,8 @@ local ClanTypes = require(script.Parent.ClanTypes)
 local ClanMembersTab = require(script.Parent.ClanMembersTab)
 local ClanBankTab = require(script.Parent.ClanBankTab)
 local ClanRaidTab = require(script.Parent.ClanRaidTab)
+local ClanWarTab = require(script.Parent.ClanWarTab)
+local Spotlight = require(script.Parent.Spotlight)
 local StateController = require(Client.Controllers.StateController)
 local ClanController = require(Client.Controllers.ClanController)
 
@@ -79,6 +82,7 @@ function ClanUI.start()
 		BackgroundColor3 = Theme.Accent,
 		Parent = gui,
 	})
+	Spotlight.register("Menu:Clan", clanButton)
 
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
@@ -379,6 +383,7 @@ function ClanUI.start()
 		ClanMembersTab.build(content, context),
 		ClanBankTab.build(content, context),
 		ClanRaidTab.build(content, context),
+		ClanWarTab.build(content, context),
 	}
 	local activeTab = tabs[1]
 	local tabButtons: { [ClanTypes.Tab]: TextButton } = {}
@@ -420,7 +425,8 @@ function ClanUI.start()
 		end
 		local clan = view.clan :: Types.ClanRecord
 		title.Text = `[{clan.tag}] {clan.name}`
-		subtitle.Text = `{clan.memberCount}/{ClanConfig.MAX_MEMBERS} members  |  {if clan.open then "Open" else "Closed"}`
+		local level = Formulas.clanLevel(clan.xp or 0)
+		subtitle.Text = `Level {level}  |  {clan.memberCount}/{ClanConfig.MAX_MEMBERS} members  |  {if clan.open then "Open" else "Closed"}`
 			.. `  |  You: {view.myRole or "Member"}`
 		openButton.Visible = view.myRole == "Leader"
 		openButton.Text = if clan.open then "Close clan" else "Open clan"
@@ -484,6 +490,11 @@ function ClanUI.start()
 	end)
 
 	ClanController.Changed:Connect(function(_view: ClanView)
+		if overlay.Visible then
+			render()
+		end
+	end)
+	ClanController.WarChanged:Connect(function()
 		if overlay.Visible then
 			render()
 		end

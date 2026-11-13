@@ -89,6 +89,19 @@ local function onNotice(notice: Notice)
 			`+{notice.honor or 0} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"}`,
 			Theme.Gold
 		)
+	elseif notice.kind == "ClanWarRewards" then
+		local parts: { string } = {}
+		if (notice.honor or 0) > 0 then
+			table.insert(parts, `+{notice.honor} Honor`)
+		end
+		if (notice.heroChests or 0) > 0 then
+			table.insert(parts, `+{notice.heroChests} Hero Chest{if notice.heroChests == 1 then "" else "s"}`)
+		end
+		if (notice.packs or 0) > 0 then
+			table.insert(parts, `+{notice.packs} free pack{if notice.packs == 1 then "" else "s"}`)
+		end
+		local title = if notice.rank ~= nil then `CLAN WAR: YOUR CLAN PLACED #{notice.rank}!` else "CLAN WAR REWARDS"
+		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
 	elseif notice.kind == "BossFailed" then
 		local reason = FAIL_REASONS[notice.reason or ""] or "Boss fight lost."
 		NoticeUI.show(reason, FAIL_ADVICE[notice.reason or ""] or FAIL_ADVICE.OutOfTime, Theme.HpFill)

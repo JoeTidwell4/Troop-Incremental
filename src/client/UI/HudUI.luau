@@ -16,6 +16,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Areas = require(Shared:WaitForChild("Areas"))
 local TroopConfig = require(Shared:WaitForChild("Config"):WaitForChild("TroopConfig"))
+local ClanConfig = require(Shared:WaitForChild("Config"):WaitForChild("ClanConfig"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local UIKit = require(script.Parent.UIKit)
 local StateController = require(Client.Controllers.StateController)
@@ -23,6 +24,7 @@ local BattleController = require(Client.Controllers.BattleController)
 local ShopUI = require(script.Parent.ShopUI)
 local Layout = require(script.Parent.Layout)
 local BattlefieldController = require(Client.Controllers.BattlefieldController)
+local ClanController = require(Client.Controllers.ClanController)
 local Spotlight = require(script.Parent.Spotlight)
 local RaidConfig = require(Shared:WaitForChild("Config"):WaitForChild("RaidConfig"))
 
@@ -45,6 +47,14 @@ local format = NumberFormat.big
 
 local HudUI = {}
 
+local CLAN_TIP_SECONDS = 45
+local clanTipUntil: number? = nil
+
+local function inClan(): boolean
+	local view = ClanController.get()
+	return view == nil or view.inClan -- unknown yet = don't nag
+end
+
 -- Starter tips: walks a new player through the first minutes, one tip at a time.
 -- Returns (text, spotlight key) or nil when there's nothing useful to say. The key
 -- names the button the tip is about (see Spotlight), which then pulses.
@@ -63,6 +73,13 @@ local function tipFor(snapshot: Snapshot): (string?, string?)
 		end
 	end
 	if snapshot.ascensions > 0 or snapshot.bestStage >= 25 then
+		-- Clan nudge: shown for CLAN_TIP_SECONDS once per session, so it never nags.
+		if snapshot.encounter == "Normal" and snapshot.bestStage >= ClanConfig.CREATE_MIN_BEST_STAGE and not inClan() then
+			clanTipUntil = clanTipUntil or (os.clock() + CLAN_TIP_SECONDS)
+			if os.clock() < (clanTipUntil :: number) then
+				return "Join a clan for bonus gold and damage, and the weekly Clan War!", "Menu:Clan"
+			end
+		end
 		return nil, nil -- experienced players don't need tips
 	end
 	if snapshot.totalKills < HINT_UNTIL_KILLS then

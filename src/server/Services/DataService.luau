@@ -219,6 +219,17 @@ local function sanitize(data: PlayerData)
 		data.lifetime[key] = wholeNumber(value, 0, 0)
 	end
 	data.packs.forge = wholeNumber(data.packs.forge, 0, 0)
+	for _, field in { "weekId", "dayId", "lastWeekId", "claimedWeek" } do
+		(data.clanWar :: any)[field] = wholeNumber((data.clanWar :: any)[field], -1, -1)
+	end
+	for _, field in { "xp", "dayXp", "lastXp" } do
+		(data.clanWar :: any)[field] = wholeNumber((data.clanWar :: any)[field], 0, 0)
+	end
+	for _, field in { "clanId", "lastClanId" } do
+		if typeof((data.clanWar :: any)[field]) ~= "string" then
+			(data.clanWar :: any)[field] = ""
+		end
+	end
 	data.analytics.onboardingStep = wholeNumber(data.analytics.onboardingStep, 0, 0)
 	data.packs.sinceEpic = wholeNumber(data.packs.sinceEpic, 0, 0)
 	data.packs.opened = wholeNumber(data.packs.opened, 0, 0)

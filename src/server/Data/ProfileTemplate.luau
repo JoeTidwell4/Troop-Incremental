@@ -46,6 +46,17 @@ local template: Types.PlayerData = {
 	passToggles = {},
 	settings = { graphics = "Auto", sound = "All" },
 	analytics = { onboardingStep = 0 },
+	clanWar = {
+		weekId = -1,
+		clanId = "",
+		xp = 0,
+		dayId = -1,
+		dayXp = 0,
+		lastWeekId = -1,
+		lastClanId = "",
+		lastXp = 0,
+		claimedWeek = -1,
+	},
 	raid = { weekId = -1, clanId = "", attacks = 0, units = 0, dayId = -1, attacksToday = 0, claimedWeek = -1 },
 	troops = {
 		Swordsman = 0,
