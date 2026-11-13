@@ -178,8 +178,7 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		freeButton.AutoButtonColor = free > 0
 
 		local hero = snapshot.packs.hero
-		heroButton.Text = `Hero Chest
-{hero} left`
+		heroButton.Text = `Hero Chest\n{hero} left`
 		heroButton.BackgroundColor3 = if hero > 0 then GearInfo.rarity(4).color else Theme.Disabled
 		heroButton.AutoButtonColor = hero > 0
 

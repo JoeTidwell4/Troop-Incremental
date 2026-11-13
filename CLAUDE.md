@@ -141,6 +141,7 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - Balance is checked with `tools/balance_sim.py` (Python mirror of the formulas; numbers copied by hand). Phase 2a result (boss HP x12, boss DPS 0.12 x enemy HP): active beats boss 10 at ~1.4 min, 50 at ~19 min, walls at ~59; idle reaches ~49 at 30 min. Active ~2.5x idle. Most boss fails are army HP, which 2b Armor addresses. With gear levels (base 5x troop cost, growth 1.9; packs not simulated): active reaches ~stage 68 at 30 min (vs 59 without), boss fails 11 -> 7.
 
 ## Conventions
+- **Before every push, parse every Luau file**: `cargo build --release --manifest-path tools/luaucheck/Cargo.toml` once, then `tools/luaucheck/target/release/luaucheck $(find src -name '*.luau')` must print `files with errors: 0`. (Uses the full_moon Luau parser. Added after a Python edit turned a `\n` into a real newline inside a backtick string, which broke the whole client. When editing files with Python heredocs, write Luau `\n` as `\\n`.) The Rojo build alone does NOT catch syntax errors.
 - `--!strict` at the top of every script. Type everything; shared types in `src/shared/Types.luau`.
 - File extension `.luau`. `init.server.luau` / `init.client.luau` / `init.luau` for folder-scripts.
 - No em dashes in docs/comments (owner preference).

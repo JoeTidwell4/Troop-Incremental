@@ -10,3 +10,6 @@ sourcemap.json
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Rust build output (tools/luaucheck)
+target/
