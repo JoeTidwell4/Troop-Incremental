@@ -472,6 +472,32 @@ local function setAutoAdvance(player: Player, enabled: boolean)
 	DataService.markChanged(player)
 end
 
+---------------------------------------------------------------- Studio test panel (DebugService only)
+
+-- Kills the current enemy (or boss, minions included) right now, ignoring the boss
+-- damage cap and the entrance.
+function StageService.debugKill(player: Player)
+	local data = DataService.get(player)
+	local encounter = encounters[player]
+	if data == nil or encounter == nil then
+		return
+	end
+	encounter.introUntil = 0
+	applyDamage(player, data, BigNum.add(encounter.enemyHp, encounter.minionHp))
+	DataService.markChanged(player)
+end
+
+-- Loses the current boss fight as if the timer ran out.
+function StageService.debugFailBoss(player: Player): boolean
+	local data = DataService.get(player)
+	local encounter = encounters[player]
+	if data == nil or encounter == nil or encounter.kind ~= "Boss" then
+		return false
+	end
+	failBoss(player, data, "OutOfTime")
+	return true
+end
+
 function StageService.start()
 	DataService.ProfileLoaded:Connect(onProfileLoaded)
 	DataService.ProfileReleasing:Connect(function(player: Player)

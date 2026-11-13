@@ -183,7 +183,8 @@ local function flush()
 			return r, nil
 		end)
 		if record ~= nil then
-			ClanService.afterChange(record)
+			-- Local update only (see ClanWarService.flush); other servers poll within 60s.
+			ClanService.applyRecord(record)
 		elseif reason ~= "ClanNotFound" then
 			requeue(clanId, batch) -- retry next time
 		end

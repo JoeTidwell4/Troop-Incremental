@@ -41,6 +41,7 @@ local QuestsUI = require(UI.QuestsUI)
 local ForgeUI = require(UI.ForgeUI)
 local WeakPointUI = require(UI.WeakPointUI)
 local WardrobeUI = require(UI.WardrobeUI)
+local DebugPanelUI = require(UI.DebugPanelUI)
 
 ShopController.start()
 InputController.start()
@@ -73,6 +74,7 @@ QuestsUI.start()
 ForgeUI.start()
 WeakPointUI.start()
 WardrobeUI.start()
+DebugPanelUI.start() -- Studio only; does nothing in the live game
 StateController.start() -- last: asks the server for state once everything is listening
 
 print(`[Client] Troop-Incremental {Version} booted`)

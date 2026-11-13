@@ -282,6 +282,18 @@ local function poll()
 	end
 end
 
+-- Studio test panel only: gives back today's raid attacks.
+function RaidService.debugRefill(player: Player)
+	local data = DataService.get(player)
+	if data == nil then
+		return
+	end
+	data.raid.dayId = -1
+	data.raid.attacksToday = 0
+	DataService.markChanged(player)
+	pushView(player)
+end
+
 function RaidService.start()
 	ClanService.registerAction("RaidAttack", function(_arg: unknown): (boolean, any)
 		return true, nil

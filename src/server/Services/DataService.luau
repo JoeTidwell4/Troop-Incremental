@@ -13,10 +13,13 @@ local Server = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local BigNum = require(Shared:WaitForChild("BigNum"))
+local StoreNames = require(script.Parent.Parent.Util.StoreNames)
 local Types = require(Shared:WaitForChild("Types"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local GearConfig = require(Shared:WaitForChild("Config"):WaitForChild("GearConfig"))
 local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("FactionConfig"))
+local DailyConfig = require(Shared:WaitForChild("Config"):WaitForChild("DailyConfig"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
 -- ProfileStore is third-party and not written in strict mode, so we describe only the
@@ -40,7 +43,7 @@ type Store = {
 	StartSessionAsync: (self: Store, key: string, params: any) -> Profile?,
 }
 
-local store: Store = ProfileStoreModule.New(DataConfig.STORE_NAME, ProfileTemplate)
+local store: Store = ProfileStoreModule.New(StoreNames.of(DataConfig.STORE_NAME), ProfileTemplate)
 local profiles: { [Player]: Profile } = {}
 
 local DataService = {
@@ -244,6 +247,76 @@ local function sanitize(data: PlayerData)
 	data.packs.rewardedBossStage = wholeNumber(data.packs.rewardedBossStage, 0, 0)
 end
 
+-- Day and week numbers saved in the "future" can only come from Studio's test mode
+-- (3-minute days, 10-minute weeks give much bigger numbers) back when Studio shared the
+-- live saves. Left alone they block live rewards for months (e.g. "already claimed week
+-- 2,900,000"), so they're reset. Also guards against any other bad clock value.
+local function repairFutureIds(data: PlayerData)
+	local now = os.time()
+	local day = now // DailyConfig.DAY_SECONDS
+	if data.daily.lastClaimDay > day then
+		data.daily.lastClaimDay = -1
+		data.daily.streak = 0
+	end
+	if data.quests.day > day then
+		data.quests.day = -1 -- new quests get rolled for today
+	end
+
+	local raidWeek, raidDay = Formulas.raidWeek(now), Formulas.raidDay(now)
+	if data.raid.weekId > raidWeek then
+		data.raid.weekId = -1
+		data.raid.attacks = 0
+		data.raid.units = 0
+		data.raid.clanId = ""
+	end
+	if data.raid.claimedWeek > raidWeek then
+		data.raid.claimedWeek = -1
+	end
+	if data.raid.dayId > raidDay then
+		data.raid.dayId = -1
+		data.raid.attacksToday = 0
+	end
+
+	local warWeek, warDay = Formulas.warWeek(now), Formulas.warDay(now)
+	for _, record in { data.war, data.lastWar } do
+		if record.weekId > warWeek then
+			record.weekId = -1
+			record.points = 0
+			record.active = false
+		end
+		if record.dayId > warDay then
+			record.dayId = -1
+			record.dayPoints = 0
+		end
+	end
+
+	local clanWeek, clanDay = Formulas.clanWarWeek(now), Formulas.clanDay(now)
+	local clanWar = data.clanWar
+	if clanWar.weekId > clanWeek then
+		clanWar.weekId = -1
+		clanWar.xp = 0
+	end
+	if clanWar.lastWeekId > clanWeek then
+		clanWar.lastWeekId = -1
+		clanWar.lastXp = 0
+	end
+	if clanWar.claimedWeek > clanWeek then
+		clanWar.claimedWeek = -1
+	end
+	if clanWar.dayId > clanDay then
+		clanWar.dayId = -1
+		clanWar.dayXp = 0
+	end
+	if data.clanQuestClaims.weekId > clanWeek then
+		data.clanQuestClaims.weekId = -1
+		data.clanQuestClaims.claimed = {}
+	end
+	if data.clanDonation.dayId > clanDay then
+		data.clanDonation.dayId = -1
+		data.clanDonation.amount = 0
+	end
+end
+
 local function onPlayerAdded(player: Player)
 	local profile = store:StartSessionAsync(DataConfig.KEY_PREFIX .. player.UserId, {
 		-- Stop trying if the player leaves while we're still loading.
@@ -275,6 +348,7 @@ local function onPlayerAdded(player: Player)
 	end
 
 	sanitize(profile.Data)
+	repairFutureIds(profile.Data)
 	profiles[player] = profile
 	DataService.ProfileLoaded:Fire(player, profile.Data)
 end
@@ -288,6 +362,33 @@ local function onPlayerRemoving(player: Player)
 	DataService.ProfileReleasing:Fire(player)
 	profiles[player] = nil
 	profile:EndSession()
+end
+
+local function deepCopy(value: any): any
+	if typeof(value) ~= "table" then
+		return value
+	end
+	local copy = {}
+	for key, inner in value do
+		copy[key] = deepCopy(inner)
+	end
+	return copy
+end
+
+-- Studio test panel only: resets this player's save to a brand-new one. The caller
+-- kicks the player afterwards so everything restarts cleanly from the fresh save.
+function DataService.debugWipe(player: Player)
+	local profile = profiles[player]
+	if profile == nil or not StoreNames.isStudio() then
+		return
+	end
+	local data = profile.Data :: any
+	for key in data do
+		data[key] = nil
+	end
+	for key, value in ProfileTemplate :: any do
+		data[key] = deepCopy(value)
+	end
 end
 
 function DataService.start()

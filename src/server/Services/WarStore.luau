@@ -25,6 +25,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
+local StoreNames = require(script.Parent.Parent.Util.StoreNames)
 local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("FactionConfig"))
 
 type WarResult = Types.WarResult
@@ -32,9 +33,9 @@ type WarResult = Types.WarResult
 -- Raw totals per faction: points and active members (averages are computed by WarService).
 export type Totals = { [string]: { points: number, active: number } }
 
-local totalsMap = MemoryStoreService:GetHashMap("FactionWar")
-local metaMap = MemoryStoreService:GetHashMap("FactionWarMeta")
-local warStore = DataStoreService:GetDataStore("FactionWar")
+local totalsMap = MemoryStoreService:GetHashMap(StoreNames.of("FactionWar"))
+local metaMap = MemoryStoreService:GetHashMap(StoreNames.of("FactionWarMeta"))
+local warStore = DataStoreService:GetDataStore(StoreNames.of("FactionWar"))
 
 local WarStore = {}
 
@@ -167,7 +168,7 @@ function WarStore.finalizeResult(weekId: number, result: WarResult): WarResult?
 end
 
 local function leaderboard(weekId: number, factionId: string): OrderedDataStore
-	return DataStoreService:GetOrderedDataStore(`WarTop_{weekId}_{factionId}`)
+	return DataStoreService:GetOrderedDataStore(StoreNames.of(`WarTop_{weekId}_{factionId}`))
 end
 
 function WarStore.setContribution(weekId: number, factionId: string, userId: number, points: number)

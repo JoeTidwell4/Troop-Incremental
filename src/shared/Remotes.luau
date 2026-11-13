@@ -36,6 +36,8 @@
 -- ClanChatSend   client -> server   (text: string)  a clan chat message
 -- ClanChat       server -> client   (messages: { Types.ClanChatMessage }, replace: boolean)  new messages / history
 -- HitWeakPoint   client -> server, returns Types.WeakPointResult (id: number)
+-- DebugCommand   client -> server, returns {ok, message}  (action: string, arg: any)  STUDIO ONLY
+--                test panel (DebugConfig.ACTIONS); the server ignores it in the live game
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
 --                (raid attacks use ClanRequest action "RaidAttack")
@@ -77,6 +79,7 @@ local Remotes = {
 		BuyHonorUpgrade = "BuyHonorUpgrade",
 		BuyAbilityUpgrade = "BuyAbilityUpgrade",
 		HitWeakPoint = "HitWeakPoint",
+		DebugCommand = "DebugCommand",
 		ChooseFaction = "ChooseFaction",
 		ClanRequest = "ClanRequest",
 		ProgressRequest = "ProgressRequest",

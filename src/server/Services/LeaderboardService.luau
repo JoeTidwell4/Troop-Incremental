@@ -16,6 +16,7 @@ local Services = script.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local BigNum = require(Shared:WaitForChild("BigNum"))
+local StoreNames = require(script.Parent.Parent.Util.StoreNames)
 local Types = require(Shared:WaitForChild("Types"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
@@ -27,8 +28,8 @@ local SyncService = require(Services.SyncService)
 type PlayerData = Types.PlayerData
 type LeaderboardEntry = Types.LeaderboardEntry
 
-local stageStore = DataStoreService:GetOrderedDataStore("TopBestStage")
-local honorStore = DataStoreService:GetOrderedDataStore("TopHonor")
+local stageStore = DataStoreService:GetOrderedDataStore(StoreNames.of("TopBestStage"))
+local honorStore = DataStoreService:GetOrderedDataStore(StoreNames.of("TopHonor"))
 
 type Saved = { stage: number, honor: number }
 

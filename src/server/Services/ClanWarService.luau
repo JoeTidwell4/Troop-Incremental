@@ -221,6 +221,18 @@ local function applyXp(r: ClanRecord, byWeek: { [number]: Batch })
 	r.lastWeekXp = r.lastWeekXp or 0
 	r.memberWeekXp = r.memberWeekXp or {}
 	r.lastMemberWeekXp = r.lastMemberWeekXp or {}
+	-- Week numbers from the future can only be Studio test-mode weeks written back when
+	-- Studio shared the live clans: drop them, or this clan's weeks and quests never roll.
+	local now = currentWeek()
+	if (r.weekId :: number) > now then
+		r.weekId, r.weekXp, r.memberWeekXp = -1, 0, {}
+	end
+	if (r.lastWeekId :: number) > now then
+		r.lastWeekId, r.lastWeekXp, r.lastMemberWeekXp = -1, 0, {}
+	end
+	if (r.questWeek or -1) > now then
+		r.questWeek, r.quests = nil, nil
+	end
 	local weeks: { number } = {}
 	for week in byWeek do
 		table.insert(weeks, week)
@@ -317,7 +329,9 @@ local function flush()
 			return r, nil
 		end)
 		if record ~= nil then
-			ClanService.afterChange(record)
+			-- Local update only: XP isn't worth a cross-server message or a browse-list
+			-- write every 30s per clan. Other servers see it on their next poll (60s).
+			ClanService.applyRecord(record)
 			for week in byWeek do
 				local xp = weekXpOf(record, week)
 				if xp > 0 then -- quest-only progress doesn't put a clan on the board
@@ -645,6 +659,47 @@ local function claimQuest(player: Player, data: PlayerData, index: number): Type
 	DailyService.grant(player, data, { goldMinutes = ClanConfig.QUEST_REWARD.goldMinutes }, "ClanQuest")
 	dirty[player] = true
 	return { ok = true }
+end
+
+---------------------------------------------------------------- Studio test panel (DebugService only)
+
+-- Adds clan XP for this player's clan, skipping the daily cap. Returns false if not in a clan.
+function ClanWarService.debugAddXp(player: Player, xp: number): boolean
+	local data = DataService.get(player)
+	local clan = ClanService.getClan(player)
+	if data == nil or clan == nil then
+		return false
+	end
+	rollover(data)
+	local record = data.clanWar
+	if record.clanId ~= clan.id then
+		record.clanId = clan.id
+		record.xp = 0
+	end
+	record.xp += xp
+	local batch = batchFor(clan.id, record.weekId)
+	local userKey = tostring(player.UserId)
+	batch.total += xp
+	batch.members[userKey] = (batch.members[userKey] or 0) + xp
+	dirty[player] = true
+	return true
+end
+
+-- Fills this week's clan quests (saved on the next flush, a few seconds).
+function ClanWarService.debugFinishQuests(player: Player): boolean
+	local data = DataService.get(player)
+	local clan = ClanService.getClan(player)
+	if data == nil or clan == nil then
+		return false
+	end
+	rollover(data)
+	local batch = batchFor(clan.id, data.clanWar.weekId)
+	for _, quest in questsOf(clan, currentWeek()) do
+		local activity = questActivity(quest.key)
+		batch.activities[activity] = (batch.activities[activity] or 0) + quest.target
+	end
+	dirty[player] = true
+	return true
 end
 
 function ClanWarService.start()

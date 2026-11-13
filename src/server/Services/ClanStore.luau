@@ -25,18 +25,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
+local StoreNames = require(script.Parent.Parent.Util.StoreNames)
 
 type ClanRecord = Types.ClanRecord
 
-local clanStore = DataStoreService:GetDataStore("Clans")
-local nameStore = DataStoreService:GetDataStore("ClanNames")
-local raidStore = DataStoreService:GetDataStore("ClanRaid")
-local openList = DataStoreService:GetOrderedDataStore("OpenClans")
-local warResultStore = DataStoreService:GetDataStore("ClanWarResult")
-local chatMap = MemoryStoreService:GetSortedMap("ClanChat")
-local CHAT_TOPIC = "ClanChat"
+local clanStore = DataStoreService:GetDataStore(StoreNames.of("Clans"))
+local nameStore = DataStoreService:GetDataStore(StoreNames.of("ClanNames"))
+local raidStore = DataStoreService:GetDataStore(StoreNames.of("ClanRaid"))
+local openList = DataStoreService:GetOrderedDataStore(StoreNames.of("OpenClans"))
+local warResultStore = DataStoreService:GetDataStore(StoreNames.of("ClanWarResult"))
+local chatMap = MemoryStoreService:GetSortedMap(StoreNames.of("ClanChat"))
+local CHAT_TOPIC = StoreNames.of("ClanChat")
 
-local TOPIC = "ClanUpdate"
+local TOPIC = StoreNames.of("ClanUpdate")
 
 local ClanStore = {}
 
@@ -226,7 +227,7 @@ end
 export type WarScore = { clanId: string, xp: number }
 
 local function warBoard(weekId: number): OrderedDataStore
-	return DataStoreService:GetOrderedDataStore(`ClanWar_{weekId}`)
+	return DataStoreService:GetOrderedDataStore(StoreNames.of(`ClanWar_{weekId}`))
 end
 
 -- Raises a clan's score for a week. Keeps the higher value, so two servers reporting at
