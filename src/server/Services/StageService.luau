@@ -10,6 +10,10 @@
 --   * Win: big gold reward and you move on to the next area.
 --   * Lose (time runs out or army HP hits 0): back one stage, auto-advance turns off.
 --     The player farms there until they press Fight Boss or turn auto-advance back on.
+--
+-- Raid attacks (clan raid, see RaidService): a timed fight against the clan raid boss.
+-- Normal progress pauses, the boss doesn't hit back, no gold or kills; damage is totalled
+-- and handed to RaidService through RaidFinished. Then the normal fight resumes.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -48,6 +52,7 @@ export type Encounter = {
 	bossEndsAt: number, -- server time; 0 for normal stages
 	bossDps: BigNum,
 	armyDamageTaken: BigNum, -- boss damage taken so far; army HP = max HP - this
+	raidDamage: BigNum, -- raid attacks only: damage dealt so far
 }
 
 local encounters: { [Player]: Encounter } = {}
@@ -58,6 +63,8 @@ local StageService = {
 	BossDefeated = Signal.new() :: Signal.Signal<Player, number, boolean>,
 	-- Fires whenever enemies die: (player, stage, kills, wasBoss). Used for war points.
 	Killed = Signal.new() :: Signal.Signal<Player, number, number, boolean>,
+	-- Fires when a raid attack ends (time up, cap reached, or leaving): (player, damage).
+	RaidFinished = Signal.new() :: Signal.Signal<Player, BigNum>,
 }
 
 local function now(): number
@@ -75,6 +82,7 @@ local function newEncounter(stage: number): Encounter
 			bossEndsAt = now() + BossConfig.BOSS_TIME_LIMIT,
 			bossDps = Formulas.bossDps(stage),
 			armyDamageTaken = BigNum.ZERO,
+			raidDamage = BigNum.ZERO,
 		}
 	end
 	local hp = Formulas.enemyHp(stage)
@@ -86,6 +94,7 @@ local function newEncounter(stage: number): Encounter
 		bossEndsAt = 0,
 		bossDps = BigNum.ZERO,
 		armyDamageTaken = BigNum.ZERO,
+		raidDamage = BigNum.ZERO,
 	}
 end
 
@@ -116,12 +125,44 @@ local function goToStage(player: Player, data: PlayerData, stage: number)
 	encounters[player] = newEncounter(data.stage)
 end
 
+-- Ends a raid attack: reports the damage and goes back to the normal fight.
+local function finishRaid(player: Player, data: PlayerData)
+	local encounter = encounters[player]
+	if encounter == nil or encounter.kind ~= "Raid" then
+		return
+	end
+	encounters[player] = newEncounter(data.stage)
+	StageService.RaidFinished:Fire(player, encounter.raidDamage)
+end
+
+-- Starts a raid attack lasting `seconds`. The HP bar is sized so emptying it means you hit
+-- the per-attack unit cap (`maxDamage`), which also ends the attack early.
+function StageService.startRaid(player: Player, seconds: number, maxDamage: BigNum): boolean
+	local encounter = encounters[player]
+	if encounter == nil or encounter.kind ~= "Normal" then
+		return false
+	end
+	encounters[player] = {
+		kind = "Raid",
+		enemyHp = maxDamage,
+		enemyMaxHp = maxDamage,
+		goldPerKill = BigNum.ZERO,
+		bossEndsAt = now() + seconds,
+		bossDps = BigNum.ZERO,
+		armyDamageTaken = BigNum.ZERO,
+		raidDamage = BigNum.ZERO,
+	}
+	DataService.markChanged(player)
+	return true
+end
+
 -- Starts a fresh fight from the player's current saved stage (used after Ascending).
 function StageService.restart(player: Player)
 	local data = DataService.get(player)
 	if data == nil then
 		return
 	end
+	finishRaid(player, data) -- an Ascend mid-raid still counts the damage dealt
 	CombatService.refreshArmy(player)
 	encounters[player] = newEncounter(data.stage)
 	DataService.markChanged(player)
@@ -157,6 +198,16 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 		return false
 	end
 	local encounter = encounters[player]
+	if encounter.kind == "Raid" then
+		-- Raid: no kills or gold, just total the damage. Hitting the cap ends the attack.
+		local counted = BigNum.min(damage, encounter.enemyHp)
+		encounter.raidDamage = BigNum.add(encounter.raidDamage, counted)
+		encounter.enemyHp = BigNum.sub(encounter.enemyHp, counted)
+		if BigNum.isZero(encounter.enemyHp) then
+			finishRaid(player, data)
+		end
+		return true
+	end
 	local goldMultiplier = ModifierService.get(player).gold
 	local enemiesThisStage = if encounter.kind == "Boss" then 1 else StageConfig.ENEMIES_PER_STAGE
 
@@ -196,6 +247,12 @@ end
 -- Boss attacks the army and the clock ticks. Returns true if anything changed.
 local function updateBoss(player: Player, data: PlayerData, dt: number): boolean
 	local encounter = encounters[player]
+	if encounter ~= nil and encounter.kind == "Raid" then
+		if now() >= encounter.bossEndsAt then
+			finishRaid(player, data)
+		end
+		return true
+	end
 	if encounter == nil or encounter.kind ~= "Boss" then
 		return false
 	end
@@ -242,7 +299,7 @@ end
 local function fightBoss(player: Player)
 	local data = DataService.get(player)
 	local encounter = encounters[player]
-	if data == nil or encounter == nil or encounter.kind == "Boss" then
+	if data == nil or encounter == nil or encounter.kind ~= "Normal" then
 		return
 	end
 	if not Formulas.isBossStage(data.stage + 1) then
@@ -265,6 +322,11 @@ end
 function StageService.start()
 	DataService.ProfileLoaded:Connect(onProfileLoaded)
 	DataService.ProfileReleasing:Connect(function(player: Player)
+		-- Leaving mid-raid still counts the damage dealt so far.
+		local data = DataService.get(player)
+		if data ~= nil then
+			finishRaid(player, data)
+		end
 		encounters[player] = nil
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)

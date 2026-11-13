@@ -34,6 +34,7 @@ local FAIL_MESSAGES: { [string]: string } = {
 	AlreadyInFaction = "You're already in that faction.",
 	OnCooldown = "You can't switch faction yet.",
 	WarLocked = "Switching is locked near the end of a war.",
+	LeaveClanFirst = "Leave your clan before switching faction.",
 	Rejected = "Slow down a little!",
 }
 

@@ -17,6 +17,7 @@ local UIKit = require(script.Parent.UIKit)
 local StateController = require(Client.Controllers.StateController)
 local BattleController = require(Client.Controllers.BattleController)
 local ShopUI = require(script.Parent.ShopUI)
+local RaidConfig = require(Shared:WaitForChild("Config"):WaitForChild("RaidConfig"))
 
 type Snapshot = Types.Snapshot
 type BigNum = BigNum.BigNum
@@ -224,7 +225,7 @@ function HudUI.start()
 	end)
 
 	local function renderStageButton(snapshot: Snapshot)
-		if snapshot.encounter == "Boss" then
+		if snapshot.encounter ~= "Normal" then
 			stageButton.Visible = false
 			return
 		end
@@ -273,7 +274,17 @@ function HudUI.start()
 		hpFill.Size = UDim2.new(fraction(snapshot.enemyHp, snapshot.enemyMaxHp), 0, 1, 0)
 		hpLabel.Text = `{format(snapshot.enemyHp)} / {format(snapshot.enemyMaxHp)}`
 
-		if snapshot.encounter == "Boss" then
+		if snapshot.encounter == "Raid" then
+			stageLabel.Text = `CLAN RAID: {RaidConfig.BOSS_NAME}`
+			stageLabel.TextColor3 = RaidConfig.BOSS_COLOR
+			hpFill.BackgroundColor3 = RaidConfig.BOSS_COLOR
+			local timeLeft = math.max(0, math.ceil(snapshot.bossEndsAt - workspace:GetServerTimeNow()))
+			hpLabel.Text = `{snapshot.raidUnitsLive} / {RaidConfig.UNITS_CAP_PER_ATTACK} raid units`
+			infoLabel.Text = `Time left: {timeLeft}s  |  Click and use abilities!`
+			infoLabel.TextColor3 = if timeLeft <= 10 then Theme.HpFill else Theme.Muted
+			armyBack.Visible = false
+			stagePanel.Size = UDim2.new(0, 300, 0, PANEL_HEIGHT_NORMAL)
+		elseif snapshot.encounter == "Boss" then
 			stageLabel.Text = `BOSS: {area.bossName}`
 			stageLabel.TextColor3 = BOSS_HP_COLOR
 			hpFill.BackgroundColor3 = BOSS_HP_COLOR

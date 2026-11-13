@@ -15,6 +15,8 @@ local AscendConfig = require(Shared.Config.AscendConfig)
 local HonorConfig = require(Shared.Config.HonorConfig)
 local EconomyConfig = require(Shared.Config.EconomyConfig)
 local FactionConfig = require(Shared.Config.FactionConfig)
+local ClanConfig = require(Shared.Config.ClanConfig)
+local RaidConfig = require(Shared.Config.RaidConfig)
 
 type BigNum = BigNum.BigNum
 type TroopCounts = Types.TroopCounts
@@ -164,6 +166,61 @@ function Formulas.armyHp(troops: TroopCounts, gear: GearSet?, troopMultipliers: 
 		total = BigNum.add(total, Formulas.troopHp(troopId, troops[troopId] or 0, gear, troopMultipliers))
 	end
 	return total
+end
+
+---------------------------------------------------------------- clans
+
+-- Gold cost of one Supply: one kill's worth of gold at your best stage this run.
+function Formulas.goldPerSupply(highestStage: number): BigNum
+	return BigNum.round(Formulas.goldPerKill(highestStage))
+end
+
+function Formulas.clanPerkCost(perkId: string, level: number): number
+	local def = ClanConfig.PERKS[perkId]
+	if def == nil then
+		error(`Unknown clan perk: {perkId}`, 2)
+	end
+	return math.floor(def.baseCost * def.costGrowth ^ level + 0.5)
+end
+
+function Formulas.clanDay(unixTime: number): number
+	return unixTime // ClanConfig.DONATION_DAY_SECONDS
+end
+
+---------------------------------------------------------------- clan raid
+
+function Formulas.raidWeek(unixTime: number): number
+	return (unixTime - RaidConfig.WEEK_ANCHOR) // RaidConfig.WEEK_SECONDS
+end
+
+function Formulas.raidWeekStart(weekId: number): number
+	return RaidConfig.WEEK_ANCHOR + weekId * RaidConfig.WEEK_SECONDS
+end
+
+function Formulas.raidDay(unixTime: number): number
+	return (unixTime - RaidConfig.WEEK_ANCHOR) // RaidConfig.DAY_SECONDS
+end
+
+-- Raid units for some damage: how many of your own kills it's worth, capped per attack.
+function Formulas.raidUnits(damage: BigNum, highestStage: number, multiplier: number): number
+	local units = BigNum.toNumber(BigNum.div(damage, Formulas.enemyHp(highestStage))) * multiplier
+	return math.clamp(math.floor(units), 0, RaidConfig.UNITS_CAP_PER_ATTACK)
+end
+
+-- How many tiers a clan's total units have reached.
+function Formulas.raidTier(units: number): number
+	local tier = 0
+	for _, threshold in RaidConfig.TIERS do
+		if units >= threshold then
+			tier += 1
+		end
+	end
+	return tier
+end
+
+-- Rewards for reaching a tier: (honor, freePacks).
+function Formulas.raidRewards(tier: number): (number, number)
+	return tier * RaidConfig.HONOR_PER_TIER, tier // RaidConfig.PACK_EVERY_TIERS
 end
 
 ---------------------------------------------------------------- faction war time

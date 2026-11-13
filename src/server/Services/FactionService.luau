@@ -14,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("FactionConfig"))
+local ClanConfig = require(Shared:WaitForChild("Config"):WaitForChild("ClanConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local Validate = require(Server.Util.Validate)
 local RemoteService = require(Services.RemoteService)
@@ -47,6 +48,10 @@ local function choose(player: Player, factionId: string): FactionResult
 	end
 	if data.faction == factionId then
 		return { ok = false, reason = "AlreadyInFaction" }
+	end
+	-- Faction-locked clans: you can't change sides while in one.
+	if ClanConfig.CLAN_REQUIRES_SAME_FACTION and data.clanId ~= "" and data.faction ~= "" then
+		return { ok = false, reason = "LeaveClanFirst" }
 	end
 	if FactionService.switchAvailableIn(data) > 0 then
 		return { ok = false, reason = if WarService.isSwitchLocked() then "WarLocked" else "OnCooldown" }

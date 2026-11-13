@@ -35,6 +35,9 @@ local template: Types.PlayerData = {
 	factionChangedAt = 0,
 	war = newWarRecord(),
 	lastWar = newWarRecord(),
+	clanId = "",
+	clanDonation = { dayId = -1, amount = 0 },
+	raid = { weekId = -1, clanId = "", attacks = 0, units = 0, dayId = -1, attacksToday = 0, claimedWeek = -1 },
 	troops = {
 		Swordsman = 0,
 		Archer = 0,

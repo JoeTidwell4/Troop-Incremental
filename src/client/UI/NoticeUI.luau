@@ -71,6 +71,15 @@ local function onNotice(notice: Notice)
 		local nextArea = Areas.forStage(notice.stage + 1)
 		local bonus = if notice.firstClear then "  (+1 free gear pack!)" else ""
 		NoticeUI.show("BOSS DEFEATED!", `Entering Area {nextArea.number}: {nextArea.displayName}{bonus}`, Theme.Gold)
+	elseif notice.kind == "RaidResult" then
+		NoticeUI.show("RAID ATTACK DONE", `+{notice.units or 0} raid units for your clan!`, Color3.fromRGB(230, 120, 40))
+	elseif notice.kind == "RaidRewards" then
+		local packs = notice.packs or 0
+		NoticeUI.show(
+			`RAID REWARDS: TIER {notice.tier or 0}`,
+			`+{notice.honor or 0} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"}`,
+			Theme.Gold
+		)
 	elseif notice.kind == "BossFailed" then
 		local reason = FAIL_REASONS[notice.reason or ""] or "Boss fight lost."
 		NoticeUI.show(reason, "Train more troops, then press Fight Boss to try again.", Theme.HpFill)

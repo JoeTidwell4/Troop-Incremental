@@ -88,6 +88,20 @@ local function sanitize(data: PlayerData)
 		data.faction = ""
 	end
 	data.factionChangedAt = wholeNumber(data.factionChangedAt, 0, 0)
+	if typeof(data.clanId) ~= "string" then
+		data.clanId = ""
+	end
+	data.clanDonation.dayId = wholeNumber(data.clanDonation.dayId, -1, -1)
+	data.clanDonation.amount = wholeNumber(data.clanDonation.amount, 0, 0)
+	data.raid.weekId = wholeNumber(data.raid.weekId, -1, -1)
+	data.raid.attacks = wholeNumber(data.raid.attacks, 0, 0)
+	data.raid.units = wholeNumber(data.raid.units, 0, 0)
+	data.raid.dayId = wholeNumber(data.raid.dayId, -1, -1)
+	data.raid.attacksToday = wholeNumber(data.raid.attacksToday, 0, 0)
+	data.raid.claimedWeek = wholeNumber(data.raid.claimedWeek, -1, -1)
+	if typeof(data.raid.clanId) ~= "string" then
+		data.raid.clanId = ""
+	end
 	for _, record in { data.war, data.lastWar } do
 		record.weekId = wholeNumber(record.weekId, -1, -1)
 		record.points = wholeNumber(record.points, 0, 0)

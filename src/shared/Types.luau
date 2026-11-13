@@ -7,7 +7,7 @@ export type BigNum = BigNum.BigNum
 
 export type TroopId = "Swordsman" | "Archer" | "Knight"
 export type AbilityId = "Rally" | "Barrage" | "Plunder"
-export type EncounterKind = "Normal" | "Boss"
+export type EncounterKind = "Normal" | "Boss" | "Raid"
 export type GearSlot = "weapon" | "armor"
 
 -- Troop counts keyed by TroopId. Typed as string keys so new troop types can be added
@@ -122,6 +122,94 @@ export type WarState = {
 	lastResult: WarResult?,
 }
 
+export type ClanRole = "Leader" | "Officer" | "Member"
+
+-- This player's raid participation for one raid week (saved).
+export type RaidRecord = {
+	weekId: number,
+	clanId: string, -- clan the attacks were for
+	attacks: number, -- this week
+	units: number, -- this week
+	dayId: number,
+	attacksToday: number,
+	claimedWeek: number, -- last raid week whose rewards were granted
+}
+
+-- A clan's raid progress for one week (stored in the "ClanRaid" DataStore).
+export type RaidProgress = {
+	units: number,
+	contributors: { [string]: { name: string, units: number, attacks: number } },
+}
+
+-- Sent to clan members (RaidSync remote).
+export type RaidView = {
+	weekId: number,
+	secondsLeft: number,
+	units: number,
+	tier: number,
+	top: { { name: string, units: number, attacks: number } },
+	studioTestMode: boolean,
+}
+
+export type ClanPerkDef = {
+	id: string,
+	displayName: string,
+	description: string,
+	baseCost: number, -- Supplies
+	costGrowth: number,
+	maxLevel: number,
+	damageMultiplier: number?,
+	goldMultiplier: number?,
+	armyHpMultiplier: number?,
+	raidMultiplier: number?,
+}
+
+export type ClanMember = {
+	role: ClanRole,
+	name: string,
+	joinedAt: number,
+	donated: number, -- lifetime Supplies donated to this clan
+}
+
+-- Stored in the "Clans" DataStore. The clan record is the source of truth for membership.
+export type ClanRecord = {
+	id: string,
+	name: string,
+	tag: string,
+	faction: string, -- "" unless CLAN_REQUIRES_SAME_FACTION
+	open: boolean,
+	createdAt: number,
+	members: { [string]: ClanMember }, -- keyed by tostring(userId)
+	memberCount: number,
+	bank: number, -- Supplies
+	perks: { [string]: number }, -- perk id -> level
+	version: number, -- +1 on every change
+}
+
+-- One clan in the browse list.
+export type ClanSummary = {
+	id: string,
+	name: string,
+	tag: string,
+	memberCount: number,
+	faction: string,
+	open: boolean,
+}
+
+-- What a member's client is told about their clan (ClanSync remote).
+export type ClanView = {
+	inClan: boolean,
+	clan: ClanRecord?,
+	myRole: ClanRole?,
+	donatedToday: number,
+}
+
+export type ClanResult = {
+	ok: boolean,
+	reason: string?,
+	clans: { ClanSummary }?,
+}
+
 export type AreaTheme = {
 	name: string,
 	bossName: string,
@@ -150,6 +238,9 @@ export type PlayerData = {
 	factionChangedAt: number, -- os.time() of the last pick/switch (0 = never)
 	war: WarRecord, -- this week
 	lastWar: WarRecord, -- the previous week this player took part in
+	clanId: string, -- "" = not in a clan (a cached copy; the clan record is the truth)
+	clanDonation: { dayId: number, amount: number }, -- Supplies donated today
+	raid: RaidRecord, -- this player's clan raid week
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -211,11 +302,15 @@ export type Snapshot = {
 	warDayPoints: number,
 	warActive: boolean,
 	warBonusActive: boolean, -- won last week's war: winner gold bonus applies
+
+	raidAttacksLeft: number, -- today
+	raidUnitsWeek: number, -- your contribution this raid week
+	raidUnitsLive: number, -- units so far in the raid attack you're doing right now
 }
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -223,6 +318,11 @@ export type Notice = {
 	seconds: number?, -- time counted (after the cap)
 	awaySeconds: number?, -- real time away
 	gold: BigNum?,
+	-- RaidResult / RaidRewards only:
+	units: number?,
+	tier: number?,
+	honor: number?,
+	packs: number?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"

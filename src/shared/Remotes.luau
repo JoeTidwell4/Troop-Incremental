@@ -16,6 +16,12 @@
 -- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
 -- ChooseFaction  client -> server, returns Types.FactionResult (factionId: string)
 -- WarSync        server -> client   (war: Types.WarState)  shared standings, sent to everyone
+-- ClanRequest    client -> server, returns Types.ClanResult (action: string, arg: any)
+--                actions: Create(name, tag) Join(clanId) Leave Kick(userId) Promote(userId)
+--                Demote(userId) SetOpen(bool) Browse Search(name) Donate(supplies) BuyPerk(perkId)
+-- ClanSync       server -> client   (view: Types.ClanView)
+-- RaidSync       server -> client   (view: Types.RaidView)  your clan's raid progress
+--                (raid attacks use ClanRequest action "RaidAttack")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,6 +37,8 @@ local Remotes = {
 		StateSync = "StateSync",
 		Notice = "Notice",
 		WarSync = "WarSync",
+		ClanSync = "ClanSync",
+		RaidSync = "RaidSync",
 	}),
 
 	Functions = table.freeze({
@@ -40,6 +48,7 @@ local Remotes = {
 		Ascend = "Ascend",
 		BuyHonorUpgrade = "BuyHonorUpgrade",
 		ChooseFaction = "ChooseFaction",
+		ClanRequest = "ClanRequest",
 	}),
 }
 

@@ -18,6 +18,7 @@ local Plots = require(Shared:WaitForChild("Plots"))
 local Config = Shared:WaitForChild("Config")
 local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local VisualConfig = require(Config:WaitForChild("VisualConfig"))
+local RaidConfig = require(Config:WaitForChild("RaidConfig"))
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 
@@ -245,7 +246,9 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	if stageChanged or encounterChanged then
 		local theme = Areas.forStage(snapshot.stage).theme
 		isBoss = snapshot.encounter == "Boss"
-		if isBoss then
+		if snapshot.encounter == "Raid" then
+			setEnemyLook(Enum.PartType.Block, BOSS_SIZE * 1.3, RaidConfig.BOSS_COLOR)
+		elseif isBoss then
 			setEnemyLook(theme.enemyShape, BOSS_SIZE, theme.bossColor)
 			bossAttackTimer = 0
 		else

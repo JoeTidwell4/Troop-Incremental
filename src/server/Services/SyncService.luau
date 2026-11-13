@@ -62,7 +62,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		highestStage = data.highestStage,
 		bestStage = data.bestStage,
 		killsInStage = data.killsInStage,
-		enemiesPerStage = if encounter.kind == "Boss" then 1 else StageConfig.ENEMIES_PER_STAGE,
+		enemiesPerStage = if encounter.kind == "Normal" then StageConfig.ENEMIES_PER_STAGE else 1,
 		autoAdvance = data.autoAdvance,
 
 		encounter = encounter.kind,
@@ -98,6 +98,9 @@ local function buildSnapshot(player: Player): Snapshot?
 		warDayPoints = 0,
 		warActive = false,
 		warBonusActive = false,
+		raidAttacksLeft = 0,
+		raidUnitsWeek = 0,
+		raidUnitsLive = 0,
 	}
 	for _, provider in extraProviders do
 		for key, value in provider(player, data) do
