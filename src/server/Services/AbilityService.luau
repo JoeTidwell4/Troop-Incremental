@@ -25,6 +25,7 @@ local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
 local ModifierService = require(Services.ModifierService)
+local ActivityService = require(Services.ActivityService)
 
 type AbilityTimers = Types.AbilityTimers
 
@@ -86,6 +87,7 @@ local function useAbility(player: Player, abilityId: string)
 		CombatService.queueDamage(player, burst)
 	end
 
+	ActivityService.record(player, "Ability", 1)
 	DataService.markChanged(player)
 end
 

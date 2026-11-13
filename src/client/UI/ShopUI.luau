@@ -32,6 +32,7 @@ local FAIL_MESSAGES: { [string]: string } = {
 	CantAfford = "Not enough gold",
 	MaxReached = "Already maxed",
 	NoFreePacks = "No free packs left",
+	NoHeroChests = "No Hero Chests left",
 	CantAffordHonor = "Not enough Honor",
 	TooEarly = "Reach the required stage first",
 	InRaid = "Finish your raid attack first",

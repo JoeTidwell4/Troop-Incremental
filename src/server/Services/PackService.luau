@@ -6,6 +6,7 @@
 --   Same or worse                         -> refund DUPLICATE_REFUND of the pack price.
 -- Bad-luck protection: after PITY_EVERY - 1 packs in a row without PITY_MIN_RARITY or
 -- better, the next roll is forced to be at least that rarity.
+-- Hero Chests (from the daily login calendar) always roll Epic or better.
 -- Free packs: one per boss the first time it's beaten. Granted by comparing the highest
 -- boss beaten with the highest boss already rewarded, so it can never double-grant.
 
@@ -30,6 +31,7 @@ local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
 local StageService = require(Services.StageService)
+local ActivityService = require(Services.ActivityService)
 
 type PackResult = Types.PackResult
 type PlayerData = Types.PlayerData
@@ -70,14 +72,21 @@ local function grantOwedPacks(player: Player, data: PlayerData)
 	end
 end
 
-local function openPack(player: Player, useFree: boolean): PackResult
+type PackMode = "Gold" | "Free" | "Hero"
+
+local function openPack(player: Player, mode: PackMode): PackResult
 	local data = DataService.get(player)
 	if data == nil then
 		return { ok = false, reason = "NotLoaded" }
 	end
 
 	local price = Formulas.packPrice(data.highestStage)
-	if useFree then
+	if mode == "Hero" then
+		if data.packs.hero <= 0 then
+			return { ok = false, reason = "NoHeroChests" }
+		end
+		data.packs.hero -= 1
+	elseif mode == "Free" then
 		if data.packs.free <= 0 then
 			return { ok = false, reason = "NoFreePacks" }
 		end
@@ -93,7 +102,8 @@ local function openPack(player: Player, useFree: boolean): PackResult
 	local troopId = TroopConfig.ORDER[rng:NextInteger(1, #TroopConfig.ORDER)]
 	local slot = GearConfig.SLOTS[rng:NextInteger(1, #GearConfig.SLOTS)]
 	local pityDue = data.packs.sinceEpic + 1 >= PackConfig.PITY_EVERY
-	local rarity = rollRarity(if pityDue then PackConfig.PITY_MIN_RARITY else 1)
+	local guaranteed = pityDue or mode == "Hero"
+	local rarity = rollRarity(if guaranteed then PackConfig.PITY_MIN_RARITY else 1)
 
 	data.packs.opened += 1
 	if rarity >= PackConfig.PITY_MIN_RARITY then
@@ -117,6 +127,7 @@ local function openPack(player: Player, useFree: boolean): PackResult
 		result.refund = refund
 	end
 
+	ActivityService.record(player, "PackOpen", 1)
 	DataService.markChanged(player)
 	return result
 end
@@ -139,8 +150,8 @@ function PackService.start()
 	end)
 
 	local limiter = RateLimiter.new(PackConfig.REQUESTS_BURST, PackConfig.REQUESTS_PER_SECOND)
-	RemoteService.onInvoke(Remotes.Functions.OpenPack, limiter, function(useFree: unknown): boolean?
-		return Validate.boolean(useFree)
+	RemoteService.onInvoke(Remotes.Functions.OpenPack, limiter, function(mode: unknown): PackMode?
+		return Validate.oneOf(mode, { "Gold", "Free", "Hero" }) :: PackMode?
 	end, openPack, REJECTED)
 end
 

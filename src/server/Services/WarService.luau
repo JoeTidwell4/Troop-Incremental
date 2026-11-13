@@ -30,6 +30,7 @@ local ModifierService = require(Services.ModifierService)
 local StageService = require(Services.StageService)
 local SyncService = require(Services.SyncService)
 local WarStore = require(Services.WarStore)
+local ActivityService = require(Services.ActivityService)
 
 type PlayerData = Types.PlayerData
 type WarRecord = Types.WarRecord
@@ -124,6 +125,7 @@ local function onKilled(player: Player, stage: number, kills: number, wasBoss: b
 	end
 	addToBuffer(record.weekId, record.faction, earned, newActive)
 	contributionDirty[player] = true
+	ActivityService.record(player, "WarPoints", earned)
 end
 
 -- Called by FactionService after a pick or switch. Points already earned stay with the

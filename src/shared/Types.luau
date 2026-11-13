@@ -60,6 +60,7 @@ export type GearSet = { [string]: TroopGear }
 
 export type PackState = {
 	free: number, -- unopened free packs
+	hero: number, -- unopened Hero Chests (guaranteed Epic or better)
 	sinceEpic: number, -- packs opened in a row without hitting the pity rarity
 	opened: number, -- lifetime total
 	rewardedBossStage: number, -- highest boss stage that already granted its free pack
@@ -249,6 +250,10 @@ export type PlayerData = {
 	clanDonation: { dayId: number, amount: number }, -- Supplies donated today
 	raid: RaidRecord, -- this player's clan raid week
 	purchases: { string }, -- recent Robux purchase ids already granted (newest last)
+	daily: { lastClaimDay: number, streak: number }, -- login calendar
+	quests: { day: number, list: { QuestState }, rerollsUsed: number, bonusClaimed: boolean },
+	achievements: { [string]: string }, -- id -> "unlocked" | "claimed"
+	lifetime: { [string]: number }, -- lifetime activity counters (see ActivityService)
 	passToggles: { [string]: boolean }, -- toggleable passes switched OFF (missing = on)
 	troops: TroopCounts,
 	gear: GearSet,
@@ -377,6 +382,53 @@ export type Leaderboards = {
 }
 
 export type SoundDef = { id: string, volume: number }
+
+-- A reward bundle (login calendar, quest bonus). Any mix of these.
+export type RewardDef = {
+	goldMinutes: number?,
+	packs: number?,
+	heroChests: number?,
+	honor: number?,
+}
+
+export type QuestDef = {
+	key: string,
+	activity: string, -- ActivityService activity that counts toward it
+	text: string, -- "{n}" is replaced by the target
+	targets: { number }, -- one per difficulty
+	minutes: { number }, -- gold reward (minutes of income) per difficulty
+	requires: string?,
+}
+
+-- One of today's quests (saved).
+export type QuestState = {
+	key: string,
+	difficulty: number,
+	target: number,
+	progress: number,
+	claimed: boolean,
+}
+
+export type AchievementDef = {
+	id: string,
+	name: string,
+	description: string,
+	honor: number,
+	kind: string,
+	key: string?,
+	target: number,
+}
+
+-- Sent to the client (ProgressSync remote).
+export type ProgressView = {
+	studioTestMode: boolean,
+	secondsToNextDay: number,
+	login: { canClaim: boolean, nextIndex: number, streak: number },
+	quests: { QuestState },
+	rerollsLeft: number,
+	bonusClaimed: boolean,
+	achievements: { [string]: { current: number, status: "locked" | "unlocked" | "claimed" } },
+}
 
 export type PassDef = {
 	key: string,

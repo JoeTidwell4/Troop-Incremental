@@ -22,6 +22,7 @@ local Validate = require(Server.Util.Validate)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
+local ActivityService = require(Services.ActivityService)
 
 type BuyMode = Types.BuyMode
 type BuyResult = Types.BuyResult
@@ -68,6 +69,7 @@ local function buy(player: Player, request: BuyRequest): BuyResult
 	data.gold = BigNum.sub(data.gold, cost)
 	data.troops[troopId] = owned + amount
 	CombatService.refreshArmy(player)
+	ActivityService.record(player, "TroopBuy", amount)
 	DataService.markChanged(player)
 	return { ok = true, bought = amount }
 end

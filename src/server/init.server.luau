@@ -27,6 +27,9 @@ local ClanBankService = require(Services.ClanBankService)
 local RaidService = require(Services.RaidService)
 local LeaderboardService = require(Services.LeaderboardService)
 local MonetizationService = require(Services.MonetizationService)
+local ActivityService = require(Services.ActivityService)
+local DailyService = require(Services.DailyService)
+local AchievementService = require(Services.AchievementService)
 
 RemoteService.start() -- first: creates the remotes everything else listens to
 PlotService.start() -- gives each player a battlefield spot and places their avatar
@@ -48,6 +51,9 @@ ClanBankService.start() -- donations and perks
 RaidService.start() -- weekly clan raid boss
 LeaderboardService.start() -- global top lists + player list stats
 MonetizationService.start() -- Robux passes and products (granted only here)
+ActivityService.start() -- counts what players do (for quests and achievements)
+DailyService.start() -- login calendar and daily quests
+AchievementService.start()
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)

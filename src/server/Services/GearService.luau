@@ -20,6 +20,7 @@ local Validate = require(Server.Util.Validate)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
+local ActivityService = require(Services.ActivityService)
 
 type BuyResult = Types.BuyResult
 type GearBuyMode = Types.GearBuyMode
@@ -63,6 +64,7 @@ local function upgrade(player: Player, request: UpgradeRequest): BuyResult
 	data.gold = BigNum.sub(data.gold, cost)
 	state.level += levels
 	CombatService.refreshArmy(player)
+	ActivityService.record(player, "GearUpgrade", levels)
 	DataService.markChanged(player)
 	return { ok = true, bought = levels }
 end

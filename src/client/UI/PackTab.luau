@@ -71,15 +71,23 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		Text = "",
 		TextSize = 14,
 		Position = UDim2.new(0, 0, 0, 64),
-		Size = UDim2.new(0.5, -4, 0, 48),
+		Size = UDim2.new(1 / 3, -4, 0, 48),
 		Parent = left,
 	})
 	local freeButton = UIKit.button({
 		Name = "Free",
 		Text = "",
 		TextSize = 14,
-		Position = UDim2.new(0.5, 4, 0, 64),
-		Size = UDim2.new(0.5, -4, 0, 48),
+		Position = UDim2.new(1 / 3, 2, 0, 64),
+		Size = UDim2.new(1 / 3, -4, 0, 48),
+		Parent = left,
+	})
+	local heroButton = UIKit.button({
+		Name = "Hero",
+		Text = "",
+		TextSize = 14,
+		Position = UDim2.new(2 / 3, 4, 0, 64),
+		Size = UDim2.new(1 / 3, -4, 0, 48),
 		Parent = left,
 	})
 	local pityLabel = UIKit.label({
@@ -91,7 +99,7 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		Parent = left,
 	})
 	UIKit.label({
-		Text = "Beat a new boss to earn a free pack.",
+		Text = "Free packs: beat new bosses. Hero Chests (Epic+): daily login rewards.",
 		TextColor3 = Theme.Muted,
 		TextSize = 12,
 		Position = UDim2.new(0, 0, 0, 140),
@@ -132,13 +140,13 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		})
 	end
 
-	local function open(useFree: boolean)
+	local function open(mode: "Gold" | "Free" | "Hero")
 		if opening then
 			return
 		end
 		opening = true
 		task.spawn(function()
-			local result = ShopController.openPack(useFree)
+			local result = ShopController.openPack(mode)
 			if result.ok then
 				PackRevealUI.show(result) -- yields through the shuffle
 			else
@@ -148,10 +156,13 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		end)
 	end
 	buyButton.Activated:Connect(function()
-		open(false)
+		open("Gold")
 	end)
 	freeButton.Activated:Connect(function()
-		open(true)
+		open("Free")
+	end)
+	heroButton.Activated:Connect(function()
+		open("Hero")
 	end)
 
 	local function render(snapshot: Snapshot)
@@ -165,6 +176,12 @@ function PackTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.
 		freeButton.BackgroundColor3 = if free > 0 then Theme.Gold else Theme.Disabled
 		freeButton.TextColor3 = if free > 0 then Theme.Panel else Theme.Text
 		freeButton.AutoButtonColor = free > 0
+
+		local hero = snapshot.packs.hero
+		heroButton.Text = `Hero Chest
+{hero} left`
+		heroButton.BackgroundColor3 = if hero > 0 then GearInfo.rarity(4).color else Theme.Disabled
+		heroButton.AutoButtonColor = hero > 0
 
 		local packsLeft = math.max(1, PackConfig.PITY_EVERY - snapshot.packs.sinceEpic)
 		local pityName = GearInfo.rarity(PackConfig.PITY_MIN_RARITY).name

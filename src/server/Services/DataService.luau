@@ -186,6 +186,35 @@ local function sanitize(data: PlayerData)
 		end
 	end
 	data.packs.free = wholeNumber(data.packs.free, 0, 0)
+	data.packs.hero = wholeNumber(data.packs.hero, 0, 0)
+	data.daily.lastClaimDay = wholeNumber(data.daily.lastClaimDay, -1, -1)
+	data.daily.streak = math.clamp(wholeNumber(data.daily.streak, 0, 0), 0, 7)
+	data.quests.day = wholeNumber(data.quests.day, -1, -1)
+	data.quests.rerollsUsed = wholeNumber(data.quests.rerollsUsed, 0, 0)
+	if typeof(data.quests.bonusClaimed) ~= "boolean" then
+		data.quests.bonusClaimed = false
+	end
+	local cleanQuests: { Types.QuestState } = {}
+	for _, quest in data.quests.list do
+		if typeof(quest) == "table" and typeof(quest.key) == "string" then
+			table.insert(cleanQuests, {
+				key = quest.key,
+				difficulty = math.clamp(wholeNumber(quest.difficulty, 1, 1), 1, 3),
+				target = wholeNumber(quest.target, 1, 1),
+				progress = wholeNumber(quest.progress, 0, 0),
+				claimed = quest.claimed == true,
+			})
+		end
+	end
+	data.quests.list = cleanQuests
+	for id, status in data.achievements do
+		if status ~= "unlocked" and status ~= "claimed" then
+			data.achievements[id] = nil
+		end
+	end
+	for key, value in data.lifetime do
+		data.lifetime[key] = wholeNumber(value, 0, 0)
+	end
 	data.packs.sinceEpic = wholeNumber(data.packs.sinceEpic, 0, 0)
 	data.packs.opened = wholeNumber(data.packs.opened, 0, 0)
 	data.packs.rewardedBossStage = wholeNumber(data.packs.rewardedBossStage, 0, 0)

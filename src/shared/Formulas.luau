@@ -354,6 +354,16 @@ function Formulas.startingGold(upgrades: { [string]: number }): BigNum
 	return gold
 end
 
+---------------------------------------------------------------- rewards
+
+-- "N minutes of your army's gold": the normal gold rate at your best cleared stage,
+-- at full efficiency, never less than `minimum`. Used by quests, login rewards, products.
+function Formulas.incomeGold(dps: BigNum, goldMultiplier: number, highestStage: number, minutes: number, minimum: number): BigNum
+	local stage = Formulas.offlineStage(highestStage)
+	local gold = Formulas.offlineGold(dps, goldMultiplier, stage, minutes * 60, 1)
+	return BigNum.max(gold, BigNum.fromNumber(minimum))
+end
+
 ---------------------------------------------------------------- offline
 
 -- The stage your army farms while offline: the highest NORMAL stage cleared this run.

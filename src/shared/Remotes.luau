@@ -11,7 +11,7 @@
 -- Notice         server -> client   (notice: Types.Notice)  boss won/lost banners
 -- BuyTroop       client -> server, returns Types.BuyResult   (troopId: string, mode: Types.BuyMode)
 -- UpgradeGear    client -> server, returns Types.BuyResult   (troopId: string, slot: GearSlot, mode: GearBuyMode)
--- OpenPack       client -> server, returns Types.PackResult  (useFree: boolean)
+-- OpenPack       client -> server, returns Types.PackResult  (mode: "Gold" | "Free" | "Hero")
 -- Ascend         client -> server, returns Types.AscendResult ()
 -- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
 -- ChooseFaction  client -> server, returns Types.FactionResult (factionId: string)
@@ -22,6 +22,9 @@
 -- ClanSync       server -> client   (view: Types.ClanView)
 -- RaidSync       server -> client   (view: Types.RaidView)  your clan's raid progress
 -- LeaderboardSync server -> client  (boards: Types.Leaderboards)  global top lists
+-- ProgressRequest client -> server, returns Types.ClanResult-style {ok, reason}
+--                (action: "ClaimLogin" | "ClaimQuest" | "RerollQuest" | "ClaimBonus" | "ClaimAchievement", arg)
+-- ProgressSync   server -> client   (view: Types.ProgressView)  login calendar, quests, achievements
 -- SetPassToggle  client -> server   (passKey: string, enabled: boolean)  Auto Clicker / Auto Abilities on/off
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
@@ -45,6 +48,7 @@ local Remotes = {
 		RaidSync = "RaidSync",
 		LeaderboardSync = "LeaderboardSync",
 		SetPassToggle = "SetPassToggle",
+		ProgressSync = "ProgressSync",
 	}),
 
 	Functions = table.freeze({
@@ -55,6 +59,7 @@ local Remotes = {
 		BuyHonorUpgrade = "BuyHonorUpgrade",
 		ChooseFaction = "ChooseFaction",
 		ClanRequest = "ClanRequest",
+		ProgressRequest = "ProgressRequest",
 	}),
 }
 

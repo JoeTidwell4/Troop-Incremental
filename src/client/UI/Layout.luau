@@ -4,6 +4,7 @@
 --
 -- Left column, top to bottom:
 --   gold panel  ->  "ASCEND READY" button (only when ready)  ->  Sound | Store  ->  War | Clan | Top
+--   ->  Quests
 -- Bottom centre: ability bar, sitting just above the shop panel.
 
 local Layout = {
@@ -18,6 +19,7 @@ local Layout = {
 
 	ROW1_TOP = 152 + 34 + 6, -- 192: Sound | Store
 	ROW2_TOP = 192 + 30 + 6, -- 228: War | Clan | Top
+	ROW3_TOP = 228 + 30 + 6, -- 264: Quests
 	ROW_HEIGHT = 30,
 	GAP = 6,
 

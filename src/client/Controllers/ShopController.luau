@@ -46,8 +46,9 @@ function ShopController.upgradeGear(troopId: string, slot: Types.GearSlot, mode:
 	return if result ~= nil then result :: BuyResult else { ok = false, bought = 0, reason = "NoResponse" }
 end
 
-function ShopController.openPack(useFree: boolean): PackResult
-	local result = invoke(Remotes.Functions.OpenPack, useFree)
+-- mode: "Gold" (pay), "Free" (boss free pack), "Hero" (Hero Chest, Epic or better)
+function ShopController.openPack(mode: "Gold" | "Free" | "Hero"): PackResult
+	local result = invoke(Remotes.Functions.OpenPack, mode)
 	return if result ~= nil then result :: PackResult else { ok = false, reason = "NoResponse" }
 end
 

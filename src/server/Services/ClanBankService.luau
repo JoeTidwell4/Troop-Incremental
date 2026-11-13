@@ -26,6 +26,7 @@ local DataService = require(Services.DataService)
 local ModifierService = require(Services.ModifierService)
 local ClanService = require(Services.ClanService)
 local ClanStore = require(Services.ClanStore)
+local ActivityService = require(Services.ActivityService)
 
 type ClanRecord = Types.ClanRecord
 type ClanResult = Types.ClanResult
@@ -126,6 +127,7 @@ local function donate(player: Player, data: PlayerData, amount: number): ClanRes
 	batch.bank += allowed
 	batch.donors[userKey] = (batch.donors[userKey] or 0) + allowed
 	ClanService.pushClan(record.id)
+	ActivityService.record(player, "Donate", allowed)
 	return { ok = true }
 end
 
