@@ -19,6 +19,7 @@ local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local StateController = require(Client.Controllers.StateController)
 local CommanderController = require(Client.Controllers.CommanderController)
+local ChestRevealUI = require(script.Parent.ChestRevealUI)
 
 type Snapshot = Types.Snapshot
 type ItemDef = Types.CommanderItemDef
@@ -191,50 +192,6 @@ function WardrobeUI.start()
 	local chestCards: { [string]: ChestCard } = {}
 	local opening = false
 
-	-- Reveal: covers the chest panel for a moment with what you got.
-	local reveal = UIKit.create("Frame", {
-		Name = "Reveal",
-		BackgroundColor3 = Theme.Panel,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 1, 0),
-		Visible = false,
-		ZIndex = 5,
-		Parent = chestPanel,
-	}, { UIKit.corner(10) }) :: Frame
-	local revealTitle = UIKit.label({
-		Text = "",
-		Font = Theme.FontBold,
-		TextSize = 24,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.new(0, 0, 0.25, 0),
-		Size = UDim2.new(1, 0, 0, 30),
-		ZIndex = 6,
-		Parent = reveal,
-	})
-	local revealInfo = UIKit.label({
-		Text = "",
-		TextColor3 = Theme.Muted,
-		TextSize = 14,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.new(0, 0, 0.25, 34),
-		Size = UDim2.new(1, 0, 0, 20),
-		ZIndex = 6,
-		Parent = reveal,
-	})
-	local revealOk = UIKit.button({
-		Text = "OK",
-		TextSize = 16,
-		BackgroundColor3 = Theme.Accent,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.25, 70),
-		Size = UDim2.new(0, 140, 0, 40),
-		ZIndex = 6,
-		Parent = reveal,
-	})
-	revealOk.Activated:Connect(function()
-		reveal.Visible = false
-	end)
-
 	local MESSAGES: { [string]: string } = {
 		CantAfford = "Not enough gold",
 		TooEarly = `Reach stage {CommanderConfig.CHEST_UNLOCK_STAGE} first`,
@@ -285,7 +242,7 @@ function WardrobeUI.start()
 			Parent = card,
 		})
 		button.Activated:Connect(function()
-			if opening then
+			if opening or ChestRevealUI.isPlaying() then
 				return
 			end
 			opening = true
@@ -294,14 +251,7 @@ function WardrobeUI.start()
 				opening = false
 				local def = if result.itemId ~= nil then CommanderConfig.ITEMS[result.itemId] else nil
 				if result.ok and def ~= nil then
-					local rarity = GearInfo.rarity(def.rarity)
-					revealTitle.Text = `{rarity.name}: {def.displayName}`
-					revealTitle.TextColor3 = rarity.color
-					revealInfo.Text = if result.duplicate and result.refund ~= nil
-						then `Already owned: +{NumberFormat.big(result.refund)} gold back`
-						else `{statText(def)}  |  New! Wear it in the {def.slot} tab.`
-					reveal.Visible = true
-					UIKit.bump(revealTitle, 0.3)
+					ChestRevealUI.play(chest.displayName, def, result)
 				else
 					bonusLabel.Text = MESSAGES[result.reason or ""] or "Couldn't open that, try again."
 				end
