@@ -59,6 +59,11 @@ function ShopController.useForge(troopId: string, slot: string): PackResult
 	return if result ~= nil then result :: PackResult else { ok = false, reason = "NoResponse" }
 end
 
+function ShopController.buyAbilityUpgrade(upgradeId: string): BuyResult
+	local result = invoke(Remotes.Functions.BuyAbilityUpgrade, upgradeId)
+	return if result ~= nil then result :: BuyResult else { ok = false, bought = 0, reason = "NoResponse" }
+end
+
 function ShopController.buyHonorUpgrade(upgradeId: string): BuyResult
 	local result = invoke(Remotes.Functions.BuyHonorUpgrade, upgradeId)
 	return if result ~= nil then result :: BuyResult else { ok = false, bought = 0, reason = "NoResponse" }

@@ -15,6 +15,7 @@
 -- UseForge       client -> server, returns Types.PackResult  (troopId: string, slot: GearSlot)  spends an Epic Forge token
 -- Ascend         client -> server, returns Types.AscendResult ()
 -- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
+-- BuyAbilityUpgrade client -> server, returns Types.BuyResult (upgradeId: string)  AbilityConfig.UPGRADES, paid in Honor
 -- ChooseFaction  client -> server, returns Types.FactionResult (factionId: string)
 -- WarSync        server -> client   (war: Types.WarState)  shared standings, sent to everyone
 -- ClanRequest    client -> server, returns Types.ClanResult (action: string, arg: any)
@@ -28,6 +29,8 @@
 -- ProgressSync   server -> client   (view: Types.ProgressView)  login calendar, quests, achievements
 -- SetPassToggle  client -> server   (passKey: string, enabled: boolean)  Auto Clicker / Auto Abilities on/off
 -- SetSetting     client -> server   (key: string, value: string)  saved settings (see SettingsConfig)
+-- WeakPoint      server -> client   (event: Types.WeakPointEvent)  boss/raid weak point spawned or cleared
+-- HitWeakPoint   client -> server, returns Types.WeakPointResult (id: number)
 --                (Robux purchases are prompted on the client with MarketplaceService and
 --                 granted only by the server: ProcessReceipt / PromptGamePassPurchaseFinished)
 --                (raid attacks use ClanRequest action "RaidAttack")
@@ -51,6 +54,7 @@ local Remotes = {
 		LeaderboardSync = "LeaderboardSync",
 		SetPassToggle = "SetPassToggle",
 		SetSetting = "SetSetting",
+		WeakPoint = "WeakPoint",
 		ProgressSync = "ProgressSync",
 	}),
 
@@ -61,6 +65,8 @@ local Remotes = {
 		UseForge = "UseForge",
 		Ascend = "Ascend",
 		BuyHonorUpgrade = "BuyHonorUpgrade",
+		BuyAbilityUpgrade = "BuyAbilityUpgrade",
+		HitWeakPoint = "HitWeakPoint",
 		ChooseFaction = "ChooseFaction",
 		ClanRequest = "ClanRequest",
 		ProgressRequest = "ProgressRequest",

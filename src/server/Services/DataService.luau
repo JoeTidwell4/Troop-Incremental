@@ -155,6 +155,9 @@ local function sanitize(data: PlayerData)
 			record.active = false
 		end
 	end
+	for upgradeId, level in data.abilityUpgrades do
+		data.abilityUpgrades[upgradeId] = wholeNumber(level, 0, 0)
+	end
 	for upgradeId, level in data.honorUpgrades do
 		data.honorUpgrades[upgradeId] = wholeNumber(level, 0, 0)
 	end

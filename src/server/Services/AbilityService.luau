@@ -17,6 +17,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
@@ -77,13 +78,14 @@ local function useAbility(player: Player, abilityId: string)
 		return -- still on cooldown
 	end
 
+	local stats = Formulas.abilityStats(abilityId, data.abilityUpgrades)
 	playerTimers[abilityId] = {
-		readyAt = currentTime + def.cooldown,
-		activeUntil = if def.duration ~= nil then currentTime + def.duration else 0,
+		readyAt = currentTime + stats.cooldown,
+		activeUntil = if stats.duration ~= nil then currentTime + stats.duration else 0,
 	}
 
-	if def.burstDpsSeconds ~= nil then
-		local burst = BigNum.mulNumber(CombatService.getDps(player), def.burstDpsSeconds)
+	if stats.burstDpsSeconds ~= nil then
+		local burst = BigNum.mulNumber(CombatService.getDps(player), stats.burstDpsSeconds)
 		CombatService.queueDamage(player, burst)
 	end
 
@@ -109,11 +111,13 @@ end
 function AbilityService.start()
 	-- Active timed abilities feed their multipliers into combat.
 	ModifierService.register(function(player: Player): ModifierService.PartialModifiers?
+		local data = DataService.get(player)
 		local damage, gold = 1, 1
-		for abilityId, def in AbilityConfig.ABILITIES do
+		for abilityId in AbilityConfig.ABILITIES do
 			if isActive(player, abilityId) then
-				damage *= def.damageMultiplier or 1
-				gold *= def.goldMultiplier or 1
+				local stats = Formulas.abilityStats(abilityId, if data ~= nil then data.abilityUpgrades else nil)
+				damage *= stats.damageMultiplier or 1
+				gold *= stats.goldMultiplier or 1
 			end
 		end
 		return { damage = damage, gold = gold }

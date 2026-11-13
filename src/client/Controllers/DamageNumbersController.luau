@@ -28,7 +28,14 @@ local anchor: Part? = nil
 
 local DamageNumbersController = {}
 
-local function spawnText(text: string, color: Color3, size: number)
+local spawnText: (text: string, color: Color3, size: number) -> ()
+
+-- Floats any text above the enemy (e.g. weak point hits).
+function DamageNumbersController.show(text: string, color: Color3, size: number)
+	spawnText(text, color, size)
+end
+
+spawnText = function(text: string, color: Color3, size: number)
 	local enemy = BattlefieldController.getEnemyPosition()
 	if enemy == nil or active >= Quality.get().damageNumbers then
 		return

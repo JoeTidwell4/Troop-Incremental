@@ -32,6 +32,7 @@ local AudioConfig = {
 		RaidStart = { id = "", volume = 0.6 },
 		Purchase = { id = "", volume = 0.7 }, -- Robux purchase went through
 		UIClick = { id = "", volume = 0.3 }, -- any UI button
+		WeakPointHit = { id = "", volume = 0.6 }, -- you tapped a boss weak point in time
 	} :: { [string]: SoundDef },
 
 	MUSIC = {

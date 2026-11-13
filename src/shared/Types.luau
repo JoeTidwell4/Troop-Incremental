@@ -48,6 +48,27 @@ export type AbilityDef = {
 	key: Enum.KeyCode, -- keyboard shortcut (visual/client only)
 }
 
+-- One upgrade track of an ability (AbilityConfig.UPGRADES), bought with Honor.
+export type AbilityUpgradeDef = {
+	id: string,
+	abilityId: string,
+	displayName: string,
+	stat: "damageMultiplier" | "goldMultiplier" | "duration" | "cooldown" | "burstDpsSeconds",
+	perLevel: number, -- added to the stat per level (negative = lower, e.g. cooldown)
+	maxLevel: number,
+	baseCost: number, -- Honor
+	costGrowth: number,
+}
+
+-- An ability's numbers after upgrades (Formulas.abilityStats).
+export type AbilityStats = {
+	cooldown: number,
+	duration: number?,
+	damageMultiplier: number?,
+	goldMultiplier: number?,
+	burstDpsSeconds: number?,
+}
+
 export type RarityDef = {
 	name: string,
 	multiplier: number,
@@ -262,6 +283,7 @@ export type PlayerData = {
 	highestBossDefeated: number, -- stage of the highest boss beaten this run (0 = none)
 	honor: BigNum,
 	honorUpgrades: { [string]: number }, -- Honor upgrade id -> level
+	abilityUpgrades: { [string]: number }, -- AbilityConfig.UPGRADES id -> level (bought with Honor)
 	lastSeen: number, -- os.time() the server last saw this player (0 = never)
 	faction: string, -- faction id, "" = not chosen yet
 	factionChangedAt: number, -- os.time() of the last pick/switch (0 = never)
@@ -334,6 +356,7 @@ export type Snapshot = {
 
 	honor: BigNum,
 	honorUpgrades: { [string]: number },
+	abilityUpgrades: { [string]: number },
 	ascendHonor: BigNum, -- Honor you'd get for Ascending right now (zero if not allowed)
 	ascensions: number,
 
@@ -378,6 +401,23 @@ export type BuyResult = {
 	ok: boolean,
 	bought: number,
 	reason: string?,
+}
+
+-- Server -> client: a weak point appeared ("Spawn") or the fight ended ("Clear").
+-- x in [-1, 1], y in [0, 1]: where on the enemy to draw it.
+export type WeakPointEvent = {
+	kind: "Spawn" | "Clear",
+	id: number,
+	expiresAt: number, -- server time (workspace:GetServerTimeNow())
+	x: number,
+	y: number,
+}
+
+export type WeakPointResult = {
+	ok: boolean,
+	reason: string?,
+	damage: BigNum?,
+	streak: number?, -- hits in a row, including this one
 }
 
 export type PackResult = {

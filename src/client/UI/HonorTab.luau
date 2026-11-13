@@ -1,6 +1,7 @@
 --!strict
 -- Shop tab: Honor. Left side: Ascend (preview + button). Right side: the Honor shop's
--- permanent upgrades. All prices and previews are display only; the server decides.
+-- permanent upgrades, then ability upgrades (AbilityConfig.UPGRADES, also Honor).
+-- All prices and previews are display only; the server decides.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -13,6 +14,7 @@ local Formulas = require(Shared:WaitForChild("Formulas"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local Config = Shared:WaitForChild("Config")
 local HonorConfig = require(Config:WaitForChild("HonorConfig"))
+local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local AscendConfig = require(Config:WaitForChild("AscendConfig"))
 local UIKit = require(script.Parent.UIKit)
 local ShopTypes = require(script.Parent.ShopTypes)
@@ -51,6 +53,34 @@ local function effectText(def: HonorUpgradeDef, level: number, upgrades: { [stri
 		return `now +{hours}h cap, +{percent}% offline gold`
 	end
 	return ""
+end
+
+-- "x2.30 -> x2.45 damage" style text for an ability upgrade at `level`.
+local function abilityEffectText(def: Types.AbilityUpgradeDef, level: number): string
+	local fmt = NumberFormat.number
+	local function value(atLevel: number): number
+		local stats = Formulas.abilityStats(def.abilityId, { [def.id] = atLevel }) :: any
+		return stats[def.stat] or 0
+	end
+	local now = value(level)
+	local nextValue = if level < def.maxLevel then value(level + 1) else nil
+	local function show(v: number): string
+		if def.stat == "damageMultiplier" or def.stat == "goldMultiplier" then
+			return `x{fmt(v)}`
+		end
+		return `{fmt(v)}s`
+	end
+	local what = ({
+		damageMultiplier = "damage",
+		goldMultiplier = "gold",
+		duration = "long",
+		cooldown = "cooldown",
+		burstDpsSeconds = "of army damage",
+	} :: { [string]: string })[def.stat] or ""
+	if nextValue == nil then
+		return `{show(now)} {what} (max)`
+	end
+	return `{show(now)} -> {show(nextValue)} {what}`
 end
 
 function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes.Tab
@@ -212,8 +242,105 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		rows[upgradeId] = { level = level, effect = effect, button = button }
 	end
 
+	-- Ability upgrades, under a heading, in the same list.
+	local abilityRows: { [string]: Row } = {}
+	local abilityPending: { [string]: boolean } = {}
+	UIKit.label({
+		Text = "Ability upgrades",
+		Font = Theme.FontBold,
+		TextSize = 14,
+		TextColor3 = HONOR_COLOR,
+		LayoutOrder = 100,
+		Size = UDim2.new(1, -8, 0, 20),
+		Parent = list,
+	})
+	for order, upgradeId in AbilityConfig.UPGRADE_ORDER do
+		local def = AbilityConfig.UPGRADES[upgradeId]
+		local row = UIKit.create("Frame", {
+			Name = upgradeId,
+			LayoutOrder = 100 + order,
+			BackgroundColor3 = Theme.PanelLight,
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, -8, 0, ROW_HEIGHT),
+			Parent = list,
+		}, { UIKit.corner(6) }) :: Frame
+		UIKit.label({
+			Text = def.displayName,
+			Font = Theme.FontBold,
+			TextSize = 13,
+			Position = UDim2.new(0, 8, 0, 3),
+			Size = UDim2.new(0.5, -8, 0, 16),
+			Parent = row,
+		})
+		local level = UIKit.label({
+			Text = "",
+			TextColor3 = HONOR_COLOR,
+			TextSize = 12,
+			Position = UDim2.new(0.5, 0, 0, 3),
+			Size = UDim2.new(0.5, -96, 0, 16),
+			Parent = row,
+		})
+		local effect = UIKit.label({
+			Text = "",
+			TextColor3 = Theme.Muted,
+			TextSize = 11,
+			Position = UDim2.new(0, 8, 0, 21),
+			Size = UDim2.new(1, -104, 0, 15),
+			Parent = row,
+		})
+		local button = UIKit.button({
+			Name = "Buy",
+			Text = "",
+			TextSize = 12,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -4, 0.5, 0),
+			Size = UDim2.new(0, 88, 1, -8),
+			Parent = row,
+		})
+		button.Activated:Connect(function()
+			if abilityPending[upgradeId] then
+				return
+			end
+			abilityPending[upgradeId] = true
+			task.spawn(function()
+				local result = ShopController.buyAbilityUpgrade(upgradeId)
+				abilityPending[upgradeId] = nil
+				if not result.ok then
+					context.showStatus(context.failMessage(result.reason))
+				end
+			end)
+		end)
+		abilityRows[upgradeId] = { level = level, effect = effect, button = button }
+	end
+
+	local function renderAbilityRows(snapshot: Snapshot)
+		for upgradeId, row in abilityRows do
+			local def = AbilityConfig.UPGRADES[upgradeId]
+			local ability = AbilityConfig.ABILITIES[def.abilityId]
+			local current = snapshot.abilityUpgrades[upgradeId] or 0
+			row.level.Text = `Lv {current}/{def.maxLevel}`
+			row.effect.Text = abilityEffectText(def, current)
+			if snapshot.bestStage < ability.unlockStage then
+				row.button.Text = `Unlocks at\nstage {ability.unlockStage}`
+				row.button.BackgroundColor3 = Theme.Disabled
+				row.button.AutoButtonColor = false
+			elseif current >= def.maxLevel then
+				row.button.Text = "MAX"
+				row.button.BackgroundColor3 = Theme.Disabled
+				row.button.AutoButtonColor = false
+			else
+				local cost = Formulas.abilityUpgradeCost(upgradeId, current)
+				local affordable = BigNum.gte(snapshot.honor, cost)
+				row.button.Text = `Upgrade\n{format(cost)} Honor`
+				row.button.BackgroundColor3 = if affordable then Theme.Good else Theme.Disabled
+				row.button.AutoButtonColor = affordable
+			end
+		end
+	end
+
 	---------------------------------------------------------------- render
 	local function render(snapshot: Snapshot)
+		renderAbilityRows(snapshot)
 		latest = snapshot
 		honorLabel.Text = `Honor: {format(snapshot.honor)}`
 		runLabel.Text = `Best this run: stage {snapshot.highestStage}  |  Ascensions: {snapshot.ascensions}`

@@ -30,6 +30,7 @@ local MonetizationService = require(Services.MonetizationService)
 local ActivityService = require(Services.ActivityService)
 local SettingsService = require(Services.SettingsService)
 local AnalyticsService = require(Services.AnalyticsService)
+local WeakPointService = require(Services.WeakPointService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
 
@@ -58,6 +59,7 @@ DailyService.start() -- login calendar and daily quests
 AchievementService.start()
 SettingsService.start() -- graphics / sound settings saved in the profile
 AnalyticsService.start() -- onboarding funnel, boss results, Honor flow (Creator Dashboard)
+WeakPointService.start() -- tap targets during bosses and raids
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)

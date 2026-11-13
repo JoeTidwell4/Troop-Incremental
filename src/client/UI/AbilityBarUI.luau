@@ -10,6 +10,7 @@ local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local Spotlight = require(script.Parent.Spotlight)
@@ -149,7 +150,8 @@ local function update()
 				slot.button.BackgroundColor3 = Theme.PanelLight
 				slot.timerLabel.Text = if active then `{math.ceil(activeUntil - now)}s` else `{math.ceil(remaining)}`
 				slot.timerLabel.TextColor3 = if active then Theme.Gold else Theme.Text
-				slot.cooldownFill.Size = UDim2.new(1, 0, math.clamp(remaining / def.cooldown, 0, 1), 0)
+				local cooldown = Formulas.abilityStats(abilityId, snapshot.abilityUpgrades).cooldown
+				slot.cooldownFill.Size = UDim2.new(1, 0, math.clamp(remaining / cooldown, 0, 1), 0)
 			else
 				slot.button.BackgroundColor3 = Theme.Accent
 				slot.timerLabel.Text = "READY"

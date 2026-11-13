@@ -39,6 +39,7 @@ local DailyConfig = {
 	QUESTS = {
 		{ key = "Kill", activity = "Kill", text = "Defeat {n} enemies", targets = { 150, 300, 600 }, minutes = { 10, 20, 30 } },
 		{ key = "Boss", activity = "BossWin", text = "Defeat {n} boss(es)", targets = { 1, 2, 3 }, minutes = { 15, 25, 40 }, requires = "gear" },
+		{ key = "WeakPoint", activity = "WeakPoint", text = "Hit {n} boss weak point(s)", targets = { 3, 6, 10 }, minutes = { 10, 20, 30 }, requires = "gear" },
 		{ key = "Ability", activity = "Ability", text = "Use abilities {n} times", targets = { 8, 15, 25 }, minutes = { 10, 20, 30 }, requires = "abilities" },
 		{ key = "Troops", activity = "TroopBuy", text = "Train {n} troops", targets = { 20, 50, 100 }, minutes = { 10, 20, 30 } },
 		{ key = "Gear", activity = "GearUpgrade", text = "Upgrade gear {n} times", targets = { 5, 10, 20 }, minutes = { 10, 20, 30 }, requires = "gear" },

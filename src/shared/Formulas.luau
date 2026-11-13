@@ -13,6 +13,7 @@ local GearConfig = require(Shared.Config.GearConfig)
 local PackConfig = require(Shared.Config.PackConfig)
 local AscendConfig = require(Shared.Config.AscendConfig)
 local HonorConfig = require(Shared.Config.HonorConfig)
+local AbilityConfig = require(Shared.Config.AbilityConfig)
 local EconomyConfig = require(Shared.Config.EconomyConfig)
 local FactionConfig = require(Shared.Config.FactionConfig)
 local ClanConfig = require(Shared.Config.ClanConfig)
@@ -357,6 +358,44 @@ function Formulas.nextHonorStage(stage: number): number
 		end
 	end
 	return stage + 1
+end
+
+-- An ability's numbers after its Honor upgrades (AbilityConfig.UPGRADES). `upgrades` is
+-- the player's abilityUpgrades (id -> level); nil = no upgrades.
+function Formulas.abilityStats(abilityId: string, upgrades: { [string]: number }?): Types.AbilityStats
+	local def = AbilityConfig.ABILITIES[abilityId]
+	local stats: { [string]: number? } = {
+		cooldown = def.cooldown,
+		duration = def.duration,
+		damageMultiplier = def.damageMultiplier,
+		goldMultiplier = def.goldMultiplier,
+		burstDpsSeconds = def.burstDpsSeconds,
+	}
+	if upgrades ~= nil then
+		for upgradeId, upgrade in AbilityConfig.UPGRADES do
+			local level = math.clamp(upgrades[upgradeId] or 0, 0, upgrade.maxLevel)
+			local base = stats[upgrade.stat]
+			if upgrade.abilityId == abilityId and level > 0 and base ~= nil then
+				stats[upgrade.stat] = base + upgrade.perLevel * level
+			end
+		end
+	end
+	return {
+		cooldown = stats.cooldown :: number,
+		duration = stats.duration,
+		damageMultiplier = stats.damageMultiplier,
+		goldMultiplier = stats.goldMultiplier,
+		burstDpsSeconds = stats.burstDpsSeconds,
+	}
+end
+
+-- Honor cost of the next level of an ability upgrade.
+function Formulas.abilityUpgradeCost(upgradeId: string, level: number): BigNum
+	local def = AbilityConfig.UPGRADES[upgradeId]
+	if def == nil then
+		error(`Unknown ability upgrade: {upgradeId}`, 2)
+	end
+	return BigNum.round(BigNum.mulNumber(BigNum.powNumber(def.costGrowth, level), def.baseCost))
 end
 
 function Formulas.honorUpgradeCost(upgradeId: string, level: number): BigNum

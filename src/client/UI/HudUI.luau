@@ -76,7 +76,7 @@ local function tipFor(snapshot: Snapshot): (string?, string?)
 		return "Buy a Swordsman in the shop below. Troops fight for you!", "Buy:Swordsman"
 	end
 	if snapshot.encounter == "Boss" then
-		return "Boss fight! Beat it before time runs out. Knights soak up hits.", nil
+		return `Boss fight! {TAP} the red ! targets on the boss for big damage.`, nil
 	end
 	if not snapshot.autoAdvance and Formulas.isBossStage(snapshot.stage + 1) then
 		return "Got stronger? Press FIGHT BOSS to try again.", "FightBoss"

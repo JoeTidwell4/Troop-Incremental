@@ -14,6 +14,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local HonorConfig = require(Shared:WaitForChild("Config"):WaitForChild("HonorConfig"))
+local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local Validate = require(Server.Util.Validate)
 local RemoteService = require(Services.RemoteService)
@@ -70,6 +71,32 @@ local function buyUpgrade(player: Player, upgradeId: string): BuyResult
 	return { ok = true, bought = 1 }
 end
 
+-- Ability upgrades (AbilityConfig.UPGRADES) are also paid in Honor and kept on Ascend.
+-- AbilityService reads the levels through Formulas.abilityStats.
+local function buyAbilityUpgrade(player: Player, upgradeId: string): BuyResult
+	local data = DataService.get(player)
+	local def = AbilityConfig.UPGRADES[upgradeId]
+	if data == nil or def == nil then
+		return { ok = false, bought = 0, reason = "NotLoaded" }
+	end
+	if data.bestStage < AbilityConfig.ABILITIES[def.abilityId].unlockStage then
+		return { ok = false, bought = 0, reason = "TooEarly" }
+	end
+	local level = data.abilityUpgrades[upgradeId] or 0
+	if level >= def.maxLevel then
+		return { ok = false, bought = 0, reason = "MaxReached" }
+	end
+	local cost = Formulas.abilityUpgradeCost(upgradeId, level)
+	if BigNum.lt(data.honor, cost) then
+		return { ok = false, bought = 0, reason = "CantAffordHonor" }
+	end
+	data.honor = BigNum.sub(data.honor, cost)
+	data.abilityUpgrades[upgradeId] = level + 1
+	Analytics.honor(player, "Sink", cost, data.honor, "HonorShop", upgradeId)
+	DataService.markChanged(player)
+	return { ok = true, bought = 1 }
+end
+
 function HonorService.start()
 	ModifierService.register(function(player: Player): ModifierService.PartialModifiers?
 		local data = DataService.get(player)
@@ -93,6 +120,9 @@ function HonorService.start()
 	RemoteService.onInvoke(Remotes.Functions.BuyHonorUpgrade, limiter, function(upgradeId: unknown): string?
 		return Validate.keyOf(upgradeId, HonorConfig.UPGRADES)
 	end, buyUpgrade, REJECTED)
+	RemoteService.onInvoke(Remotes.Functions.BuyAbilityUpgrade, limiter, function(upgradeId: unknown): string?
+		return Validate.keyOf(upgradeId, AbilityConfig.UPGRADES)
+	end, buyAbilityUpgrade, REJECTED)
 end
 
 return HonorService

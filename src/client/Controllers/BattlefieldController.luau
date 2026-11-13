@@ -179,6 +179,16 @@ function BattlefieldController.getEnemyPosition(): Vector3?
 	return enemyHome.Position + Vector3.new(0, enemyHeight, 0)
 end
 
+-- A spot on the enemy's front for a weak point: x in [-1, 1] (left/right), y in [0, 1]
+-- (feet to head). Nil before the battlefield exists.
+function BattlefieldController.getWeakPointPosition(x: number, y: number): Vector3?
+	if enemyModel == nil then
+		return nil
+	end
+	local width = enemyHeight * 0.35
+	return enemyHome.Position + Vector3.new(x * width, enemyHeight * y, -enemyHeight * 0.3)
+end
+
 local function enemyCenter(): Vector3
 	return enemyHome.Position + Vector3.new(0, enemyHeight * 0.55, 0)
 end

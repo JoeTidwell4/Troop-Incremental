@@ -93,6 +93,7 @@ local function buildSnapshot(player: Player): Snapshot?
 
 		honor = data.honor,
 		honorUpgrades = data.honorUpgrades,
+		abilityUpgrades = data.abilityUpgrades,
 		ascendHonor = Formulas.honorForStage(data.highestStage),
 		ascensions = data.stats.ascensions,
 

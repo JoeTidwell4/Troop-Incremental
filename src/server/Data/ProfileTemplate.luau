@@ -30,6 +30,7 @@ local template: Types.PlayerData = {
 	highestBossDefeated = 0,
 	honor = BigNum.ZERO,
 	honorUpgrades = {},
+	abilityUpgrades = {},
 	lastSeen = 0,
 	faction = "",
 	factionChangedAt = 0,

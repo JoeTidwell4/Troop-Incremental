@@ -68,7 +68,7 @@ local MonetizationConfig = {
 		},
 		EpicForge = {
 			key = "EpicForge",
-			id = 0,
+			id = 2088872399,
 			displayName = "Epic Forge",
 			description = "Pick any troop's Weapon or Armor: it becomes Epic. Gear resets on Ascend, so save the token until you need it.",
 			forgeTokens = 1,
