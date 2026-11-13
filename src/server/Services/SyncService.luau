@@ -10,6 +10,7 @@ local Server = script.Parent.Parent
 local Services = script.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
+local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Config = Shared:WaitForChild("Config")
@@ -19,6 +20,9 @@ local RateLimiter = require(Server.Util.RateLimiter)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local CombatService = require(Services.CombatService)
+local StageService = require(Services.StageService)
+local AbilityService = require(Services.AbilityService)
+local ModifierService = require(Services.ModifierService)
 
 type Snapshot = Types.Snapshot
 
@@ -29,22 +33,35 @@ local SyncService = {}
 
 local function buildSnapshot(player: Player): Snapshot?
 	local data = DataService.get(player)
-	local combat = CombatService.getState(player)
-	if data == nil or combat == nil then
+	local encounter = StageService.getEncounter(player)
+	if data == nil or encounter == nil then
 		return nil
 	end
+	local modifiers = ModifierService.get(player)
 	return {
 		gold = data.gold,
 		stage = data.stage,
 		highestStage = data.highestStage,
 		killsInStage = data.killsInStage,
-		enemiesPerStage = StageConfig.ENEMIES_PER_STAGE,
-		enemyHp = combat.enemyHp,
-		enemyMaxHp = combat.enemyMaxHp,
-		goldPerKill = combat.goldPerKill,
-		armyDps = combat.armyDps,
-		tapDamage = combat.tapDamage,
+		enemiesPerStage = if encounter.kind == "Boss" then 1 else StageConfig.ENEMIES_PER_STAGE,
+		autoAdvance = data.autoAdvance,
+
+		encounter = encounter.kind,
+		enemyHp = encounter.enemyHp,
+		enemyMaxHp = encounter.enemyMaxHp,
+		goldPerKill = BigNum.mulNumber(encounter.goldPerKill, modifiers.gold),
+		bossEndsAt = encounter.bossEndsAt,
+		bossDps = encounter.bossDps,
+
+		armyDps = CombatService.getDps(player),
+		tapDamage = CombatService.getTapDamage(player),
+		armyHp = StageService.getArmyHp(player),
+		armyMaxHp = CombatService.getMaxHp(player),
+		damageMultiplier = modifiers.damage,
+		goldMultiplier = modifiers.gold,
+
 		troops = table.clone(data.troops),
+		abilities = AbilityService.getTimers(player),
 		totalKills = data.stats.totalKills,
 	}
 end

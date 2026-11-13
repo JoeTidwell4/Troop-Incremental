@@ -17,6 +17,13 @@ function Validate.integer(value: unknown, min: number, max: number): number?
 	return n
 end
 
+function Validate.boolean(value: unknown): boolean?
+	if typeof(value) ~= "boolean" then
+		return nil
+	end
+	return value :: boolean
+end
+
 -- One of a fixed list of allowed strings.
 function Validate.oneOf(value: unknown, allowed: { string }): string?
 	if typeof(value) ~= "string" then

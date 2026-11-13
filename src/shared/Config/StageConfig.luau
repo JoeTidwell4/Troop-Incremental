@@ -13,10 +13,6 @@ local StageConfig = {
 
 	GOLD_BASE = 1.5,
 	GOLD_GROWTH = 1.15,
-
-	-- Max stages a player can clear in one server tick (extra damage is wasted).
-	-- Stops a huge damage spike from skipping dozens of stages at once.
-	MAX_STAGE_CLEARS_PER_TICK = 1,
 }
 
 return table.freeze(StageConfig)

@@ -10,12 +10,15 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 
 type Snapshot = Types.Snapshot
+type Notice = Types.Notice
 
 local current: Snapshot? = nil
 
 local StateController = {
 	-- Fires with (newSnapshot, previousSnapshot or nil).
 	Changed = Signal.new() :: Signal.Signal<Snapshot, Snapshot?>,
+	-- Fires for one-off server messages (boss won/lost).
+	Notice = Signal.new() :: Signal.Signal<Notice>,
 }
 
 function StateController.get(): Snapshot?
@@ -27,6 +30,10 @@ function StateController.start()
 		local previous = current
 		current = snapshot
 		StateController.Changed:Fire(snapshot, previous)
+	end)
+
+	Remotes.waitForEvent(Remotes.Events.Notice).OnClientEvent:Connect(function(notice: Notice)
+		StateController.Notice:Fire(notice)
 	end)
 
 	-- Tell the server we're listening, so it sends our first snapshot.

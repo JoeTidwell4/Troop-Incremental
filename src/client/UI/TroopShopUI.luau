@@ -76,8 +76,9 @@ local function render()
 		local owned = snapshot.troops[troopId] or 0
 		local nextMilestone = Formulas.nextMilestone(owned)
 		row.owned.Text = `Owned: {owned}`
-		row.info.Text =
-			`DPS {format(Formulas.troopDps(troopId, owned))}  |  x{TroopConfig.MILESTONE_MULTIPLIER} damage at {nextMilestone}`
+		row.info.Text = `DPS {format(Formulas.troopDps(troopId, owned))}  |  HP {format(
+			Formulas.troopHp(troopId, owned)
+		)}  |  x{TroopConfig.MILESTONE_MULTIPLIER} at {nextMilestone}`
 
 		local amount, cost, affordable = previewPurchase(troopId, snapshot)
 		row.button.Text = `Buy x{amount}\n{format(cost)} gold`

@@ -2,10 +2,14 @@
 -- Every RemoteEvent / RemoteFunction name in one place. The server creates them
 -- (see RemoteService); the client looks them up with the helpers below.
 --
--- Tap         client -> server   (tapCount: number)
--- ClientReady client -> server   ()  "my scripts are loaded, send me my state"
--- StateSync   server -> client   (snapshot: Types.Snapshot)
--- BuyTroop    client -> server, returns Types.BuyResult   (troopId: string, mode: Types.BuyMode)
+-- Tap            client -> server   (tapCount: number)
+-- ClientReady    client -> server   ()  "my scripts are loaded, send me my state"
+-- UseAbility     client -> server   (abilityId: string)
+-- FightBoss      client -> server   ()  start the next boss now (only valid right before a boss)
+-- SetAutoAdvance client -> server   (enabled: boolean)
+-- StateSync      server -> client   (snapshot: Types.Snapshot)
+-- Notice         server -> client   (notice: Types.Notice)  boss won/lost banners
+-- BuyTroop       client -> server, returns Types.BuyResult   (troopId: string, mode: Types.BuyMode)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -15,7 +19,11 @@ local Remotes = {
 	Events = table.freeze({
 		Tap = "Tap",
 		ClientReady = "ClientReady",
+		UseAbility = "UseAbility",
+		FightBoss = "FightBoss",
+		SetAutoAdvance = "SetAutoAdvance",
 		StateSync = "StateSync",
+		Notice = "Notice",
 	}),
 
 	Functions = table.freeze({

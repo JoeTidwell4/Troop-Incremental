@@ -79,12 +79,16 @@ local function sanitize(data: PlayerData)
 	data.stage = wholeNumber(data.stage, 1, 1)
 	data.highestStage = math.max(wholeNumber(data.highestStage, 1, 1), data.stage)
 	data.killsInStage = wholeNumber(data.killsInStage, 0, 0)
+	if typeof(data.autoAdvance) ~= "boolean" then
+		data.autoAdvance = true
+	end
 	for troopId, count in data.troops do
 		data.troops[troopId] = wholeNumber(count, 0, 0)
 	end
 	data.stats.totalKills = wholeNumber(data.stats.totalKills, 0, 0)
 	data.stats.totalTaps = wholeNumber(data.stats.totalTaps, 0, 0)
 	data.stats.lifetimeGold = BigNum.sanitize(data.stats.lifetimeGold)
+	data.stats.bossesDefeated = wholeNumber(data.stats.bossesDefeated, 0, 0)
 end
 
 local function onPlayerAdded(player: Player)

@@ -4,15 +4,22 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 
 ## Current phase
 
-**Phase 1: data layer + core loop + basic UI. Code written, waiting for the owner to test in Studio.**
-Do not start Phase 2 until the owner confirms Phase 1 works.
+**Phase 1: done (owner confirmed in Studio).**
+**Phase 2 is split in two:**
+- **2a (code written, waiting for owner to test):** bosses that hit back, troop HP, areas, abilities (Rally/Barrage/Plunder).
+- **2b (next, not started):** gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
+Do not start 2b until the owner confirms 2a works.
 
 Decisions made:
 - No Wally. ProfileStore is vendored at `src/server/Packages/ProfileStore.luau` (unmodified, Apache 2.0, license in `third_party/ProfileStore/`, upstream commit 45c9847). It's the one file without `--!strict`; DataService wraps it with local types.
 - UI is plain Instance-building code (`src/client/UI/UIKit.luau` helpers). No Fusion/React.
 - Troop milestone multipliers: on (25/50/100/200/300/400/500, then every 100, x2 each).
 - First Ascend target: 20-30 minutes of play (not 45-60).
-- No player avatar: `Players.CharacterAutoLoads = false`, fixed scriptable camera on a client-built battlefield at y=200.
+- No player avatar yet: `Players.CharacterAutoLoads = false`, fixed scriptable camera on a client-built battlefield at y=200. Phase 2b brings the avatar back as the commander, with a server-assigned plot per player so avatars don't overlap. Later (Phase 4/5) a social hub.
+- Armor problem: enemies never attacked, so armor meant nothing. Fix (owner approved): **bosses hit back**. Troops have HP; during a boss the boss damages army HP each second. Lose if time runs out or army HP hits 0. Armor (2b) raises HP. Knights = tank, Archers = fragile DPS.
+- Boss fail: back one stage, auto-advance OFF, player farms until pressing Fight Boss (only valid when next stage is a boss) or re-enabling auto-advance.
+- Areas: every boss beaten moves you to the next area (10 stages each). 6 themes in AreaConfig, then repeat with roman numerals. Cosmetic only for now; area modifiers (e.g. armored enemies vs Archers) are a Phase 6 idea.
+- Gear packs (2b, approved design): Gold only, never Robux (Roblox requires odds disclosure for paid random items; some countries restrict). No inventory: each troop x slot has rarity + level; a pack rolls troop+slot+rarity, upgrades rarity if better, else refunds 50% of the price. Odds 60/25/10/4/1 shown in UI, Epic+ pity every 30 packs, price scales with highest stage, free pack on each boss's first kill. All rolls server-side. Open question for Phase 3: does rarity reset on Ascend (leaning yes).
 
 ## Working with the owner
 The owner is new to Roblox development, GitHub, and the command line. Explain steps one at a time, give exact clicks/commands, say what they should see, and assume nothing is installed. They're on Windows (PowerShell). Project lives at `Documents\Troop-Incremental`. They get updates with `git pull` and sync with `rojo serve` + the Rojo plugin's Connect button. In their Studio version, the Output window is under the top menu bar's **Window** menu.
@@ -58,12 +65,14 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - **Tunables** (costs, growth rates, multipliers, stage scaling, faction bonuses, clan size, offline cap) live in config ModuleScripts under `src/shared/Config/`. Never hardcode in logic.
 - **Cross-server (Phases 4-5):** before implementing, write up the storage/sync plan (DataStore for persistent, MemoryStoreService/MessagingService for live totals), race-condition handling for clan bank and raid HP (e.g. UpdateAsync / atomic MemoryStore ops), and the limits.
 
-### Phase 1 data flow
-- Server: `RemoteService` (creates remotes, enforces rate limit + validator on every handler) -> `TapService` / `TroopService` mutate `DataService.get(player)` data -> `CombatService` ticks all players at 5 Hz -> `DataService.Changed` -> `SyncService` sends a `Snapshot` to that player at most every 0.25s.
-- Client: `StateController` holds the latest snapshot; `InputController` batches clicks; `TroopController` invokes BuyTroop; `BattlefieldController` + `HudUI` + `TroopShopUI` render from the snapshot.
+### Data flow
+- Server: `RemoteService` (creates remotes, enforces rate limit + validator on every handler) -> `TapService` / `TroopService` / `AbilityService` change state -> `StageService` runs the 5 Hz fight loop for all players (pulls damage from `CombatService.takeDamage`, resolves kills/gold/stage, boss timer + boss damage to army, fail/retreat) -> `DataService.Changed` -> `SyncService` sends a `Snapshot` to that player at most every 0.25s. Boss results go out on the `Notice` remote.
+- `CombatService` = army numbers only (cached base DPS/HP, queued click/ability damage). `ModifierService` = the single place all multipliers are combined (`damage`, `gold`, `armyHp`); systems register a source function. Abilities use it now; Honor, faction, clan, and gear bonuses must plug in here too.
+- Server-only per-player state (not saved): encounter (enemy HP, boss timer, army damage taken) in StageService, ability timers in AbilityService. Ability timestamps use `workspace:GetServerTimeNow()` so the client can count down locally.
+- Client: `StateController` holds the latest snapshot and forwards notices; `InputController` batches clicks; `TroopController` invokes BuyTroop; `AbilityController` (buttons + keys 1/2/3); `BattleController` (Fight Boss, auto-advance); `BattlefieldController` + `HudUI` + `TroopShopUI` + `AbilityBarUI` + `NoticeUI` render from the snapshot.
 - `Shared/Formulas.luau` is the single source of game math, used by the server for outcomes and by the client only for display previews.
 - Troop costs are rounded to whole gold (`BigNum.round`) to avoid float error making exact prices unaffordable.
-- Balance was checked with `tools/balance_sim.py` (Python mirror of the formulas). Phase 1 result: idle ~stage 26 at 10 min / 52 at 30 min; clicking ~7/s ~stage 41 / 64; autoclicker cap ~49 / 69.
+- Balance is checked with `tools/balance_sim.py` (Python mirror of the formulas; numbers copied by hand). Phase 2a result (boss HP x12, boss DPS 0.12 x enemy HP): active beats boss 10 at ~1.4 min, 50 at ~19 min, walls at ~59; idle reaches ~49 at 30 min. Active ~2.5x idle. Most boss fails are army HP, which 2b Armor addresses.
 
 ## Conventions
 - `--!strict` at the top of every script. Type everything; shared types in `src/shared/Types.luau`.

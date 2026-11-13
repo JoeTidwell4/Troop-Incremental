@@ -8,6 +8,7 @@ local Types = require(Shared.Types)
 local TroopConfig = require(Shared.Config.TroopConfig)
 local StageConfig = require(Shared.Config.StageConfig)
 local CombatConfig = require(Shared.Config.CombatConfig)
+local BossConfig = require(Shared.Config.BossConfig)
 
 type BigNum = BigNum.BigNum
 type TroopCounts = Types.TroopCounts
@@ -62,10 +63,29 @@ function Formulas.troopDps(troopId: string, count: number): BigNum
 	return BigNum.mul(BigNum.fromNumber(count * def.baseDps), Formulas.milestoneMultiplier(count))
 end
 
+-- Army DPS before any temporary or global multipliers (abilities etc. are applied by the server).
 function Formulas.armyDps(troops: TroopCounts): BigNum
 	local total = BigNum.ZERO
 	for _, troopId in TroopConfig.ORDER do
 		total = BigNum.add(total, Formulas.troopDps(troopId, troops[troopId] or 0))
+	end
+	return total
+end
+
+-- Total HP of all troops of one type.
+function Formulas.troopHp(troopId: string, count: number): BigNum
+	if count <= 0 then
+		return BigNum.ZERO
+	end
+	local def = getTroop(troopId)
+	return BigNum.mul(BigNum.fromNumber(count * def.baseHp), Formulas.milestoneMultiplier(count))
+end
+
+-- Army HP before multipliers. Only used in boss fights.
+function Formulas.armyHp(troops: TroopCounts): BigNum
+	local total = BigNum.ZERO
+	for _, troopId in TroopConfig.ORDER do
+		total = BigNum.add(total, Formulas.troopHp(troopId, troops[troopId] or 0))
 	end
 	return total
 end
@@ -119,6 +139,24 @@ function Formulas.goldPerKill(stage: number): BigNum
 	return BigNum.mulNumber(BigNum.powNumber(StageConfig.GOLD_GROWTH, stage - 1), StageConfig.GOLD_BASE)
 end
 
+function Formulas.isBossStage(stage: number): boolean
+	return stage > 0 and stage % BossConfig.BOSS_EVERY == 0
+end
+
+function Formulas.bossHp(stage: number): BigNum
+	return BigNum.mulNumber(Formulas.enemyHp(stage), BossConfig.BOSS_HP_MULTIPLIER)
+end
+
+-- Damage per second the boss deals to your army's HP.
+function Formulas.bossDps(stage: number): BigNum
+	return BigNum.mulNumber(Formulas.enemyHp(stage), BossConfig.BOSS_DPS_FACTOR)
+end
+
+function Formulas.bossGold(stage: number): BigNum
+	return BigNum.mulNumber(Formulas.goldPerKill(stage), BossConfig.BOSS_GOLD_MULTIPLIER)
+end
+
+-- `armyDps` should already include damage multipliers (e.g. Rally), so clicks benefit too.
 function Formulas.tapDamage(armyDps: BigNum): BigNum
 	return BigNum.add(
 		BigNum.fromNumber(CombatConfig.TAP_FLAT_DAMAGE),

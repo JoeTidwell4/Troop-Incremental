@@ -14,6 +14,7 @@ local template: Types.PlayerData = {
 	stage = 1,
 	highestStage = 1,
 	killsInStage = 0,
+	autoAdvance = true,
 	troops = {
 		Swordsman = 0,
 		Archer = 0,
@@ -23,6 +24,7 @@ local template: Types.PlayerData = {
 		totalKills = 0,
 		totalTaps = 0,
 		lifetimeGold = BigNum.ZERO,
+		bossesDefeated = 0,
 	},
 }
 
