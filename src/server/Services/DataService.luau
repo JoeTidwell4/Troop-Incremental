@@ -79,6 +79,13 @@ local function sanitize(data: PlayerData)
 	data.gold = BigNum.sanitize(data.gold)
 	data.stage = wholeNumber(data.stage, 1, 1)
 	data.highestStage = math.max(wholeNumber(data.highestStage, 1, 1), data.stage)
+	-- bestStage was added in Phase 3; older saves start from their current highest stage.
+	data.bestStage = math.max(wholeNumber(data.bestStage, 1, 1), data.highestStage)
+	data.honor = BigNum.sanitize(data.honor)
+	data.lastSeen = wholeNumber(data.lastSeen, 0, 0)
+	for upgradeId, level in data.honorUpgrades do
+		data.honorUpgrades[upgradeId] = wholeNumber(level, 0, 0)
+	end
 	data.killsInStage = wholeNumber(data.killsInStage, 0, 0)
 	if typeof(data.autoAdvance) ~= "boolean" then
 		data.autoAdvance = true
@@ -91,6 +98,8 @@ local function sanitize(data: PlayerData)
 	data.stats.totalTaps = wholeNumber(data.stats.totalTaps, 0, 0)
 	data.stats.lifetimeGold = BigNum.sanitize(data.stats.lifetimeGold)
 	data.stats.bossesDefeated = wholeNumber(data.stats.bossesDefeated, 0, 0)
+	data.stats.ascensions = wholeNumber(data.stats.ascensions, 0, 0)
+	data.stats.honorEarned = BigNum.sanitize(data.stats.honorEarned)
 
 	for _, troopGear in data.gear do
 		local slots = troopGear :: any

@@ -65,6 +65,22 @@ export type PackState = {
 	rewardedBossStage: number, -- highest boss stage that already granted its free pack
 }
 
+export type HonorUpgradeDef = {
+	id: string,
+	displayName: string,
+	description: string,
+	baseCost: number, -- Honor
+	costGrowth: number,
+	maxLevel: number?,
+	damageMultiplier: number?,
+	goldMultiplier: number?,
+	armyHpMultiplier: number?,
+	tapMultiplier: number?,
+	startGoldMultiplier: number?,
+	offlineHoursPerLevel: number?,
+	offlineEfficiencyPerLevel: number?,
+}
+
 export type AreaTheme = {
 	name: string,
 	bossName: string,
@@ -81,10 +97,14 @@ export type AreaTheme = {
 export type PlayerData = {
 	gold: BigNum,
 	stage: number,
-	highestStage: number,
+	highestStage: number, -- highest stage reached THIS run (resets on Ascend)
+	bestStage: number, -- highest stage ever reached (never resets; unlocks abilities)
 	killsInStage: number,
 	autoAdvance: boolean,
-	highestBossDefeated: number, -- stage number of the highest boss ever beaten (0 = none)
+	highestBossDefeated: number, -- stage of the highest boss beaten this run (0 = none)
+	honor: BigNum,
+	honorUpgrades: { [string]: number }, -- Honor upgrade id -> level
+	lastSeen: number, -- os.time() the server last saw this player (0 = never)
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -93,6 +113,8 @@ export type PlayerData = {
 		totalTaps: number,
 		lifetimeGold: BigNum,
 		bossesDefeated: number,
+		ascensions: number,
+		honorEarned: BigNum,
 	},
 }
 
@@ -107,6 +129,7 @@ export type Snapshot = {
 	gold: BigNum,
 	stage: number,
 	highestStage: number,
+	bestStage: number,
 	killsInStage: number,
 	enemiesPerStage: number,
 	autoAdvance: boolean,
@@ -131,14 +154,23 @@ export type Snapshot = {
 	packPrice: BigNum,
 	abilities: { [string]: AbilityTimers },
 	totalKills: number,
+
+	honor: BigNum,
+	honorUpgrades: { [string]: number },
+	ascendHonor: BigNum, -- Honor you'd get for Ascending right now (zero if not allowed)
+	ascensions: number,
 }
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
+	-- OfflineEarnings only:
+	seconds: number?, -- time counted (after the cap)
+	awaySeconds: number?, -- real time away
+	gold: BigNum?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"
@@ -158,6 +190,12 @@ export type PackResult = {
 	rarity: number?, -- what was rolled
 	upgraded: boolean?, -- true if the slot's rarity went up
 	refund: BigNum?, -- gold refunded for a duplicate
+}
+
+export type AscendResult = {
+	ok: boolean,
+	reason: string?,
+	honor: BigNum?, -- Honor gained
 }
 
 -- ModuleScripts must return a value; this module only exists for its types.

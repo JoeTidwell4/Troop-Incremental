@@ -19,6 +19,8 @@ local ShopUI = require(UI.ShopUI)
 local AbilityBarUI = require(UI.AbilityBarUI)
 local NoticeUI = require(UI.NoticeUI)
 local PackRevealUI = require(UI.PackRevealUI)
+local AscendConfirmUI = require(UI.AscendConfirmUI)
+local OfflineEarningsUI = require(UI.OfflineEarningsUI)
 
 ShopController.start()
 InputController.start()
@@ -31,6 +33,8 @@ ShopUI.start()
 AbilityBarUI.start()
 NoticeUI.start()
 PackRevealUI.start()
+AscendConfirmUI.start()
+OfflineEarningsUI.start()
 StateController.start() -- last: asks the server for state once everything is listening
 
 print(`[Client] Troop-Incremental {Version} booted`)

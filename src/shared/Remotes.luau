@@ -12,6 +12,8 @@
 -- BuyTroop       client -> server, returns Types.BuyResult   (troopId: string, mode: Types.BuyMode)
 -- UpgradeGear    client -> server, returns Types.BuyResult   (troopId: string, slot: GearSlot, mode: GearBuyMode)
 -- OpenPack       client -> server, returns Types.PackResult  (useFree: boolean)
+-- Ascend         client -> server, returns Types.AscendResult ()
+-- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -32,6 +34,8 @@ local Remotes = {
 		BuyTroop = "BuyTroop",
 		UpgradeGear = "UpgradeGear",
 		OpenPack = "OpenPack",
+		Ascend = "Ascend",
+		BuyHonorUpgrade = "BuyHonorUpgrade",
 	}),
 }
 

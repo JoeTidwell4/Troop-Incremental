@@ -17,6 +17,7 @@ local Config = Shared:WaitForChild("Config")
 local CombatConfig = require(Config:WaitForChild("CombatConfig"))
 local StageConfig = require(Config:WaitForChild("StageConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
+local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
@@ -30,7 +31,14 @@ type Snapshot = Types.Snapshot
 local ready: { [Player]: boolean } = {}
 local dirty: { [Player]: boolean } = {}
 
-local SyncService = {}
+local SyncService = {
+	-- Fires once a player's client has loaded its scripts and can receive messages.
+	ClientReady = Signal.new() :: Signal.Signal<Player>,
+}
+
+function SyncService.isReady(player: Player): boolean
+	return ready[player] == true
+end
 
 local function buildSnapshot(player: Player): Snapshot?
 	local data = DataService.get(player)
@@ -43,6 +51,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		gold = data.gold,
 		stage = data.stage,
 		highestStage = data.highestStage,
+		bestStage = data.bestStage,
 		killsInStage = data.killsInStage,
 		enemiesPerStage = if encounter.kind == "Boss" then 1 else StageConfig.ENEMIES_PER_STAGE,
 		autoAdvance = data.autoAdvance,
@@ -67,6 +76,11 @@ local function buildSnapshot(player: Player): Snapshot?
 		packPrice = Formulas.packPrice(data.highestStage),
 		abilities = AbilityService.getTimers(player),
 		totalKills = data.stats.totalKills,
+
+		honor = data.honor,
+		honorUpgrades = data.honorUpgrades,
+		ascendHonor = Formulas.honorForStage(data.highestStage),
+		ascensions = data.stats.ascensions,
 	}
 end
 
@@ -96,8 +110,12 @@ function SyncService.start()
 	RemoteService.onEvent(Remotes.Events.ClientReady, readyLimiter, function(): boolean?
 		return true -- takes no arguments
 	end, function(player: Player, _payload: boolean)
+		local firstTime = not ready[player]
 		ready[player] = true
 		dirty[player] = true -- send a full snapshot right away
+		if firstTime then
+			SyncService.ClientReady:Fire(player)
+		end
 	end)
 
 	task.spawn(function()

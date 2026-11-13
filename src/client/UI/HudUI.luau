@@ -16,6 +16,7 @@ local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local UIKit = require(script.Parent.UIKit)
 local StateController = require(Client.Controllers.StateController)
 local BattleController = require(Client.Controllers.BattleController)
+local ShopUI = require(script.Parent.ShopUI)
 
 type Snapshot = Types.Snapshot
 type BigNum = BigNum.BigNum
@@ -81,7 +82,7 @@ function HudUI.start()
 	local economy = UIKit.panel({
 		Name = "Economy",
 		Position = UDim2.new(0, 12, 0, 12),
-		Size = UDim2.new(0, 210, 0, 116),
+		Size = UDim2.new(0, 210, 0, 134),
 		Parent = gui,
 	})
 	UIKit.label({ Text = "GOLD", TextColor3 = Theme.Muted, TextSize = 13, Size = UDim2.new(1, 0, 0, 16), Parent = economy })
@@ -118,6 +119,31 @@ function HudUI.start()
 		Size = UDim2.new(1, 0, 0, 16),
 		Parent = economy,
 	})
+	local honorLabel = UIKit.label({
+		Text = "",
+		TextColor3 = Theme.Gold,
+		Font = Theme.FontBold,
+		TextSize = 14,
+		Position = UDim2.new(0, 0, 0, 100),
+		Size = UDim2.new(1, 0, 0, 16),
+		Parent = economy,
+	})
+
+	-- Shows up once Ascending is allowed; opens the Honor tab.
+	local ascendButton = UIKit.button({
+		Name = "AscendReady",
+		Text = "",
+		TextSize = 14,
+		BackgroundColor3 = Theme.Gold,
+		TextColor3 = Theme.Panel,
+		Position = UDim2.new(0, 12, 0, 12 + 134 + 6),
+		Size = UDim2.new(0, 210, 0, 34),
+		Visible = false,
+		Parent = gui,
+	})
+	ascendButton.Activated:Connect(function()
+		ShopUI.openTab("Honor")
+	end)
 
 	-- Center column: stage panel, then the stage button, then the hint.
 	local column = UIKit.create("Frame", {
@@ -235,6 +261,12 @@ function HudUI.start()
 			else ""
 		dpsLabel.Text = `Army DPS: {format(snapshot.armyDps)}{damageBonus}`
 		tapLabel.Text = `Click damage: {format(snapshot.tapDamage)}`
+		honorLabel.Text = `Honor: {format(snapshot.honor)}`
+		local canAscend = not BigNum.isZero(snapshot.ascendHonor)
+		ascendButton.Visible = canAscend
+		if canAscend then
+			ascendButton.Text = `ASCEND READY: +{format(snapshot.ascendHonor)} Honor`
+		end
 
 		local area = Areas.forStage(snapshot.stage)
 		areaLabel.Text = `Area {area.number}: {area.displayName}`

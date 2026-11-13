@@ -1,5 +1,5 @@
 --!strict
--- Client side of everything you buy: troops, gear levels, and packs.
+-- Client side of everything you buy: troops, gear levels, packs, Honor upgrades, and Ascend.
 -- Each call asks the server and returns its answer. Calls yield and never throw.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -49,6 +49,16 @@ end
 function ShopController.openPack(useFree: boolean): PackResult
 	local result = invoke(Remotes.Functions.OpenPack, useFree)
 	return if result ~= nil then result :: PackResult else { ok = false, reason = "NoResponse" }
+end
+
+function ShopController.buyHonorUpgrade(upgradeId: string): BuyResult
+	local result = invoke(Remotes.Functions.BuyHonorUpgrade, upgradeId)
+	return if result ~= nil then result :: BuyResult else { ok = false, bought = 0, reason = "NoResponse" }
+end
+
+function ShopController.ascend(): Types.AscendResult
+	local result = invoke(Remotes.Functions.Ascend)
+	return if result ~= nil then result :: Types.AscendResult else { ok = false, reason = "NoResponse" }
 end
 
 return ShopController

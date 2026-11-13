@@ -1,5 +1,6 @@
 --!strict
--- Commander abilities (Rally, Barrage, Plunder).
+-- Commander abilities (Rally, Barrage, Plunder). Unlocks use your all-time best stage, so
+-- they stay unlocked after Ascending.
 --
 -- The server owns every cooldown. A client asking to use an ability that's locked or
 -- still cooling down is simply ignored. Cooldowns live only in server memory, so they
@@ -64,7 +65,7 @@ local function useAbility(player: Player, abilityId: string)
 	if data == nil or def == nil then
 		return
 	end
-	if data.highestStage < def.unlockStage then
+	if data.bestStage < def.unlockStage then
 		return -- locked
 	end
 

@@ -9,7 +9,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 - **2a: done (owner confirmed in Studio).** Bosses that hit back, troop HP, areas, abilities (Rally/Barrage/Plunder).
 - **2b: done (owner confirmed in Studio).** Gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
 
-**Phase 3 (plan proposed, waiting for OK):** Ascend + Honor shop + offline earnings. Open Phase 3 questions: does gear rarity reset on Ascend (leaning yes)? Does highestBossDefeated / free-pack tracking reset (if so, free packs are re-earned each run)?
+**Phase 3 (code written, waiting for owner to test):** Ascend + Honor shop + offline earnings.
+Do not start Phase 4 until the owner confirms Phase 3 works. Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
 Decisions made:
 - No Wally. ProfileStore is vendored at `src/server/Packages/ProfileStore.luau` (unmodified, Apache 2.0, license in `third_party/ProfileStore/`, upstream commit 45c9847). It's the one file without `--!strict`; DataService wraps it with local types.
@@ -65,6 +66,13 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - **Big numbers:** mantissa/exponent BigNum module, immutable, serialized as `{m, e}`. Used for all currency, HP, damage. Display format: 1.2K, 3.4M, ..., then 5.6e15.
 - **Tunables** (costs, growth rates, multipliers, stage scaling, faction bonuses, clan size, offline cap) live in config ModuleScripts under `src/shared/Config/`. Never hardcode in logic.
 - **Cross-server (Phases 4-5):** before implementing, write up the storage/sync plan (DataStore for persistent, MemoryStoreService/MessagingService for live totals), race-condition handling for clan bank and raid HP (e.g. UpdateAsync / atomic MemoryStore ops), and the limits.
+
+### Phase 3: Ascend, Honor, offline
+- Two stage records: `highestStage` = this run (Honor, pack price, offline stage; resets on Ascend) and `bestStage` = all-time (ability unlocks; never resets; migrated from highestStage for old saves).
+- Ascend (`AscendService`): allowed at `AscendConfig.MIN_STAGE` (50). Honor = floor(10 * 1.08^(highestStage - 50)), stored as BigNum. Resets gold (to `Formulas.startingGold(honorUpgrades)`), stage, troops, gear levels + rarity, boss/free-pack tracking; then `StageService.restart`. Client confirms in `AscendConfirmUI`.
+- Honor shop (`HonorService`, `HonorConfig`): Drills/WarChest/Fortitude/Might multiply damage/gold/armyHp/tap per level (x1.25/x1.2/x1.25/x1.5) via a ModifierService source (`tap` field added to Modifiers; CombatService.getTapDamage applies it). HeadStart = x8 starting gold per level. Rations = +1h offline cap, +5% offline efficiency (max 16). Costs base * growth^level, BigNum Honor.
+- Offline (`OfflineService`, `OfflineConfig`): `data.lastSeen` (os.time) written every 60s and on leave. On load: seconds = min(away, cap), gold = goldPerKill(stage) * min(DPS/enemyHp, 10 enemies * 5 ticks per sec) * seconds * efficiency * gold modifier at `Formulas.offlineStage(highestStage)` (highest normal stage cleared). Defaults 25%, 8h, min 60s. No stage progress offline. Notice is sent once the client fires ClientReady (`SyncService.ClientReady` / `isReady`), shown by `OfflineEarningsUI`.
+- `tools/ascend_sim.py`: first Ascend ~18 min (sim player is optimal; real players slower, in the 20-30 target), runs then go 60 -> 70 -> 80 -> 90 -> 100 best stage, each faster. Additive effects were too flat, hence multiplicative.
 
 ### Data flow
 - Server: `RemoteService` (creates remotes, enforces rate limit + validator on every handler) -> `TapService` / `TroopService` / `AbilityService` change state -> `StageService` runs the 5 Hz fight loop for all players (pulls damage from `CombatService.takeDamage`, resolves kills/gold/stage, boss timer + boss damage to army, fail/retreat) -> `DataService.Changed` -> `SyncService` sends a `Snapshot` to that player at most every 0.25s. Boss results go out on the `Notice` remote.

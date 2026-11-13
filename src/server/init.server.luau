@@ -11,23 +11,29 @@ local DataService = require(Services.DataService)
 local PlotService = require(Services.PlotService)
 local CombatService = require(Services.CombatService)
 local AbilityService = require(Services.AbilityService)
+local HonorService = require(Services.HonorService)
 local StageService = require(Services.StageService)
 local TroopService = require(Services.TroopService)
 local GearService = require(Services.GearService)
 local PackService = require(Services.PackService)
+local AscendService = require(Services.AscendService)
 local TapService = require(Services.TapService)
 local SyncService = require(Services.SyncService)
+local OfflineService = require(Services.OfflineService)
 
 RemoteService.start() -- first: creates the remotes everything else listens to
 PlotService.start() -- gives each player a battlefield spot and places their avatar
 CombatService.start()
 AbilityService.start()
-StageService.start() -- runs the fight loop; hears ProfileLoaded before PackService
+HonorService.start()
+StageService.start() -- runs the fight loop; hears ProfileLoaded before Pack/Offline services
 TroopService.start()
 GearService.start()
 PackService.start()
+AscendService.start()
 TapService.start()
 SyncService.start()
+OfflineService.start()
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)

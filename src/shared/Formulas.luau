@@ -11,6 +11,9 @@ local CombatConfig = require(Shared.Config.CombatConfig)
 local BossConfig = require(Shared.Config.BossConfig)
 local GearConfig = require(Shared.Config.GearConfig)
 local PackConfig = require(Shared.Config.PackConfig)
+local AscendConfig = require(Shared.Config.AscendConfig)
+local HonorConfig = require(Shared.Config.HonorConfig)
+local EconomyConfig = require(Shared.Config.EconomyConfig)
 
 type BigNum = BigNum.BigNum
 type TroopCounts = Types.TroopCounts
@@ -213,6 +216,77 @@ end
 
 function Formulas.bossGold(stage: number): BigNum
 	return BigNum.mulNumber(Formulas.goldPerKill(stage), BossConfig.BOSS_GOLD_MULTIPLIER)
+end
+
+---------------------------------------------------------------- ascend + honor
+
+-- Honor for Ascending with this run's highest stage. Zero below AscendConfig.MIN_STAGE.
+function Formulas.honorForStage(stage: number): BigNum
+	if stage < AscendConfig.MIN_STAGE then
+		return BigNum.ZERO
+	end
+	local raw = BigNum.mulNumber(
+		BigNum.powNumber(AscendConfig.HONOR_GROWTH, stage - AscendConfig.MIN_STAGE),
+		AscendConfig.HONOR_BASE
+	)
+	return BigNum.floor(raw)
+end
+
+-- The next stage above `stage` that gives more Honor than `stage` does.
+function Formulas.nextHonorStage(stage: number): number
+	if stage < AscendConfig.MIN_STAGE then
+		return AscendConfig.MIN_STAGE
+	end
+	local current = Formulas.honorForStage(stage)
+	for candidate = stage + 1, stage + 200 do
+		if BigNum.gt(Formulas.honorForStage(candidate), current) then
+			return candidate
+		end
+	end
+	return stage + 1
+end
+
+function Formulas.honorUpgradeCost(upgradeId: string, level: number): BigNum
+	local def = HonorConfig.UPGRADES[upgradeId]
+	if def == nil then
+		error(`Unknown Honor upgrade: {upgradeId}`, 2)
+	end
+	return BigNum.round(BigNum.mulNumber(BigNum.powNumber(def.costGrowth, level), def.baseCost))
+end
+
+-- Gold a new run starts with, given the Head Start style upgrades owned.
+function Formulas.startingGold(upgrades: { [string]: number }): BigNum
+	local gold = BigNum.fromNumber(EconomyConfig.STARTING_GOLD)
+	for upgradeId, def in HonorConfig.UPGRADES do
+		local level = upgrades[upgradeId] or 0
+		if def.startGoldMultiplier ~= nil and level > 0 then
+			gold = BigNum.mul(gold, BigNum.powNumber(def.startGoldMultiplier, level))
+		end
+	end
+	return gold
+end
+
+---------------------------------------------------------------- offline
+
+-- The stage your army farms while offline: the highest NORMAL stage cleared this run.
+function Formulas.offlineStage(highestStage: number): number
+	local stage = math.max(1, highestStage - 1)
+	if Formulas.isBossStage(stage) then
+		stage -= 1
+	end
+	return math.max(1, stage)
+end
+
+-- Gold earned offline. `dps` and `goldMultiplier` should include permanent bonuses.
+-- Kills per second are capped at what the live game could resolve, so a huge army on a
+-- low stage can't earn more offline than online.
+function Formulas.offlineGold(dps: BigNum, goldMultiplier: number, stage: number, seconds: number, efficiency: number): BigNum
+	if seconds <= 0 or BigNum.isZero(dps) then
+		return BigNum.ZERO
+	end
+	local maxKillsPerSecond = StageConfig.ENEMIES_PER_STAGE * CombatConfig.TICK_RATE
+	local killsPerSecond = math.min(BigNum.toNumber(BigNum.div(dps, Formulas.enemyHp(stage))), maxKillsPerSecond)
+	return BigNum.mulNumber(Formulas.goldPerKill(stage), killsPerSecond * seconds * efficiency * goldMultiplier)
 end
 
 -- `armyDps` should already include damage multipliers (e.g. Rally), so clicks benefit too.

@@ -1,5 +1,5 @@
 --!strict
--- Bottom shop panel with tabs: Troops | Gear | Packs.
+-- Bottom shop panel with tabs: Troops | Gear | Packs | Honor.
 -- The header holds the tab buttons, a short status message, and the buy-mode buttons
 -- (x1 / x10 / Max) for tabs that use them. Each tab lives in its own module.
 
@@ -11,6 +11,7 @@ local ShopTypes = require(script.Parent.ShopTypes)
 local TroopTab = require(script.Parent.TroopTab)
 local GearTab = require(script.Parent.GearTab)
 local PackTab = require(script.Parent.PackTab)
+local HonorTab = require(script.Parent.HonorTab)
 local StateController = require(Client.Controllers.StateController)
 
 type Tab = ShopTypes.Tab
@@ -20,7 +21,8 @@ local Theme = UIKit.Theme
 local ROW_HEIGHT = 56
 local ROWS = 3
 local HEADER_HEIGHT = 30
-local TAB_WIDTH = 72
+local TAB_WIDTH = 66
+local TAB_COUNT = 4 -- Troops, Gear, Packs, Honor (leaves room for the status message)
 local MODE_WIDTH = 52
 local STATUS_SECONDS = 2
 
@@ -30,10 +32,21 @@ local FAIL_MESSAGES: { [string]: string } = {
 	CantAfford = "Not enough gold",
 	MaxReached = "Already maxed",
 	NoFreePacks = "No free packs left",
+	CantAffordHonor = "Not enough Honor",
+	TooEarly = "Reach the required stage first",
 	Rejected = "Slow down a little!",
 }
 
+-- Set once the shop is built; lets other UI (e.g. the HUD Ascend button) switch tabs.
+local openTabByTitle: ((title: string) -> ())? = nil
+
 local ShopUI = {}
+
+function ShopUI.openTab(title: string)
+	if openTabByTitle ~= nil then
+		openTabByTitle(title)
+	end
+end
 
 function ShopUI.start()
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -69,8 +82,8 @@ function ShopUI.start()
 		TextColor3 = Theme.HpFill,
 		TextSize = 14,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.new(0, 3 * (TAB_WIDTH + 6), 0, 0),
-		Size = UDim2.new(1, -3 * (TAB_WIDTH + 6) - 3 * (MODE_WIDTH + 6), 0, HEADER_HEIGHT),
+		Position = UDim2.new(0, TAB_COUNT * (TAB_WIDTH + 6), 0, 0),
+		Size = UDim2.new(1, -TAB_COUNT * (TAB_WIDTH + 6) - 3 * (MODE_WIDTH + 6), 0, HEADER_HEIGHT),
 		Parent = panel,
 	})
 	local statusToken = 0
@@ -100,6 +113,7 @@ function ShopUI.start()
 		TroopTab.build(content, context),
 		GearTab.build(content, context),
 		PackTab.build(content, context),
+		HonorTab.build(content, context),
 	}
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
@@ -158,6 +172,15 @@ function ShopUI.start()
 			render()
 		end)
 		modeButtons[mode] = button
+	end
+
+	openTabByTitle = function(title: string)
+		for _, tab in tabs do
+			if tab.title == title then
+				activeTab = tab
+				render()
+			end
+		end
 	end
 
 	StateController.Changed:Connect(render)

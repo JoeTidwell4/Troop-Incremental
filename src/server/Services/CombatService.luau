@@ -55,7 +55,7 @@ function CombatService.getDps(player: Player): BigNum
 end
 
 function CombatService.getTapDamage(player: Player): BigNum
-	return Formulas.tapDamage(CombatService.getDps(player))
+	return BigNum.mulNumber(Formulas.tapDamage(CombatService.getDps(player)), ModifierService.get(player).tap)
 end
 
 -- Army max HP with all current multipliers applied.

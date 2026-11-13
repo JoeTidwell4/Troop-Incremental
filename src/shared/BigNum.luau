@@ -166,6 +166,14 @@ function BigNum.round(value: BigNum): BigNum
 	return BigNum.fromNumber(math.floor(BigNum.toNumber(value) + 0.5))
 end
 
+-- Rounds down to a whole number (values of 1e15 and up are returned as-is).
+function BigNum.floor(value: BigNum): BigNum
+	if value.m == 0 or value.e >= 15 then
+		return value
+	end
+	return BigNum.fromNumber(math.floor(BigNum.toNumber(value) + 1e-9))
+end
+
 -- Returns -1 if a < b, 0 if equal, 1 if a > b.
 function BigNum.compare(a: BigNum, b: BigNum): number
 	if a.m == 0 or b.m == 0 then

@@ -110,7 +110,19 @@ local function goToStage(player: Player, data: PlayerData, stage: number)
 	data.stage = math.max(1, stage)
 	data.killsInStage = 0
 	data.highestStage = math.max(data.highestStage, data.stage)
+	data.bestStage = math.max(data.bestStage, data.highestStage)
 	encounters[player] = newEncounter(data.stage)
+end
+
+-- Starts a fresh fight from the player's current saved stage (used after Ascending).
+function StageService.restart(player: Player)
+	local data = DataService.get(player)
+	if data == nil then
+		return
+	end
+	CombatService.refreshArmy(player)
+	encounters[player] = newEncounter(data.stage)
+	DataService.markChanged(player)
 end
 
 local function failBoss(player: Player, data: PlayerData, reason: "OutOfTime" | "ArmyDefeated")

@@ -20,9 +20,13 @@ local template: Types.PlayerData = {
 	gold = BigNum.fromNumber(EconomyConfig.STARTING_GOLD),
 	stage = 1,
 	highestStage = 1,
+	bestStage = 1,
 	killsInStage = 0,
 	autoAdvance = true,
 	highestBossDefeated = 0,
+	honor = BigNum.ZERO,
+	honorUpgrades = {},
+	lastSeen = 0,
 	troops = {
 		Swordsman = 0,
 		Archer = 0,
@@ -44,6 +48,8 @@ local template: Types.PlayerData = {
 		totalTaps = 0,
 		lifetimeGold = BigNum.ZERO,
 		bossesDefeated = 0,
+		ascensions = 0,
+		honorEarned = BigNum.ZERO,
 	},
 }
 

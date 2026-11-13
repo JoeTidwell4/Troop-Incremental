@@ -130,7 +130,7 @@ local function update()
 		local readyAt = if timers ~= nil then timers.readyAt else 0
 		local activeUntil = if timers ~= nil then timers.activeUntil else 0
 
-		if snapshot.highestStage < def.unlockStage then
+		if snapshot.bestStage < def.unlockStage then
 			slot.button.BackgroundColor3 = Theme.Disabled
 			slot.nameLabel.TextColor3 = Theme.Muted
 			slot.timerLabel.TextSize = 11

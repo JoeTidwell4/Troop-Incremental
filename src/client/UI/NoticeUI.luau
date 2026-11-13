@@ -77,14 +77,15 @@ local function onNotice(notice: Notice)
 	end
 end
 
--- Ability unlocks are detected locally from the highest stage going up.
+-- Ability unlocks are detected locally from the all-time best stage going up.
+-- (OfflineEarnings notices are shown by OfflineEarningsUI instead.)
 local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	if previous == nil then
 		return
 	end
 	for _, abilityId in AbilityConfig.ORDER do
 		local def = AbilityConfig.ABILITIES[abilityId]
-		if previous.highestStage < def.unlockStage and snapshot.highestStage >= def.unlockStage then
+		if previous.bestStage < def.unlockStage and snapshot.bestStage >= def.unlockStage then
 			NoticeUI.show(`New ability: {def.displayName}!`, def.description, Theme.Accent)
 		end
 	end
