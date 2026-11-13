@@ -24,6 +24,7 @@ local CombatService = require(Services.CombatService)
 local StageService = require(Services.StageService)
 local ActivityService = require(Services.ActivityService)
 local AbilityService = require(Services.AbilityService)
+local DataService = require(Services.DataService)
 
 type WeakPointResult = Types.WeakPointResult
 
@@ -118,7 +119,9 @@ local function hit(player: Player, id: number): WeakPointResult
 	end
 	local bonus = math.min(state.streak * WeakPointConfig.STREAK_BONUS, WeakPointConfig.MAX_STREAK_BONUS)
 	state.streak += 1
-	local damage = BigNum.mulNumber(CombatService.getDps(player), WeakPointConfig.BURST_SECONDS * (1 + bonus))
+	local data = DataService.get(player)
+	local skill = if data ~= nil then Formulas.skillEffects(data.skills.ranks).weakPointDamage else 0 -- Weak Spot
+	local damage = BigNum.mulNumber(CombatService.getDps(player), WeakPointConfig.BURST_SECONDS * (1 + bonus) * (1 + skill))
 	CombatService.queueDamage(player, damage)
 	ActivityService.record(player, "WeakPoint", 1)
 	return { ok = true, damage = damage, streak = state.streak }

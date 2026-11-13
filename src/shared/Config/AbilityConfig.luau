@@ -29,7 +29,8 @@ local AbilityConfig = {
 	LOADOUT_SLOTS = 3,
 	DEFAULT_LOADOUT = { "Rally", "Barrage", "Plunder" } :: { Types.AbilityId },
 	SWAP_COOLDOWN = 15,
-	SLOT_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three } :: { Enum.KeyCode },
+	-- One key per possible slot (the 4th slot comes from the Grand Tactician skill).
+	SLOT_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four } :: { Enum.KeyCode },
 
 	-- Numeric fields copied into AbilityStats (Formulas.abilityStats) so upgrades can add to them.
 	STAT_FIELDS = {

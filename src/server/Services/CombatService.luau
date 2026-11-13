@@ -103,16 +103,19 @@ function CombatService.applyTaps(player: Player, taps: number)
 		return
 	end
 	-- Each click can crit. The crits' extra damage is sent to the client for a big number.
+	local skills = Formulas.skillEffects(data.skills.ranks) -- Precision, Deadly Strikes
+	local chance = CombatConfig.CRIT_CHANCE + skills.critChance
+	local multiplier = CombatConfig.CRIT_MULTIPLIER + skills.critMultiplier
 	local crits = 0
 	for _ = 1, math.floor(taps) do
-		if random:NextNumber() < CombatConfig.CRIT_CHANCE then
+		if random:NextNumber() < chance then
 			crits += 1
 		end
 	end
 	local perTap = CombatService.getTapDamage(player)
-	CombatService.queueDamage(player, BigNum.mulNumber(perTap, taps + crits * (CombatConfig.CRIT_MULTIPLIER - 1)))
+	CombatService.queueDamage(player, BigNum.mulNumber(perTap, taps + crits * (multiplier - 1)))
 	if crits > 0 then
-		RemoteService.fireClient(Remotes.Events.Crit, player, BigNum.mulNumber(perTap, CombatConfig.CRIT_MULTIPLIER))
+		RemoteService.fireClient(Remotes.Events.Crit, player, BigNum.mulNumber(perTap, multiplier))
 	end
 	data.stats.totalTaps += taps
 end

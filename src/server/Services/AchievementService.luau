@@ -14,6 +14,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local AchievementConfig = require(Shared:WaitForChild("Config"):WaitForChild("AchievementConfig"))
 local DataService = require(Services.DataService)
 local DailyService = require(Services.DailyService)
+local ActivityService = require(Services.ActivityService)
 local WarService = require(Services.WarService)
 
 type PlayerData = Types.PlayerData
@@ -95,6 +96,7 @@ function AchievementService.start()
 			return { ok = false, reason = if data.achievements[def.id] == "claimed" then "AlreadyClaimed" else "NotDone" }
 		end
 		data.achievements[def.id] = "claimed"
+		ActivityService.record(player, "AchievementClaim", 1) -- Commander XP
 		DailyService.grant(player, data, { honor = def.honor, honorShare = def.honorShare }, "Achievement")
 		return { ok = true }
 	end)

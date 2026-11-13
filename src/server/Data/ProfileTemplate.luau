@@ -31,7 +31,9 @@ local template: Types.PlayerData = {
 	honor = BigNum.ZERO,
 	honorUpgrades = {},
 	abilityUpgrades = {},
-	abilityLoadout = { "Rally", "Barrage", "Plunder" }, -- AbilityConfig.LOADOUT_SLOTS equipped abilities
+	abilityLoadout = { "Rally", "Barrage", "Plunder" }, -- equipped abilities (Formulas.loadoutSlots)
+	commanderXp = 0, -- Commander Level (never resets)
+	skills = { ranks = {}, respecDay = -1 }, -- skill tree (SkillConfig)
 	lastSeen = 0,
 	faction = "",
 	factionChangedAt = 0,

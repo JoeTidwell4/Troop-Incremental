@@ -17,6 +17,7 @@ local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("Abilit
 local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local Spotlight = require(script.Parent.Spotlight)
+local SkillsTab = require(script.Parent.SkillsTab)
 local StateController = require(Client.Controllers.StateController)
 local AbilityController = require(Client.Controllers.AbilityController)
 
@@ -39,8 +40,8 @@ function ArmyUI.open(tabTitle: string?)
 end
 
 -- One line of stats for an ability, e.g. "Cooldown 60s  |  lasts 10s".
-local function statsLine(abilityId: string, upgrades: { [string]: number }): string
-	local stats = Formulas.abilityStats(abilityId, upgrades)
+local function statsLine(abilityId: string, upgrades: { [string]: number }, skillRanks: { [string]: number }): string
+	local stats = Formulas.abilityStats(abilityId, upgrades, skillRanks)
 	local parts = { `Cooldown {fmt(stats.cooldown)}s` }
 	if stats.duration ~= nil then
 		table.insert(parts, `lasts {fmt(stats.duration)}s`)
@@ -76,15 +77,17 @@ local function buildAbilitiesTab(parent: Instance): Tab
 	}) :: Frame
 
 	-- Equipped slots.
+	local maxSlots = #AbilityConfig.SLOT_KEYS
 	local slotLabels: { TextLabel } = {}
-	for slot = 1, AbilityConfig.LOADOUT_SLOTS do
+	local slotCards: { Frame } = {}
+	for slot = 1, maxSlots do
 		local card = UIKit.create("Frame", {
 			BackgroundColor3 = Theme.PanelLight,
 			BorderSizePixel = 0,
-			Position = UDim2.new((slot - 1) / AbilityConfig.LOADOUT_SLOTS, 3, 0, 0),
 			Size = UDim2.new(1 / AbilityConfig.LOADOUT_SLOTS, -6, 0, 44),
 			Parent = frame,
 		}, { UIKit.corner(8), UIKit.create("UIStroke", { Color = EQUIPPED_COLOR, Thickness = 2 }) }) :: Frame
+		slotCards[slot] = card
 		UIKit.label({
 			Text = if Layout.compact then `Slot {slot}` else `Slot {slot}  (key {slot})`,
 			TextColor3 = Theme.Muted,
@@ -154,14 +157,13 @@ local function buildAbilitiesTab(parent: Instance): Tab
 			Parent = row,
 		})
 		local buttons: { TextButton } = {}
-		for slot = 1, AbilityConfig.LOADOUT_SLOTS do
+		for slot = 1, maxSlots do
 			local button = UIKit.button({
 				Text = tostring(slot),
 				TextSize = 14,
 				BackgroundColor3 = Theme.Panel,
 				AnchorPoint = Vector2.new(1, 1),
-				Position = UDim2.new(1, -6 - (AbilityConfig.LOADOUT_SLOTS - slot) * 46, 1, -6),
-				Size = UDim2.new(0, 40, 0, 30),
+				Size = UDim2.new(0, 34, 0, 30),
 				Parent = row,
 			})
 			button.Activated:Connect(function()
@@ -175,9 +177,14 @@ local function buildAbilitiesTab(parent: Instance): Tab
 	local function render(snapshot: Snapshot)
 		local loadout = snapshot.abilityLoadout
 		local inBoss = snapshot.encounter ~= "Normal"
+		local slots = Formulas.loadoutSlots(snapshot.skillRanks)
 		for slot, label in slotLabels do
 			local def = AbilityConfig.ABILITIES[loadout[slot] or ""]
 			label.Text = if def ~= nil then def.displayName else "(empty)"
+			local card = slotCards[slot]
+			card.Visible = slot <= slots
+			card.Position = UDim2.new((slot - 1) / slots, 3, 0, 0)
+			card.Size = UDim2.new(1 / slots, -6, 0, 44)
 		end
 		for _, abilityId in AbilityConfig.ORDER do
 			local def = AbilityConfig.ABILITIES[abilityId]
@@ -186,7 +193,7 @@ local function buildAbilitiesTab(parent: Instance): Tab
 			local equippedSlot = table.find(loadout, abilityId)
 			row.frame.BackgroundTransparency = if unlocked then 0 else 0.45
 			row.name.TextColor3 = if equippedSlot ~= nil then EQUIPPED_COLOR else Theme.Text
-			row.stats.Text = statsLine(abilityId, snapshot.abilityUpgrades)
+			row.stats.Text = statsLine(abilityId, snapshot.abilityUpgrades, snapshot.skillRanks)
 			row.status.Text = if not unlocked then `Unlocks at stage {def.unlockStage}`
 				elseif equippedSlot ~= nil then `Equipped (slot {equippedSlot})`
 				elseif inBoss then "Swap after this fight"
@@ -194,7 +201,8 @@ local function buildAbilitiesTab(parent: Instance): Tab
 			row.status.TextColor3 = if equippedSlot ~= nil then EQUIPPED_COLOR elseif unlocked then Theme.Muted else Theme.HpFill
 			for slot, button in row.buttons do
 				local usable = unlocked and not inBoss and equippedSlot ~= slot
-				button.Visible = unlocked
+				button.Visible = unlocked and slot <= slots
+				button.Position = UDim2.new(1, -6 - (slots - slot) * 38, 1, -6)
 				button.BackgroundColor3 = if equippedSlot == slot then EQUIPPED_COLOR elseif usable then Theme.Accent else Theme.Disabled
 				button.AutoButtonColor = usable
 			end
@@ -224,6 +232,18 @@ function ArmyUI.start()
 		Parent = gui,
 	})
 	Spotlight.register("Menu:Army", menuButton)
+	-- Red dot: unspent skill points.
+	local dot = UIKit.create("Frame", {
+		Name = "Dot",
+		BackgroundColor3 = Color3.fromRGB(230, 60, 60),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -4, 0, 4),
+		Size = UDim2.fromOffset(14, 14),
+		Visible = false,
+		ZIndex = 5,
+		Parent = menuButton,
+	}, { UIKit.corner(7) }) :: Frame
 
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
@@ -265,7 +285,7 @@ function ArmyUI.start()
 		Parent = window,
 	}) :: Frame
 
-	local tabs: { Tab } = { buildAbilitiesTab(content) }
+	local tabs: { Tab } = { buildAbilitiesTab(content), SkillsTab.build(content) }
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
 
@@ -312,7 +332,8 @@ function ArmyUI.start()
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false
 	end)
-	StateController.Changed:Connect(function()
+	StateController.Changed:Connect(function(snapshot: Snapshot)
+		dot.Visible = SkillsTab.unspentPoints(snapshot) > 0
 		render()
 	end)
 

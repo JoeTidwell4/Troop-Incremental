@@ -377,7 +377,7 @@ function HonorTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		local canAscend = not BigNum.isZero(snapshot.ascendHonor)
 		if canAscend then
 			local nextStage = Formulas.nextHonorStage(snapshot.highestStage)
-			local nextHonor = Formulas.ascendHonor(nextStage, snapshot.crownUpgrades)
+			local nextHonor = Formulas.ascendHonor(nextStage, snapshot.crownUpgrades, snapshot.skillRanks)
 			previewLabel.Text = `Ascend now for +{format(snapshot.ascendHonor)} Honor.\n`
 				.. `Reach stage {nextStage} for +{format(nextHonor)}.`
 			previewLabel.TextColor3 = Theme.Text

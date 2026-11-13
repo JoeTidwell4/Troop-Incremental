@@ -20,6 +20,7 @@ local GearConfig = require(Shared:WaitForChild("Config"):WaitForChild("GearConfi
 local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("FactionConfig"))
 local DailyConfig = require(Shared:WaitForChild("Config"):WaitForChild("DailyConfig"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
+local SkillConfig = require(Shared:WaitForChild("Config"):WaitForChild("SkillConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -228,7 +229,28 @@ local function sanitize(data: PlayerData)
 	end
 	data.clanRequest.at = wholeNumber(data.clanRequest.at, 0, 0)
 	data.clanTokens = wholeNumber(data.clanTokens, 0, 0)
-	-- Ability loadout: exactly LOADOUT_SLOTS known, different abilities (else the default).
+	-- Commander Level + skills: known nodes only, ranks within the max, and never more
+	-- points spent than the level gives (if so, the tree is reset rather than guessed at).
+	data.commanderXp = math.max(0, if typeof(data.commanderXp) == "number" and data.commanderXp == data.commanderXp then data.commanderXp else 0)
+	data.skills.respecDay = wholeNumber(data.skills.respecDay, -1, -1)
+	local ranks: { [string]: number } = {}
+	if typeof(data.skills.ranks) == "table" then
+		for nodeId, rank in data.skills.ranks do
+			local node = SkillConfig.NODES[nodeId]
+			if node ~= nil then
+				local clean = math.min(wholeNumber(rank, 0, 0), node.maxRank)
+				if clean > 0 then
+					ranks[nodeId] = clean
+				end
+			end
+		end
+	end
+	local level = Formulas.commanderLevel(data.commanderXp)
+	if Formulas.skillSpent(ranks) > Formulas.skillPoints(level) then
+		ranks = {}
+	end
+	data.skills.ranks = ranks
+	-- Ability loadout: exactly as many known, different abilities as there are slots.
 	local loadout: { string } = {}
 	local seen: { [string]: boolean } = {}
 	if typeof(data.abilityLoadout) == "table" then
@@ -239,8 +261,13 @@ local function sanitize(data: PlayerData)
 			end
 		end
 	end
-	for _, abilityId in AbilityConfig.DEFAULT_LOADOUT do
-		if #loadout >= AbilityConfig.LOADOUT_SLOTS then
+	local slots = Formulas.loadoutSlots(data.skills.ranks)
+	local fill = table.clone(AbilityConfig.DEFAULT_LOADOUT)
+	for _, abilityId in AbilityConfig.ORDER do
+		table.insert(fill, abilityId)
+	end
+	for _, abilityId in fill do
+		if #loadout >= slots then
 			break
 		end
 		if not seen[abilityId] then
@@ -248,7 +275,7 @@ local function sanitize(data: PlayerData)
 			table.insert(loadout, abilityId)
 		end
 	end
-	while #loadout > AbilityConfig.LOADOUT_SLOTS do
+	while #loadout > slots do
 		table.remove(loadout)
 	end
 	data.abilityLoadout = loadout
@@ -299,6 +326,9 @@ local function repairFutureIds(data: PlayerData)
 	end
 	if data.quests.day > day then
 		data.quests.day = -1 -- new quests get rolled for today
+	end
+	if data.skills.respecDay > day then
+		data.skills.respecDay = -1
 	end
 
 	local raidWeek, raidDay = Formulas.raidWeek(now), Formulas.raidDay(now)

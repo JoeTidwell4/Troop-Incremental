@@ -34,11 +34,13 @@ type Slot = {
 }
 
 local slots: { Slot } = {}
+local shownSlots = AbilityConfig.LOADOUT_SLOTS
+local resize: (slotCount: number) -> () = function(_slotCount: number) end
 
 local AbilityBarUI = {}
 
 local function buildSlot(order: number, parent: Instance): Slot
-	local abilityId = AbilityConfig.DEFAULT_LOADOUT[order]
+	local abilityId = AbilityConfig.DEFAULT_LOADOUT[order] or AbilityConfig.ORDER[order]
 	local def = AbilityConfig.ABILITIES[abilityId]
 
 	local button = UIKit.button({
@@ -124,7 +126,13 @@ local function update()
 	end
 	local now = workspace:GetServerTimeNow()
 
+	local slotCount = #snapshot.abilityLoadout
+	resize(slotCount)
 	for index, slot in slots do
+		slot.button.Visible = index <= slotCount
+		if index > slotCount then
+			continue
+		end
 		-- Follow the loadout: the slot's ability can change (ARMY > Abilities).
 		local equippedId = snapshot.abilityLoadout[index] or slot.abilityId
 		if equippedId ~= slot.abilityId then
@@ -159,7 +167,7 @@ local function update()
 				slot.timerLabel.Text = `{snapshot.bountyLeft} kills`
 				slot.timerLabel.TextSize = 13
 				slot.timerLabel.TextColor3 = Theme.Gold
-				local cooldown = Formulas.abilityStats(abilityId, snapshot.abilityUpgrades).cooldown
+				local cooldown = Formulas.abilityStats(abilityId, snapshot.abilityUpgrades, snapshot.skillRanks).cooldown
 				slot.cooldownFill.Size = UDim2.new(1, 0, math.clamp(math.max(remaining, 0) / cooldown, 0, 1), 0)
 			elseif remaining <= 0 and waitsForBoss then
 				slot.button.BackgroundColor3 = Theme.PanelLight
@@ -171,7 +179,7 @@ local function update()
 				slot.button.BackgroundColor3 = Theme.PanelLight
 				slot.timerLabel.Text = if active then `{math.ceil(activeUntil - now)}s` else `{math.ceil(remaining)}`
 				slot.timerLabel.TextColor3 = if active then Theme.Gold else Theme.Text
-				local cooldown = Formulas.abilityStats(abilityId, snapshot.abilityUpgrades).cooldown
+				local cooldown = Formulas.abilityStats(abilityId, snapshot.abilityUpgrades, snapshot.skillRanks).cooldown
 				slot.cooldownFill.Size = UDim2.new(1, 0, math.clamp(remaining / cooldown, 0, 1), 0)
 			else
 				slot.button.BackgroundColor3 = Theme.Accent
@@ -216,7 +224,15 @@ function AbilityBarUI.start()
 		}),
 	})
 
-	for order = 1, AbilityConfig.LOADOUT_SLOTS do
+	resize = function(slotCount: number)
+		if slotCount == shownSlots then
+			return
+		end
+		shownSlots = slotCount
+		local size = slotCount * BUTTON_SIZE + (slotCount - 1) * GAP
+		bar.Size = if Layout.compact then UDim2.new(0, BUTTON_SIZE, 0, size) else UDim2.new(0, size, 0, BUTTON_SIZE)
+	end
+	for order = 1, #AbilityConfig.SLOT_KEYS do
 		local slot = buildSlot(order, bar)
 		slots[order] = slot
 		Spotlight.register(`Ability:{slot.abilityId}`, slot.button)

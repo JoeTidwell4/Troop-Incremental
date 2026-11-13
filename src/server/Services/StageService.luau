@@ -128,7 +128,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 			enemyHp = hp,
 			enemyMaxHp = hp,
 			goldPerKill = Formulas.bossGold(stage),
-			bossEndsAt = introUntil + BossConfig.BOSS_TIME_LIMIT,
+			bossEndsAt = introUntil + BossConfig.BOSS_TIME_LIMIT + (if data ~= nil then Formulas.skillEffects(data.skills.ranks).bossTime else 0),
 			bossDps = Formulas.bossDps(stage),
 			armyDamageTaken = BigNum.ZERO,
 			raidDamage = BigNum.ZERO,
@@ -335,6 +335,10 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 		return true
 	end
 	local goldMultiplier = ModifierService.get(player).gold
+	local skills = Formulas.skillEffects(data.skills.ranks)
+	if encounter.kind == "Boss" then
+		goldMultiplier *= 1 + skills.bossGold -- War Profits
+	end
 	local enemiesThisStage = if encounter.kind == "Boss" then 1 else StageConfig.ENEMIES_PER_STAGE
 
 	-- Summoned minions take the hits until they're all down.
@@ -377,7 +381,8 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	local kills = 1 + extraKills
 	local wasGolden = encounter.golden
 	-- Gold is paid in "kills' worth": a golden enemy is worth GOLDEN_GOLD_KILLS on its own.
-	local goldKills = kills + (if wasGolden then StageConfig.GOLDEN_GOLD_KILLS - 1 else 0)
+	local goldenKills = StageConfig.GOLDEN_GOLD_KILLS * (1 + skills.goldenGold) -- Midas
+	local goldKills = kills + (if wasGolden then goldenKills - 1 else 0)
 	local hook = StageService.bountyHook
 	if hook ~= nil and encounter.kind == "Normal" then
 		goldKills += hook(player, kills)
@@ -404,7 +409,8 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	else
 		-- The next enemy: sometimes a golden one (tougher, much richer).
 		local baseHp = Formulas.enemyHp(data.stage)
-		encounter.golden = encounter.kind == "Normal" and random:NextNumber() < StageConfig.GOLDEN_CHANCE
+		local goldenChance = StageConfig.GOLDEN_CHANCE * (1 + skills.goldenChance) -- Lucky Find
+		encounter.golden = encounter.kind == "Normal" and random:NextNumber() < goldenChance
 		encounter.enemyMaxHp = if encounter.golden then BigNum.mulNumber(baseHp, StageConfig.GOLDEN_HP_MULTIPLIER) else baseHp
 		encounter.enemyHp = BigNum.max(BigNum.sub(encounter.enemyMaxHp, damage), BigNum.ONE)
 	end

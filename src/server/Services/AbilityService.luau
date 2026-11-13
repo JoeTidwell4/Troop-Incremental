@@ -81,7 +81,7 @@ local function activeStats(player: Player): { Types.AbilityStats }
 	local list: { Types.AbilityStats } = {}
 	for abilityId in AbilityConfig.ABILITIES do
 		if isActive(player, abilityId) then
-			table.insert(list, Formulas.abilityStats(abilityId, if data ~= nil then data.abilityUpgrades else nil))
+			table.insert(list, Formulas.abilityStats(abilityId, if data ~= nil then data.abilityUpgrades else nil, if data ~= nil then data.skills.ranks else nil))
 		end
 	end
 	return list
@@ -113,7 +113,7 @@ local function useAbility(player: Player, abilityId: string)
 		return -- still on cooldown
 	end
 
-	local stats = Formulas.abilityStats(abilityId, data.abilityUpgrades)
+	local stats = Formulas.abilityStats(abilityId, data.abilityUpgrades, data.skills.ranks)
 	local encounter = StageService.getEncounter(player)
 	if def.bossOnly and (encounter == nil or encounter.kind ~= "Boss") then
 		return -- would be wasted (the button says so)
@@ -153,6 +153,9 @@ local function setSlot(player: Player, request: { slot: number, abilityId: strin
 	local def = AbilityConfig.ABILITIES[request.abilityId]
 	if data == nil or def == nil or data.bestStage < def.unlockStage then
 		return
+	end
+	if request.slot > Formulas.loadoutSlots(data.skills.ranks) then
+		return -- the 4th slot needs Grand Tactician
 	end
 	local encounter = StageService.getEncounter(player)
 	if encounter ~= nil and encounter.kind ~= "Normal" then
@@ -232,7 +235,7 @@ function AbilityService.start()
 	end, useAbility)
 	RemoteService.onEvent(Remotes.Events.SetAbilitySlot, RateLimiter.new(6, 3), function(slot: unknown, abilityId: unknown): { slot: number, abilityId: string }?
 		local id = Validate.keyOf(abilityId, AbilityConfig.ABILITIES)
-		if id == nil or typeof(slot) ~= "number" or slot ~= math.floor(slot) or slot < 1 or slot > AbilityConfig.LOADOUT_SLOTS then
+		if id == nil or typeof(slot) ~= "number" or slot ~= math.floor(slot) or slot < 1 or slot > #AbilityConfig.SLOT_KEYS then
 			return nil
 		end
 		return { slot = slot :: number, abilityId = id }

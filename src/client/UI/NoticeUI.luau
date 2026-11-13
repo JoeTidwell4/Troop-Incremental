@@ -118,6 +118,8 @@ local function onNotice(notice: Notice)
 			table.insert(parts, 1, "You were the clan MVP!")
 		end
 		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
+	elseif notice.kind == "LevelUp" then
+		NoticeUI.show(`COMMANDER LEVEL {notice.level or 0}!`, "+1 skill point. Spend it in ARMY > Skills.", Color3.fromRGB(120, 200, 255))
 	elseif notice.kind == "BossFailed" then
 		local reason = FAIL_REASONS[notice.reason or ""] or "Boss fight lost."
 		NoticeUI.show(reason, FAIL_ADVICE[notice.reason or ""] or FAIL_ADVICE.OutOfTime, Theme.HpFill)

@@ -46,6 +46,9 @@ local function award(player: Player, data: PlayerData)
 	end
 
 	local bonusHours, bonusEfficiency = HonorService.getOfflineBonus(player)
+	local skills = Formulas.skillEffects(data.skills.ranks) -- Field Camp, Supply Lines
+	bonusHours += skills.offlineHours
+	bonusEfficiency += skills.offlineEfficiency
 	local capSeconds = (OfflineConfig.CAP_HOURS + bonusHours) * 3600
 	local seconds = math.min(away, capSeconds)
 	local efficiency = OfflineConfig.EFFICIENCY + bonusEfficiency

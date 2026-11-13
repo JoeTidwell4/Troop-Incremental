@@ -194,7 +194,7 @@ function AudioController.start()
 			AudioController.play("BossWin")
 		elseif notice.kind == "BossFailed" then
 			AudioController.play("BossFail")
-		elseif notice.kind == "RaidRewards" or notice.kind == "ClanWarRewards" or notice.kind == "CommanderItem" or notice.kind == "ClanJoined" or notice.kind == "Golden" then
+		elseif notice.kind == "RaidRewards" or notice.kind == "ClanWarRewards" or notice.kind == "CommanderItem" or notice.kind == "ClanJoined" or notice.kind == "Golden" or notice.kind == "LevelUp" then
 			AudioController.play("Reward")
 		end
 	end)

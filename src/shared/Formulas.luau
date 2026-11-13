@@ -20,6 +20,7 @@ local FactionConfig = require(Shared.Config.FactionConfig)
 local ClanConfig = require(Shared.Config.ClanConfig)
 local RaidConfig = require(Shared.Config.RaidConfig)
 local LegacyConfig = require(Shared.Config.LegacyConfig)
+local SkillConfig = require(Shared.Config.SkillConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -419,6 +420,96 @@ function Formulas.honorForStage(stage: number): BigNum
 	return BigNum.floor(raw)
 end
 
+---------------------------------------------------------------- commander level + skills
+
+-- (level, XP into this level, XP needed for the next; 0 at max level).
+function Formulas.commanderLevel(xp: number): (number, number, number)
+	local level = 1
+	local left = math.max(0, xp)
+	while level < SkillConfig.MAX_LEVEL do
+		local need = math.floor(SkillConfig.LEVEL_XP_BASE * SkillConfig.LEVEL_XP_GROWTH ^ (level - 1))
+		if left < need then
+			return level, left, need
+		end
+		left -= need
+		level += 1
+	end
+	return level, 0, 0
+end
+
+-- Skill points earned at a level, and spent by these ranks (optionally in one branch).
+function Formulas.skillPoints(level: number): number
+	return (level - 1) * SkillConfig.SKILL_POINTS_PER_LEVEL
+end
+
+function Formulas.skillSpent(ranks: { [string]: number }, branch: string?): number
+	local spent = 0
+	for nodeId, rank in ranks do
+		local def = SkillConfig.NODES[nodeId]
+		if def ~= nil and (branch == nil or def.branch == branch) then
+			spent += math.min(rank, def.maxRank) * def.cost
+		end
+	end
+	return spent
+end
+
+-- Whether one more rank of `nodeId` can be learned: (ok, reason). Shared by server + UI.
+function Formulas.canLearnSkill(ranks: { [string]: number }, level: number, nodeId: string): (boolean, string?)
+	local def = SkillConfig.NODES[nodeId]
+	if def == nil then
+		return false, "Rejected"
+	end
+	if (ranks[nodeId] or 0) >= def.maxRank then
+		return false, "MaxReached"
+	end
+	if Formulas.skillSpent(ranks, def.branch) < (SkillConfig.TIER_POINTS[def.tier] or 0) then
+		return false, "TierLocked"
+	end
+	if def.fork ~= nil then
+		for otherId, rank in ranks do
+			local other = SkillConfig.NODES[otherId]
+			if other ~= nil and otherId ~= nodeId and other.fork == def.fork and rank > 0 then
+				return false, "ForkTaken"
+			end
+		end
+	end
+	if Formulas.skillPoints(level) - Formulas.skillSpent(ranks) < def.cost then
+		return false, "NoPoints"
+	end
+	return true, nil
+end
+
+-- All skill effects added up over the learned ranks.
+function Formulas.skillEffects(ranks: { [string]: number }?): Types.SkillEffects
+	local total: { [string]: number } = {}
+	for _, field in { "damage", "armyHp", "gold", "tap", "bossDamageDealt", "bossDamageTaken", "bossTime", "bossGold", "critChance", "critMultiplier", "goldenChance", "goldenGold", "offlineHours", "offlineEfficiency", "ascendHonor", "abilityCooldown", "abilityDuration", "weakPointDamage", "extraSlots", "lastStand" } do
+		total[field] = 0
+	end
+	if ranks ~= nil then
+		for nodeId, rank in ranks do
+			local def = SkillConfig.NODES[nodeId]
+			if def ~= nil and rank > 0 then
+				local counted = math.min(rank, def.maxRank)
+				for field, value in def.effects do
+					total[field] = (total[field] or 0) + value * counted
+				end
+			end
+		end
+	end
+	return (total :: any) :: Types.SkillEffects
+end
+
+-- How many abilities you can equip (AbilityConfig.LOADOUT_SLOTS + Grand Tactician).
+function Formulas.loadoutSlots(ranks: { [string]: number }?): number
+	return AbilityConfig.LOADOUT_SLOTS + math.floor(Formulas.skillEffects(ranks).extraSlots)
+end
+
+-- Commander XP for beating a boss.
+function Formulas.bossXp(bossStage: number, firstClear: boolean): number
+	local xp = SkillConfig.XP.BOSS_BASE + bossStage // SkillConfig.XP.BOSS_STAGE_DIVISOR
+	return if firstClear then xp * SkillConfig.XP.FIRST_CLEAR_MULTIPLIER else xp
+end
+
 ---------------------------------------------------------------- legacy
 
 -- Total multiplier from one Crown upgrade stat ("damage", "armyHp", "gold", "ascendHonor").
@@ -467,10 +558,11 @@ function Formulas.legacyCrowns(honorThisLegacy: BigNum): number
 	return if crowns ~= crowns or crowns == math.huge then 0 else math.floor(crowns)
 end
 
--- Honor for Ascending now, including Crown upgrades (Eternal Glory).
-function Formulas.ascendHonor(highestStage: number, crownUpgrades: { [string]: number }?): BigNum
+-- Honor for Ascending now, including Crown upgrades (Eternal Glory) and skills (Honor Guard).
+function Formulas.ascendHonor(highestStage: number, crownUpgrades: { [string]: number }?, skillRanks: { [string]: number }?): BigNum
 	local base = Formulas.honorForStage(highestStage)
-	return BigNum.floor(BigNum.mulNumber(base, Formulas.crownMultiplier(crownUpgrades, "ascendHonor")))
+	local multiplier = Formulas.crownMultiplier(crownUpgrades, "ascendHonor") * (1 + Formulas.skillEffects(skillRanks).ascendHonor)
+	return BigNum.floor(BigNum.mulNumber(base, multiplier))
 end
 
 -- An Honor reward that stays worth something at every stage: `share` of what an Ascend
@@ -497,7 +589,7 @@ end
 
 -- An ability's numbers after its Honor upgrades (AbilityConfig.UPGRADES). `upgrades` is
 -- the player's abilityUpgrades (id -> level); nil = no upgrades.
-function Formulas.abilityStats(abilityId: string, upgrades: { [string]: number }?): Types.AbilityStats
+function Formulas.abilityStats(abilityId: string, upgrades: { [string]: number }?, skillRanks: { [string]: number }?): Types.AbilityStats
 	local def = AbilityConfig.ABILITIES[abilityId]
 	local stats: { [string]: number? } = {}
 	for _, field in AbilityConfig.STAT_FIELDS do
@@ -510,6 +602,14 @@ function Formulas.abilityStats(abilityId: string, upgrades: { [string]: number }
 			if upgrade.abilityId == abilityId and level > 0 and base ~= nil then
 				stats[upgrade.stat] = base + upgrade.perLevel * level
 			end
+		end
+	end
+	-- Skills: Rapid Recovery (shorter cooldowns), Focus (longer durations).
+	if skillRanks ~= nil then
+		local effects = Formulas.skillEffects(skillRanks)
+		stats.cooldown = (stats.cooldown :: number) * math.max(0.2, 1 + effects.abilityCooldown)
+		if stats.duration ~= nil then
+			stats.duration = stats.duration * (1 + effects.abilityDuration)
 		end
 	end
 	return (stats :: any) :: Types.AbilityStats

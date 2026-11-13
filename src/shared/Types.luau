@@ -410,7 +410,9 @@ export type PlayerData = {
 	clanWar: ClanWarRecord,
 	clanRequest: { clanId: string, at: number }, -- pending join request ("" = none)
 	clanTokens: number, -- Clan Tokens for the clan shop (kept on Ascend)
-	abilityLoadout: { string }, -- equipped abilities, one per slot (AbilityConfig.LOADOUT_SLOTS)
+	abilityLoadout: { string }, -- equipped abilities, one per slot (Formulas.loadoutSlots)
+	commanderXp: number, -- Commander Level XP (never resets)
+	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
@@ -480,6 +482,9 @@ export type Snapshot = {
 	ascensions: number,
 	abilityLoadout: { string }, -- equipped abilities by slot (keys 1/2/3)
 	bountyLeft: number, -- kills left on an active Bounty
+	commanderXp: number,
+	skillRanks: { [string]: number },
+	respecReady: boolean, -- the free daily respec is available
 	enemyGolden: boolean, -- the current enemy is a golden one
 	legacyCount: number,
 	crowns: number, -- unspent
@@ -507,7 +512,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -529,6 +534,8 @@ export type Notice = {
 	tokens: number?, -- Clan Tokens earned
 	headToHead: string?, -- "win" | "bye" | "loss" for that week's head-to-head
 	heroChests: number?,
+	-- LevelUp only: the new Commander Level (stage = 0).
+	level: number?,
 }
 
 export type BuyMode = "One" | "Ten" | "Max"
@@ -570,6 +577,44 @@ export type PackResult = {
 export type FactionResult = {
 	ok: boolean,
 	reason: string?,
+}
+
+-- One node of the skill tree (SkillConfig.NODES).
+export type SkillNodeDef = {
+	id: string,
+	branch: string, -- "Warlord" | "Quartermaster" | "Tactician"
+	tier: number, -- needs SkillConfig.TIER_POINTS[tier] points spent in the branch
+	order: number, -- position within the tier
+	fork: string?, -- nodes sharing a fork id are pick-one
+	displayName: string,
+	description: string,
+	maxRank: number,
+	cost: number, -- skill points per rank
+	effects: { [string]: number }, -- per rank (see SkillConfig header)
+}
+
+-- Every skill effect added up (Formulas.skillEffects). Missing = 0.
+export type SkillEffects = {
+	damage: number,
+	armyHp: number,
+	gold: number,
+	tap: number,
+	bossDamageDealt: number,
+	bossDamageTaken: number,
+	bossTime: number,
+	bossGold: number,
+	critChance: number,
+	critMultiplier: number,
+	goldenChance: number,
+	goldenGold: number,
+	offlineHours: number,
+	offlineEfficiency: number,
+	ascendHonor: number,
+	abilityCooldown: number,
+	abilityDuration: number,
+	weakPointDamage: number,
+	extraSlots: number,
+	lastStand: number,
 }
 
 export type CrownUpgradeDef = {

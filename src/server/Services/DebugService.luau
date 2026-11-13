@@ -30,6 +30,7 @@ local DailyService = require(Services.DailyService)
 local RaidService = require(Services.RaidService)
 local ClanWarService = require(Services.ClanWarService)
 local ClanShopService = require(Services.ClanShopService)
+local SkillService = require(Services.SkillService)
 
 type PlayerData = Types.PlayerData
 type Result = { ok: boolean, message: string }
@@ -108,6 +109,10 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 	Forge = function(_player, data, arg)
 		data.packs.forge += arg or 3
 		return done(`+{arg} Epic Forge tokens.`)
+	end,
+	CommanderXp = function(player, _data, arg)
+		SkillService.addXp(player, arg or 5000)
+		return done(`+{arg} Commander XP.`)
 	end,
 	Crowns = function(_player, data, arg)
 		data.legacy.crowns += arg or 50

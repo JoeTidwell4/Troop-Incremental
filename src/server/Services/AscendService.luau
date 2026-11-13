@@ -23,6 +23,7 @@ local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
 local StageService = require(Services.StageService)
 local Analytics = require(Services.AnalyticsService)
+local ActivityService = require(Services.ActivityService)
 
 type AscendResult = Types.AscendResult
 type PlayerData = Types.PlayerData
@@ -33,7 +34,7 @@ local AscendService = {}
 
 -- Honor the player would get for Ascending right now (zero if not allowed yet).
 function AscendService.preview(data: PlayerData): BigNum.BigNum
-	return Formulas.ascendHonor(data.highestStage, data.legacy.upgrades)
+	return Formulas.ascendHonor(data.highestStage, data.legacy.upgrades, data.skills.ranks)
 end
 
 -- Wipes everything that belongs to a single run (LegacyService uses it too).
@@ -74,6 +75,7 @@ local function ascend(player: Player, _payload: boolean): AscendResult
 	data.honor = BigNum.add(data.honor, honor)
 	data.stats.honorEarned = BigNum.add(data.stats.honorEarned, honor)
 	data.stats.ascensions += 1
+	ActivityService.record(player, "AscendStage", data.highestStage) -- Commander XP
 	Analytics.ascended(player, data.highestStage, data.stats.ascensions)
 	Analytics.honor(player, "Source", honor, data.honor, "Ascend")
 	AscendService.resetRun(data)

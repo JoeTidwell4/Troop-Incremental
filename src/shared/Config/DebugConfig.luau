@@ -30,6 +30,7 @@ local DebugConfig = {
 				{ label = "+10,000 Honor", action = "Honor", arg = 10000 },
 				{ label = "+10M Honor", action = "Honor", arg = 10000000 },
 				{ label = "+50 Crowns", action = "Crowns", arg = 50 },
+				{ label = "+5,000 Commander XP", action = "CommanderXp", arg = 5000 },
 				{ label = "+10 packs", action = "Packs", arg = 10 },
 				{ label = "+5 Hero Chests", action = "HeroChests", arg = 5 },
 				{ label = "+3 Epic Forge", action = "Forge", arg = 3 },

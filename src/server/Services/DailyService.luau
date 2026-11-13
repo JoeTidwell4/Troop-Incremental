@@ -220,6 +220,7 @@ local function claimQuest(player: Player, data: PlayerData, index: number): Resu
 	end
 	local def = QUEST_BY_KEY[quest.key]
 	quest.claimed = true
+	ActivityService.record(player, "QuestClaim", quest.difficulty) -- Commander XP by difficulty
 	if def ~= nil then
 		DailyService.grant(player, data, {
 			goldMinutes = def.minutes[quest.difficulty],
