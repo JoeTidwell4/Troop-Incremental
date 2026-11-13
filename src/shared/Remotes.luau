@@ -10,6 +10,8 @@
 -- StateSync      server -> client   (snapshot: Types.Snapshot)
 -- Notice         server -> client   (notice: Types.Notice)  boss won/lost banners
 -- BuyTroop       client -> server, returns Types.BuyResult   (troopId: string, mode: Types.BuyMode)
+-- UpgradeGear    client -> server, returns Types.BuyResult   (troopId: string, slot: GearSlot, mode: GearBuyMode)
+-- OpenPack       client -> server, returns Types.PackResult  (useFree: boolean)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,6 +30,8 @@ local Remotes = {
 
 	Functions = table.freeze({
 		BuyTroop = "BuyTroop",
+		UpgradeGear = "UpgradeGear",
+		OpenPack = "OpenPack",
 	}),
 }
 

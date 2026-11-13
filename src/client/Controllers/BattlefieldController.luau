@@ -4,6 +4,7 @@
 -- on gameplay. At most MAX_VISIBLE_PER_TYPE troops are shown per type.
 
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -13,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 
 local Types = require(Shared:WaitForChild("Types"))
 local Areas = require(Shared:WaitForChild("Areas"))
+local Plots = require(Shared:WaitForChild("Plots"))
 local Config = Shared:WaitForChild("Config")
 local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local VisualConfig = require(Config:WaitForChild("VisualConfig"))
@@ -41,7 +43,8 @@ local RALLY_COLOR = Color3.fromRGB(255, 205, 70)
 
 type Unit = { model: Model, body: Part, color: Color3, home: CFrame, speed: number, phase: number }
 
-local origin = VisualConfig.BATTLEFIELD_ORIGIN
+-- Center of this player's plot; set in start() from the PlotIndex the server assigns.
+local origin = Vector3.zero
 local folder: Folder
 local troopsModel: Model
 local effects: Folder
@@ -302,7 +305,20 @@ local function animate(dt: number)
 	end
 end
 
+-- Waits until the server has assigned this player a plot.
+local function waitForPlot(): number
+	local player = Players.LocalPlayer
+	local index = player:GetAttribute(Plots.ATTRIBUTE)
+	while typeof(index) ~= "number" do
+		player:GetAttributeChangedSignal(Plots.ATTRIBUTE):Wait()
+		index = player:GetAttribute(Plots.ATTRIBUTE)
+	end
+	return index :: number
+end
+
 function BattlefieldController.start()
+	origin = Plots.origin(waitForPlot())
+
 	folder = Instance.new("Folder")
 	folder.Name = "Battlefield"
 

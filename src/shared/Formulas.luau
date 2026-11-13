@@ -9,9 +9,13 @@ local TroopConfig = require(Shared.Config.TroopConfig)
 local StageConfig = require(Shared.Config.StageConfig)
 local CombatConfig = require(Shared.Config.CombatConfig)
 local BossConfig = require(Shared.Config.BossConfig)
+local GearConfig = require(Shared.Config.GearConfig)
+local PackConfig = require(Shared.Config.PackConfig)
 
 type BigNum = BigNum.BigNum
 type TroopCounts = Types.TroopCounts
+type GearSet = Types.GearSet
+type GearSlotState = Types.GearSlotState
 
 local Formulas = {}
 
@@ -54,38 +58,93 @@ function Formulas.milestoneMultiplier(count: number): BigNum
 	return BigNum.powNumber(TroopConfig.MILESTONE_MULTIPLIER, Formulas.milestonesReached(count))
 end
 
--- Total DPS of all troops of one type.
-function Formulas.troopDps(troopId: string, count: number): BigNum
+---------------------------------------------------------------- gear
+
+-- Multiplier from a gear slot's level alone (no rarity).
+function Formulas.gearLevelEffect(level: number): number
+	return (1 + GearConfig.EFFECT_PER_LEVEL * level) * GearConfig.TIER_MULTIPLIER ^ (level // GearConfig.TIER_EVERY)
+end
+
+function Formulas.rarityMultiplier(rarity: number): number
+	local def = GearConfig.RARITIES[rarity]
+	return if def ~= nil then def.multiplier else 1
+end
+
+-- Full multiplier from one gear slot (level and rarity). Missing gear counts as x1.
+function Formulas.gearMultiplier(slot: GearSlotState?): number
+	if slot == nil then
+		return 1
+	end
+	return Formulas.gearLevelEffect(slot.level) * Formulas.rarityMultiplier(slot.rarity)
+end
+
+-- Gold cost to raise a gear slot from `level` to `level + 1`. Rounded to whole gold.
+function Formulas.gearUpgradeCost(troopId: string, level: number): BigNum
+	local def = getTroop(troopId)
+	local cost = BigNum.mulNumber(
+		BigNum.powNumber(GearConfig.COST_GROWTH, level),
+		def.baseCost * GearConfig.BASE_COST_MULTIPLIER
+	)
+	return BigNum.round(cost)
+end
+
+-- How many levels `gold` can buy (up to `cap`), and the total cost.
+function Formulas.gearMaxAffordable(troopId: string, level: number, gold: BigNum, cap: number): (number, BigNum)
+	local count = 0
+	local total = BigNum.ZERO
+	while count < cap do
+		local nextTotal = BigNum.add(total, Formulas.gearUpgradeCost(troopId, level + count))
+		if BigNum.gt(nextTotal, gold) then
+			break
+		end
+		total = nextTotal
+		count += 1
+	end
+	return count, total
+end
+
+function Formulas.packPrice(highestStage: number): BigNum
+	return BigNum.round(BigNum.mulNumber(Formulas.goldPerKill(highestStage), PackConfig.PRICE_IN_KILLS))
+end
+
+---------------------------------------------------------------- army
+
+-- Total DPS of all troops of one type, including that type's weapon.
+function Formulas.troopDps(troopId: string, count: number, gear: GearSet?): BigNum
 	if count <= 0 then
 		return BigNum.ZERO
 	end
 	local def = getTroop(troopId)
-	return BigNum.mul(BigNum.fromNumber(count * def.baseDps), Formulas.milestoneMultiplier(count))
+	local troopGear = if gear ~= nil then gear[troopId] else nil
+	local weapon = Formulas.gearMultiplier(if troopGear ~= nil then troopGear.weapon else nil)
+	return BigNum.mul(BigNum.fromNumber(count * def.baseDps * weapon), Formulas.milestoneMultiplier(count))
 end
 
 -- Army DPS before any temporary or global multipliers (abilities etc. are applied by the server).
-function Formulas.armyDps(troops: TroopCounts): BigNum
+function Formulas.armyDps(troops: TroopCounts, gear: GearSet?): BigNum
 	local total = BigNum.ZERO
 	for _, troopId in TroopConfig.ORDER do
-		total = BigNum.add(total, Formulas.troopDps(troopId, troops[troopId] or 0))
+		total = BigNum.add(total, Formulas.troopDps(troopId, troops[troopId] or 0, gear))
 	end
 	return total
 end
 
--- Total HP of all troops of one type.
-function Formulas.troopHp(troopId: string, count: number): BigNum
+-- Total HP of all troops of one type, including that type's armor.
+function Formulas.troopHp(troopId: string, count: number, gear: GearSet?): BigNum
 	if count <= 0 then
 		return BigNum.ZERO
 	end
 	local def = getTroop(troopId)
-	return BigNum.mul(BigNum.fromNumber(count * def.baseHp), Formulas.milestoneMultiplier(count))
+	local troopGear = if gear ~= nil then gear[troopId] else nil
+	local armor = Formulas.gearMultiplier(if troopGear ~= nil then troopGear.armor else nil)
+	return BigNum.mul(BigNum.fromNumber(count * def.baseHp * armor), Formulas.milestoneMultiplier(count))
 end
 
--- Army HP before multipliers. Only used in boss fights.
-function Formulas.armyHp(troops: TroopCounts): BigNum
+-- Army HP before global multipliers. Only used in boss fights.
+function Formulas.armyHp(troops: TroopCounts, gear: GearSet?): BigNum
 	local total = BigNum.ZERO
 	for _, troopId in TroopConfig.ORDER do
-		total = BigNum.add(total, Formulas.troopHp(troopId, troops[troopId] or 0))
+		total = BigNum.add(total, Formulas.troopHp(troopId, troops[troopId] or 0, gear))
 	end
 	return total
 end

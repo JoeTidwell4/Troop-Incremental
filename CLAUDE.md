@@ -7,14 +7,15 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 1: done (owner confirmed in Studio).**
 **Phase 2 is split in two:**
 - **2a: done (owner confirmed in Studio).** Bosses that hit back, troop HP, areas, abilities (Rally/Barrage/Plunder).
-- **2b (next, plan proposed, waiting for OK):** gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
+- **2b (code written, waiting for owner to test):** gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
+Do not start Phase 3 until the owner confirms 2b works. Open Phase 3 questions: does gear rarity reset on Ascend (leaning yes)? Does highestBossDefeated / free-pack tracking reset (if so, free packs are re-earned each run)?
 
 Decisions made:
 - No Wally. ProfileStore is vendored at `src/server/Packages/ProfileStore.luau` (unmodified, Apache 2.0, license in `third_party/ProfileStore/`, upstream commit 45c9847). It's the one file without `--!strict`; DataService wraps it with local types.
 - UI is plain Instance-building code (`src/client/UI/UIKit.luau` helpers). No Fusion/React.
 - Troop milestone multipliers: on (25/50/100/200/300/400/500, then every 100, x2 each).
 - First Ascend target: 20-30 minutes of play (not 45-60).
-- No player avatar yet: `Players.CharacterAutoLoads = false`, fixed scriptable camera on a client-built battlefield at y=200. Phase 2b brings the avatar back as the commander, with a server-assigned plot per player so avatars don't overlap. Later (Phase 4/5) a social hub.
+- Avatar as commander (2b): `PlotService` assigns each player a plot index (Player attribute `PlotIndex`; `Shared/Plots.luau` turns it into a world position, plots 400 studs apart along X from y=200). The avatar is anchored at `WorldConfig.COMMANDER_OFFSET`, movement modes set to Scriptable (no keyboard/thumbstick). Client builds the battlefield locally at its plot; fixed scriptable camera. `CommanderController` welds a local-only sword and swings the shoulder Motor6D C0 on click (R15 "RightShoulder" around X, R6 "Right Shoulder" around Z; skipped if neither exists). Later (Phase 4/5) a social hub.
 - Armor problem: enemies never attacked, so armor meant nothing. Fix (owner approved): **bosses hit back**. Troops have HP; during a boss the boss damages army HP each second. Lose if time runs out or army HP hits 0. Armor (2b) raises HP. Knights = tank, Archers = fragile DPS.
 - Boss fail: back one stage, auto-advance OFF, player farms until pressing Fight Boss (only valid when next stage is a boss) or re-enabling auto-advance.
 - Areas: every boss beaten moves you to the next area (10 stages each). 6 themes in AreaConfig, then repeat with roman numerals. Cosmetic only for now; area modifiers (e.g. armored enemies vs Archers) are a Phase 6 idea.
@@ -66,12 +67,14 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 
 ### Data flow
 - Server: `RemoteService` (creates remotes, enforces rate limit + validator on every handler) -> `TapService` / `TroopService` / `AbilityService` change state -> `StageService` runs the 5 Hz fight loop for all players (pulls damage from `CombatService.takeDamage`, resolves kills/gold/stage, boss timer + boss damage to army, fail/retreat) -> `DataService.Changed` -> `SyncService` sends a `Snapshot` to that player at most every 0.25s. Boss results go out on the `Notice` remote.
+- Gear (2b): `data.gear[troopId].weapon/armor = { level, rarity }`. Slot multiplier = levelEffect * rarity multiplier (Formulas.gearMultiplier); weapon multiplies that troop type's DPS, armor its HP, inside `Formulas.troopDps/troopHp`. Per-type, so it lives in Formulas, not ModifierService (which is for global multipliers). `GearService` handles x1/Max level upgrades.
+- Packs (2b): `PackService` rolls server-side with `Random.new()`. Pity: `data.packs.sinceEpic`. Free packs: `StageService` tracks `highestBossDefeated` (also derived on load from highestStage) and fires `BossDefeated`; PackService grants `(highestBossDefeated - packs.rewardedBossStage) // BOSS_EVERY` packs, so it can never double-grant and back-fills older saves.
 - `CombatService` = army numbers only (cached base DPS/HP, queued click/ability damage). `ModifierService` = the single place all multipliers are combined (`damage`, `gold`, `armyHp`); systems register a source function. Abilities use it now; Honor, faction, clan, and gear bonuses must plug in here too.
 - Server-only per-player state (not saved): encounter (enemy HP, boss timer, army damage taken) in StageService, ability timers in AbilityService. Ability timestamps use `workspace:GetServerTimeNow()` so the client can count down locally.
-- Client: `StateController` holds the latest snapshot and forwards notices; `InputController` batches clicks; `TroopController` invokes BuyTroop; `AbilityController` (buttons + keys 1/2/3); `BattleController` (Fight Boss, auto-advance); `BattlefieldController` + `HudUI` + `TroopShopUI` + `AbilityBarUI` + `NoticeUI` render from the snapshot.
+- Client: `StateController` holds the latest snapshot and forwards notices; `InputController` batches clicks; `ShopController` (BuyTroop / UpgradeGear / OpenPack); `AbilityController` (buttons + keys 1/2/3); `BattleController` (Fight Boss, auto-advance); `CommanderController` (avatar sword + swing); `BattlefieldController` + `HudUI` + `ShopUI` (tabs: `TroopTab`, `GearTab`, `PackTab`, shared types in `ShopTypes`) + `AbilityBarUI` + `NoticeUI` + `PackRevealUI` render from the snapshot.
 - `Shared/Formulas.luau` is the single source of game math, used by the server for outcomes and by the client only for display previews.
 - Troop costs are rounded to whole gold (`BigNum.round`) to avoid float error making exact prices unaffordable.
-- Balance is checked with `tools/balance_sim.py` (Python mirror of the formulas; numbers copied by hand). Phase 2a result (boss HP x12, boss DPS 0.12 x enemy HP): active beats boss 10 at ~1.4 min, 50 at ~19 min, walls at ~59; idle reaches ~49 at 30 min. Active ~2.5x idle. Most boss fails are army HP, which 2b Armor addresses.
+- Balance is checked with `tools/balance_sim.py` (Python mirror of the formulas; numbers copied by hand). Phase 2a result (boss HP x12, boss DPS 0.12 x enemy HP): active beats boss 10 at ~1.4 min, 50 at ~19 min, walls at ~59; idle reaches ~49 at 30 min. Active ~2.5x idle. Most boss fails are army HP, which 2b Armor addresses. With gear levels (base 5x troop cost, growth 1.9; packs not simulated): active reaches ~stage 68 at 30 min (vs 59 without), boss fails 11 -> 7.
 
 ## Conventions
 - `--!strict` at the top of every script. Type everything; shared types in `src/shared/Types.luau`.

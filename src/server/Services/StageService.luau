@@ -27,6 +27,7 @@ local Config = Shared:WaitForChild("Config")
 local StageConfig = require(Config:WaitForChild("StageConfig"))
 local CombatConfig = require(Config:WaitForChild("CombatConfig"))
 local BossConfig = require(Config:WaitForChild("BossConfig"))
+local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local Validate = require(Server.Util.Validate)
 local RemoteService = require(Services.RemoteService)
@@ -51,7 +52,11 @@ export type Encounter = {
 
 local encounters: { [Player]: Encounter } = {}
 
-local StageService = {}
+local StageService = {
+	-- Fires when a boss is beaten: (player, bossStage, firstClear).
+	-- firstClear is true the first time the player ever beats that boss stage.
+	BossDefeated = Signal.new() :: Signal.Signal<Player, number, boolean>,
+}
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -117,9 +122,13 @@ end
 
 local function onStageCleared(player: Player, data: PlayerData, encounter: Encounter)
 	if encounter.kind == "Boss" then
+		local bossStage = data.stage
+		local firstClear = bossStage > data.highestBossDefeated
 		data.stats.bossesDefeated += 1
-		notify(player, { kind = "BossDefeated", stage = data.stage })
-		goToStage(player, data, data.stage + 1)
+		data.highestBossDefeated = math.max(data.highestBossDefeated, bossStage)
+		notify(player, { kind = "BossDefeated", stage = bossStage, firstClear = firstClear })
+		StageService.BossDefeated:Fire(player, bossStage, firstClear)
+		goToStage(player, data, bossStage + 1)
 	elseif data.autoAdvance then
 		goToStage(player, data, data.stage + 1)
 	else
@@ -202,6 +211,10 @@ end
 local function onProfileLoaded(player: Player, data: PlayerData)
 	-- Saved kill count can't be past the end of a stage (e.g. if ENEMIES_PER_STAGE was lowered).
 	data.killsInStage = math.clamp(data.killsInStage, 0, StageConfig.ENEMIES_PER_STAGE - 1)
+	-- Any boss below your highest stage must have been beaten (also fills this in for
+	-- saves from before highestBossDefeated existed).
+	local lastBossBelow = ((data.highestStage - 1) // BossConfig.BOSS_EVERY) * BossConfig.BOSS_EVERY
+	data.highestBossDefeated = math.max(data.highestBossDefeated, lastBossBelow)
 	CombatService.refreshArmy(player)
 	encounters[player] = newEncounter(data.stage)
 	if Formulas.isBossStage(data.stage) then

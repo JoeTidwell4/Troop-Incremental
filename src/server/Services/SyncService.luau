@@ -16,6 +16,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Config = Shared:WaitForChild("Config")
 local CombatConfig = require(Config:WaitForChild("CombatConfig"))
 local StageConfig = require(Config:WaitForChild("StageConfig"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
@@ -61,6 +62,9 @@ local function buildSnapshot(player: Player): Snapshot?
 		goldMultiplier = modifiers.gold,
 
 		troops = table.clone(data.troops),
+		gear = data.gear,
+		packs = data.packs,
+		packPrice = Formulas.packPrice(data.highestStage),
 		abilities = AbilityService.getTimers(player),
 		totalKills = data.stats.totalKills,
 	}

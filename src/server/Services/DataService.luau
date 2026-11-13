@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
+local GearConfig = require(Shared:WaitForChild("Config"):WaitForChild("GearConfig"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
 -- ProfileStore is third-party and not written in strict mode, so we describe only the
@@ -82,6 +83,7 @@ local function sanitize(data: PlayerData)
 	if typeof(data.autoAdvance) ~= "boolean" then
 		data.autoAdvance = true
 	end
+	data.highestBossDefeated = wholeNumber(data.highestBossDefeated, 0, 0)
 	for troopId, count in data.troops do
 		data.troops[troopId] = wholeNumber(count, 0, 0)
 	end
@@ -89,6 +91,23 @@ local function sanitize(data: PlayerData)
 	data.stats.totalTaps = wholeNumber(data.stats.totalTaps, 0, 0)
 	data.stats.lifetimeGold = BigNum.sanitize(data.stats.lifetimeGold)
 	data.stats.bossesDefeated = wholeNumber(data.stats.bossesDefeated, 0, 0)
+
+	for _, troopGear in data.gear do
+		local slots = troopGear :: any
+		for _, slot in GearConfig.SLOTS do
+			local state = slots[slot]
+			if typeof(state) ~= "table" then
+				slots[slot] = { level = 0, rarity = 1 }
+			else
+				state.level = math.min(wholeNumber(state.level, 0, 0), GearConfig.MAX_LEVEL)
+				state.rarity = math.clamp(wholeNumber(state.rarity, 1, 1), 1, #GearConfig.RARITIES)
+			end
+		end
+	end
+	data.packs.free = wholeNumber(data.packs.free, 0, 0)
+	data.packs.sinceEpic = wholeNumber(data.packs.sinceEpic, 0, 0)
+	data.packs.opened = wholeNumber(data.packs.opened, 0, 0)
+	data.packs.rewardedBossStage = wholeNumber(data.packs.rewardedBossStage, 0, 0)
 end
 
 local function onPlayerAdded(player: Player)

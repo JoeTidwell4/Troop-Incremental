@@ -8,6 +8,7 @@ export type BigNum = BigNum.BigNum
 export type TroopId = "Swordsman" | "Archer" | "Knight"
 export type AbilityId = "Rally" | "Barrage" | "Plunder"
 export type EncounterKind = "Normal" | "Boss"
+export type GearSlot = "weapon" | "armor"
 
 -- Troop counts keyed by TroopId. Typed as string keys so new troop types can be added
 -- to the config without changing saved data.
@@ -37,6 +38,33 @@ export type AbilityDef = {
 	key: Enum.KeyCode, -- keyboard shortcut (visual/client only)
 }
 
+export type RarityDef = {
+	name: string,
+	multiplier: number,
+	color: Color3,
+}
+
+-- One gear slot's state. rarity is an index into GearConfig.RARITIES (1 = Common).
+export type GearSlotState = {
+	level: number,
+	rarity: number,
+}
+
+export type TroopGear = {
+	weapon: GearSlotState,
+	armor: GearSlotState,
+}
+
+-- Gear for every troop type, keyed by TroopId.
+export type GearSet = { [string]: TroopGear }
+
+export type PackState = {
+	free: number, -- unopened free packs
+	sinceEpic: number, -- packs opened in a row without hitting the pity rarity
+	opened: number, -- lifetime total
+	rewardedBossStage: number, -- highest boss stage that already granted its free pack
+}
+
 export type AreaTheme = {
 	name: string,
 	bossName: string,
@@ -56,7 +84,10 @@ export type PlayerData = {
 	highestStage: number,
 	killsInStage: number,
 	autoAdvance: boolean,
+	highestBossDefeated: number, -- stage number of the highest boss ever beaten (0 = none)
 	troops: TroopCounts,
+	gear: GearSet,
+	packs: PackState,
 	stats: {
 		totalKills: number,
 		totalTaps: number,
@@ -95,6 +126,9 @@ export type Snapshot = {
 	goldMultiplier: number,
 
 	troops: TroopCounts,
+	gear: GearSet,
+	packs: PackState,
+	packPrice: BigNum,
 	abilities: { [string]: AbilityTimers },
 	totalKills: number,
 }
@@ -104,14 +138,26 @@ export type Notice = {
 	kind: "BossDefeated" | "BossFailed",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
+	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
 }
 
 export type BuyMode = "One" | "Ten" | "Max"
+export type GearBuyMode = "One" | "Max"
 
 export type BuyResult = {
 	ok: boolean,
 	bought: number,
 	reason: string?,
+}
+
+export type PackResult = {
+	ok: boolean,
+	reason: string?,
+	troopId: string?,
+	slot: GearSlot?,
+	rarity: number?, -- what was rolled
+	upgraded: boolean?, -- true if the slot's rarity went up
+	refund: BigNum?, -- gold refunded for a duplicate
 }
 
 -- ModuleScripts must return a value; this module only exists for its types.

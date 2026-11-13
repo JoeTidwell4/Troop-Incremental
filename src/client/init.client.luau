@@ -9,24 +9,28 @@ local Version = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("V
 
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
-local TroopController = require(Controllers.TroopController)
+local ShopController = require(Controllers.ShopController)
 local AbilityController = require(Controllers.AbilityController)
 local BattleController = require(Controllers.BattleController)
 local BattlefieldController = require(Controllers.BattlefieldController)
+local CommanderController = require(Controllers.CommanderController)
 local HudUI = require(UI.HudUI)
-local TroopShopUI = require(UI.TroopShopUI)
+local ShopUI = require(UI.ShopUI)
 local AbilityBarUI = require(UI.AbilityBarUI)
 local NoticeUI = require(UI.NoticeUI)
+local PackRevealUI = require(UI.PackRevealUI)
 
-TroopController.start()
+ShopController.start()
 InputController.start()
 AbilityController.start()
 BattleController.start()
-BattlefieldController.start()
+BattlefieldController.start() -- waits for the server to assign a plot
+CommanderController.start()
 HudUI.start()
-TroopShopUI.start()
+ShopUI.start()
 AbilityBarUI.start()
 NoticeUI.start()
+PackRevealUI.start()
 StateController.start() -- last: asks the server for state once everything is listening
 
 print(`[Client] Troop-Incremental {Version} booted`)

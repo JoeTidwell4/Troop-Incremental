@@ -69,7 +69,8 @@ end
 local function onNotice(notice: Notice)
 	if notice.kind == "BossDefeated" then
 		local nextArea = Areas.forStage(notice.stage + 1)
-		NoticeUI.show("BOSS DEFEATED!", `Entering Area {nextArea.number}: {nextArea.displayName}`, Theme.Gold)
+		local bonus = if notice.firstClear then "  (+1 free gear pack!)" else ""
+		NoticeUI.show("BOSS DEFEATED!", `Entering Area {nextArea.number}: {nextArea.displayName}{bonus}`, Theme.Gold)
 	elseif notice.kind == "BossFailed" then
 		local reason = FAIL_REASONS[notice.reason or ""] or "Boss fight lost."
 		NoticeUI.show(reason, "Train more troops, then press Fight Boss to try again.", Theme.HpFill)
