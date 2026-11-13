@@ -32,6 +32,7 @@ local SettingsService = require(Services.SettingsService)
 local AnalyticsService = require(Services.AnalyticsService)
 local WeakPointService = require(Services.WeakPointService)
 local ClanWarService = require(Services.ClanWarService)
+local CommanderService = require(Services.CommanderService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
 
@@ -62,6 +63,7 @@ SettingsService.start() -- graphics / sound settings saved in the profile
 AnalyticsService.start() -- onboarding funnel, boss results, Honor flow (Creator Dashboard)
 WeakPointService.start() -- tap targets during bosses and raids
 ClanWarService.start() -- clan XP, levels and the weekly Clan War league
+CommanderService.start() -- commander gear and its bonuses
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)

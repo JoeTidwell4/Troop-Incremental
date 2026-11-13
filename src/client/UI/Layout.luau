@@ -65,8 +65,8 @@ local Layout = {
 	ROW_HEIGHT = if compact then 42 else 40,
 	MENU_TEXT_SIZE = if compact then 14 else 17,
 	-- Desktop: Ascend sits between the gold panel and the menu rows (188).
-	-- Compact: it sits under the menu grid (270).
-	ASCEND_TOP = if compact then 270 else 188,
+	-- Compact: it sits under the menu grid (318).
+	ASCEND_TOP = if compact then 318 else 188,
 	ASCEND_HEIGHT = 40,
 
 	-- Shop panel (ShopUI).
@@ -99,7 +99,8 @@ local DESKTOP_MENU: { [string]: Slot } = {
 	War = { top = 280, index = 1, count = 3 },
 	Clan = { top = 280, index = 2, count = 3 },
 	Top = { top = 280, index = 3, count = 3 },
-	Quests = { top = 326, index = 1, count = 1 },
+	Quests = { top = 326, index = 1, count = 2 },
+	Wardrobe = { top = 326, index = 2, count = 2 },
 }
 local COMPACT_MENU: { [string]: Slot } = {
 	Quests = { top = 126, index = 1, count = 2 },
@@ -108,6 +109,7 @@ local COMPACT_MENU: { [string]: Slot } = {
 	Clan = { top = 174, index = 2, count = 2 },
 	Top = { top = 222, index = 1, count = 2 },
 	Settings = { top = 222, index = 2, count = 2 },
+	Wardrobe = { top = 270, index = 1, count = 1 },
 }
 
 -- Position of something in the right column: `x` pixels from the column's left edge,
@@ -116,7 +118,8 @@ function Layout.columnPosition(x: number, top: number): UDim2
 	return UDim2.new(1, -(Layout.MARGIN + Layout.COLUMN_WIDTH) + x, 0, top)
 end
 
--- (Position, Size) of a menu button: "Settings", "Store", "War", "Clan", "Top" or "Quests".
+-- (Position, Size) of a menu button: "Settings", "Store", "War", "Clan", "Top", "Quests"
+-- or "Wardrobe".
 function Layout.menuSlot(name: string): (UDim2, UDim2)
 	local slot = (if compact then COMPACT_MENU else DESKTOP_MENU)[name]
 	assert(slot ~= nil, `Unknown menu button {name}`)

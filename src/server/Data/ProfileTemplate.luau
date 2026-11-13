@@ -47,6 +47,10 @@ local template: Types.PlayerData = {
 	settings = { graphics = "Auto", sound = "All" },
 	analytics = { onboardingStep = 0 },
 	bossWeaken = { stage = 0, fails = 0 },
+	commander = {
+		owned = {},
+		equipped = { Helmet = "", Cape = "", Weapon = "IronSword", Back = "" },
+	},
 	clanWar = {
 		weekId = -1,
 		clanId = "",

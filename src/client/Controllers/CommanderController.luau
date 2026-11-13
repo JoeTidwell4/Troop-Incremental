@@ -8,12 +8,21 @@
 --   * The arm lifts, if we can find the shoulder joint. Avatars use either classic
 --     Motor6D joints or Roblox's newer AnimationConstraint joints; both are handled.
 -- What was found is printed once to Output to help debug odd avatars.
+-- Commander gear (CommanderConfig): the equipped Weapon restyles the sword; helmets,
+-- capes and back items are built on the avatar by Visuals/CommanderGear.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Controllers = script.Parent
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Types = require(Shared:WaitForChild("Types"))
+local CommanderConfig = require(Shared:WaitForChild("Config"):WaitForChild("CommanderConfig"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 local InputController = require(Controllers.InputController)
+local StateController = require(Controllers.StateController)
+local CommanderGear = require(Controllers.Parent:WaitForChild("Visuals"):WaitForChild("CommanderGear"))
 
 local SWING_COOLDOWN = 0.3
 local SWORD_COLOR = Color3.fromRGB(200, 205, 215)
@@ -36,21 +45,31 @@ type Swing = {
 local current: Swing? = nil
 local currentSword: BasePart? = nil
 
-local GOLDEN_SWORD_ATTRIBUTE = "Pass_GoldenSword" -- set by the server when you own the pass
-local GOLDEN_COLOR = Color3.fromRGB(255, 200, 60)
+local equipped: { [string]: string } = {}
+local equippedKey = ""
 
--- Golden Sword pass: a glowing gold blade. Looks only.
+-- The sword takes the look of the equipped Weapon item ("Glow" styles are neon).
 local function styleSword()
 	local sword = currentSword
 	if sword == nil then
 		return
 	end
-	if Players.LocalPlayer:GetAttribute(GOLDEN_SWORD_ATTRIBUTE) == true then
-		sword.Color = GOLDEN_COLOR
-		sword.Material = Enum.Material.Neon
+	local def = CommanderConfig.ITEMS[equipped.Weapon or ""]
+	if def ~= nil then
+		sword.Color = def.color
+		sword.Material = if def.style == "Glow" then Enum.Material.Neon else Enum.Material.Metal
 	else
 		sword.Color = SWORD_COLOR
 		sword.Material = Enum.Material.Metal
+	end
+end
+
+-- Puts the worn gear on the current avatar (helmet, cape, back) and restyles the sword.
+local function applyGear()
+	styleSword()
+	local character = Players.LocalPlayer.Character
+	if character ~= nil then
+		CommanderGear.apply(character, equipped, CommanderConfig.ITEMS)
 	end
 end
 local lastSwing = 0
@@ -146,6 +165,7 @@ local function setupCharacter(character: Model)
 
 	print(`[Commander] Avatar {if isR15 then "R15" else "R6"}, sword: {hand ~= nil}, shoulder joint: {jointKind}`)
 	current = swing
+	applyGear()
 end
 
 local function swing()
@@ -177,9 +197,31 @@ local function swing()
 	end
 end
 
+local equipRemote: RemoteEvent? = nil
+
+-- Asks the server to wear an item in a slot ("" = take it off). The server checks you own it.
+function CommanderController.equip(slot: string, itemId: string)
+	if equipRemote ~= nil then
+		equipRemote:FireServer(slot, itemId)
+	end
+end
+
 function CommanderController.start()
 	local player = Players.LocalPlayer
-	player:GetAttributeChangedSignal(GOLDEN_SWORD_ATTRIBUTE):Connect(styleSword)
+	equipRemote = Remotes.waitForEvent(Remotes.Events.EquipCommander)
+	-- Re-dress the commander whenever the equipped items change.
+	StateController.Changed:Connect(function(snapshot: Types.Snapshot)
+		local worn = snapshot.commander.equipped
+		local key = ""
+		for _, slot in CommanderConfig.SLOTS do
+			key ..= (worn[slot] or "") .. "|"
+		end
+		if key ~= equippedKey then
+			equippedKey = key
+			equipped = worn
+			applyGear()
+		end
+	end)
 	player.CharacterAdded:Connect(function(character: Model)
 		setupCharacter(character)
 	end)

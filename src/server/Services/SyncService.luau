@@ -110,6 +110,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		raidUnitsLive = 0,
 		passToggles = table.clone(data.passToggles),
 		settings = {}, -- filled in by SettingsService
+		commander = { owned = {}, equipped = {} }, -- filled in by CommanderService
 	}
 	for _, provider in extraProviders do
 		for key, value in provider(player, data) do

@@ -48,6 +48,24 @@ export type AbilityDef = {
 	key: Enum.KeyCode, -- keyboard shortcut (visual/client only)
 }
 
+-- Something the commander can wear (CommanderConfig.ITEMS).
+export type CommanderItemDef = {
+	id: string,
+	slot: string, -- "Helmet" | "Cape" | "Weapon" | "Back"
+	displayName: string,
+	rarity: number, -- 1-5, same colors as gear rarity
+	multiplier: number?, -- bonus to the slot's stat while equipped (nil = looks only)
+	style: string, -- which look Visuals/CommanderGear builds
+	color: Color3,
+	unlock: { kind: string, value: number?, pass: string? },
+}
+
+-- The commander's wardrobe as the client sees it (snapshot field `commander`).
+export type CommanderView = {
+	owned: { [string]: boolean },
+	equipped: { [string]: string }, -- slot -> item id ("" = nothing)
+}
+
 -- One upgrade track of an ability (AbilityConfig.UPGRADES), bought with Honor.
 export type AbilityUpgradeDef = {
 	id: string,
@@ -342,6 +360,7 @@ export type PlayerData = {
 	settings: { [string]: string }, -- graphics / sound (see SettingsConfig)
 	analytics: { onboardingStep: number }, -- last onboarding funnel step sent (AnalyticsService)
 	bossWeaken: { stage: number, fails: number }, -- failed attempts in a row on that boss stage
+	commander: { owned: { [string]: boolean }, equipped: { [string]: string } }, -- commander gear (kept on Ascend)
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -417,11 +436,12 @@ export type Snapshot = {
 
 	passToggles: { [string]: boolean },
 	settings: { [string]: string }, -- every SettingsConfig key, filled with defaults
+	commander: CommanderView,
 }
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -436,6 +456,7 @@ export type Notice = {
 	packs: number?,
 	-- Purchase only:
 	itemName: string?,
+	-- CommanderItem: itemName = the new item's name.
 	-- ClanWarRewards only (also uses honor / packs):
 	rank: number?, -- nil = participation reward
 	heroChests: number?,

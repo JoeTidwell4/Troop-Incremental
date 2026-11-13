@@ -89,6 +89,8 @@ local function onNotice(notice: Notice)
 			`+{notice.honor or 0} Honor, +{packs} free gear pack{if packs == 1 then "" else "s"}`,
 			Theme.Gold
 		)
+	elseif notice.kind == "CommanderItem" then
+		NoticeUI.show(`NEW GEAR: {notice.itemName or "?"}`, "Put it on in the WARDROBE for a bonus.", Theme.Gold)
 	elseif notice.kind == "ClanWarRewards" then
 		local parts: { string } = {}
 		if (notice.honor or 0) > 0 then

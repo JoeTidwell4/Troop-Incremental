@@ -41,6 +41,7 @@ local ActivityService = require(Services.ActivityService)
 local ClanService = require(Services.ClanService)
 local ClanStore = require(Services.ClanStore)
 local DailyService = require(Services.DailyService)
+local CommanderService = require(Services.CommanderService)
 
 type ClanRecord = Types.ClanRecord
 type ClanWarEntry = Types.ClanWarEntry
@@ -312,6 +313,9 @@ local function claimIfDue(player: Player)
 	end
 	record.claimedWeek = weekId
 	DataService.markChanged(player)
+	if rank ~= nil and record.lastXp >= ClanConfig.WAR_MIN_CONTRIBUTION then
+		CommanderService.grantForClanWar(player, rank) -- War Banner / Seraph Wings
+	end
 	if reward ~= nil then
 		DailyService.grant(player, fresh, {
 			honor = reward.honor,

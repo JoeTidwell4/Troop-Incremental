@@ -46,7 +46,7 @@ local MonetizationConfig = {
 			key = "GoldenSword",
 			id = 0,
 			displayName = "Golden Sword",
-			description = "Your commander wields a glowing golden blade. Looks only.",
+			description = "A glowing golden blade for your commander (wear it in the Wardrobe). Looks only.",
 		},
 	} :: { [string]: Types.PassDef },
 
