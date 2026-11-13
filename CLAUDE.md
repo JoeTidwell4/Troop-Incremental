@@ -10,7 +10,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 - **2b: done (owner confirmed in Studio).** Gear Weapon/Armor levels + rarity + gear packs, avatar as commander on a per-player battlefield plot, Shop tabs.
 
 **Phase 3: done (owner confirmed in Studio).** Ascend + Honor shop + offline earnings.
-**Phase 4 (plan + cross-server design proposed, waiting for OK):** factions + faction war.
+**Phase 4 (code written, waiting for owner to test):** factions + faction war.
+Do not start Phase 5 until the owner confirms Phase 4 works. Phase 5 (clans) also needs a cross-server plan written up first.
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
 Decisions made:
@@ -49,7 +50,7 @@ The owner is new to Roblox development, GitHub, and the command line. Explain st
 
 ### Design concerns raised (keep in mind)
 - Enemies don't fight back, so troop "roles" collapse to cost/DPS ratios. Mitigate with milestone multipliers (Phase 1) and enemy traits like armored/swift on some stages and bosses (Phase 2).
-- Choosing a faction on first join hurts onboarding. Prefer prompting at ~stage 15 / after first boss. Keep `faction = nil` in the data template.
+- Choosing a faction on first join hurts onboarding. Implemented: picker opens once per session after best stage passes 10 (first boss), with "Decide later". `faction = ""` means none (ProfileStore templates can't hold nil).
 - Faction war by raw kill count snowballs to the biggest faction and favors low-stage kills and alts. Use stage-weighted, per-active-member scoring with per-player daily caps; lock switching near payout.
 - Leaderboards: OrderedDataStore needs integers, so store a scaled log10 of BigNum values.
 
@@ -74,6 +75,20 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - Honor shop (`HonorService`, `HonorConfig`): Drills/WarChest/Fortitude/Might multiply damage/gold/armyHp/tap per level (x1.25/x1.2/x1.25/x1.5) via a ModifierService source (`tap` field added to Modifiers; CombatService.getTapDamage applies it). HeadStart = x8 starting gold per level. Rations = +1h offline cap, +5% offline efficiency (max 16). Costs base * growth^level, BigNum Honor.
 - Offline (`OfflineService`, `OfflineConfig`): `data.lastSeen` (os.time) written every 60s and on leave. On load: seconds = min(away, cap), gold = goldPerKill(stage) * min(DPS/enemyHp, 10 enemies * 5 ticks per sec) * seconds * efficiency * gold modifier at `Formulas.offlineStage(highestStage)` (highest normal stage cleared). Defaults 25%, 8h, min 60s. No stage progress offline. Notice is sent once the client fires ClientReady (`SyncService.ClientReady` / `isReady`), shown by `OfflineEarningsUI`.
 - `tools/ascend_sim.py`: first Ascend ~18 min (sim player is optimal; real players slower, in the 20-30 target), runs then go 60 -> 70 -> 80 -> 90 -> 100 best stage, each faster. Additive effects were too flat, hence multiplicative.
+
+### Phase 4: factions + faction war (owner approved these rule changes vs the original spec)
+- Factions (`FactionConfig`): Iron Legion (Swordsman), Silverwood Rangers (Archer), Order of the Dawn (Knight); x1.5 damage AND HP for that troop type via `Formulas.factionTroopMultipliers`, passed into `Formulas.troopDps/troopHp/armyDps/armyHp` (per-type, so not ModifierService). First pick free; then 7-day cooldown; switching locked in the last 24h of a war. `FactionService` (ChooseFaction remote).
+- War points (`WarService`): only kills on stages >= highestStage - 5; 1 per kill, 20 per boss; 3000/day cap per player (cap carries over a switch). Member is "active" at 200 points/week. Score = total points / active members; tie -> total. Winners who were ACTIVE in the winning faction get x1.2 gold the whole next week (ModifierService source). Switching resets your weekly record for the new faction; points already earned stay with the old one.
+- Player save: `faction`, `factionChangedAt`, `war` (this week's WarRecord), `lastWar` (previous week, used for the winner bonus).
+- Weeks: Monday 00:00 UTC (`WEEK_ANCHOR` = 345600), `Formulas.warWeek/warWeekStart/warDay`. **Studio test mode**: 5-minute wars, 60s switch lock, 20s finalize delay, 20-point active threshold, faster sync intervals (all `if isStudio` in FactionConfig).
+- Cross-server (`WarStore` = all I/O, pcall-wrapped; `WarService` = rules):
+  - Live totals: MemoryStore HashMap "FactionWar", key `w{week}:{faction}:{shard}` = `{p, a}`, 4 shards per faction (server picks one), atomic `UpdateAsync` increments, 14-day expiry. Each server buffers points and flushes every 60s (retries on failure, flushes on BindToClose). Polls/sums every 60s and broadcasts `WarSync` (WarState) to its players, adding its own unflushed buffer for display.
+  - Leader lock: MemoryStore "FactionWarMeta" key "leader" `{job, untilTime}` via UpdateAsync. Leader backs up totals to DataStore "FactionWar" `backup_{week}` every 5 min and restores them into shard 1 only if every shard key is missing.
+  - Result: after week end + 10 min, any server computes the winner and writes DataStore `result_{week}` via UpdateAsync set-if-absent, then re-reads it, so all servers agree.
+  - Leaderboard: OrderedDataStore `WarTop_{week}_{faction}`, key = userId, value = weekly points (integers). Written every 3 min for changed players and on leave; top 10 read every 2 min, names via GetNameFromUserIdAsync (cached).
+  - SyncService gained `ClientReady` signal, `isReady`, and `addSnapshotFields(provider)` so FactionService can add snapshot fields without a require loop.
+  - Known limits: an ambiguous MemoryStore failure could double-count one flush; standings lag ~1-2 min; true multi-server behavior can only be tested on a published game.
+- Client: `FactionController` (ChooseFaction + WarSync state, local countdown), `FactionUI` (WAR button under ability bar; picker view + war view).
 
 ### Data flow
 - Server: `RemoteService` (creates remotes, enforces rate limit + validator on every handler) -> `TapService` / `TroopService` / `AbilityService` change state -> `StageService` runs the 5 Hz fight loop for all players (pulls damage from `CombatService.takeDamage`, resolves kills/gold/stage, boss timer + boss damage to army, fail/retreat) -> `DataService.Changed` -> `SyncService` sends a `Snapshot` to that player at most every 0.25s. Boss results go out on the `Notice` remote.

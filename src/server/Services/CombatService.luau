@@ -29,7 +29,7 @@ local armies: { [Player]: Army } = {}
 
 local CombatService = {}
 
--- Recalculate base army stats. Call after anything that changes troops or gear.
+-- Recalculate base army stats. Call after anything that changes troops, gear, or faction.
 -- Also creates the player's army entry the first time.
 function CombatService.refreshArmy(player: Player)
 	local data = DataService.get(player)
@@ -41,8 +41,9 @@ function CombatService.refreshArmy(player: Player)
 		army = { baseDps = BigNum.ZERO, baseHp = BigNum.ZERO, pendingDamage = BigNum.ZERO }
 		armies[player] = army
 	end
-	army.baseDps = Formulas.armyDps(data.troops, data.gear)
-	army.baseHp = Formulas.armyHp(data.troops, data.gear)
+	local factionBonus = Formulas.factionTroopMultipliers(data.faction)
+	army.baseDps = Formulas.armyDps(data.troops, data.gear, factionBonus)
+	army.baseHp = Formulas.armyHp(data.troops, data.gear, factionBonus)
 end
 
 -- Army DPS with all current multipliers applied.

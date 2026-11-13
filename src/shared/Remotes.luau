@@ -14,6 +14,8 @@
 -- OpenPack       client -> server, returns Types.PackResult  (useFree: boolean)
 -- Ascend         client -> server, returns Types.AscendResult ()
 -- BuyHonorUpgrade client -> server, returns Types.BuyResult  (upgradeId: string)
+-- ChooseFaction  client -> server, returns Types.FactionResult (factionId: string)
+-- WarSync        server -> client   (war: Types.WarState)  shared standings, sent to everyone
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,6 +30,7 @@ local Remotes = {
 		SetAutoAdvance = "SetAutoAdvance",
 		StateSync = "StateSync",
 		Notice = "Notice",
+		WarSync = "WarSync",
 	}),
 
 	Functions = table.freeze({
@@ -36,6 +39,7 @@ local Remotes = {
 		OpenPack = "OpenPack",
 		Ascend = "Ascend",
 		BuyHonorUpgrade = "BuyHonorUpgrade",
+		ChooseFaction = "ChooseFaction",
 	}),
 }
 

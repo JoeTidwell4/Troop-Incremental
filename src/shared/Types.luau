@@ -81,6 +81,47 @@ export type HonorUpgradeDef = {
 	offlineEfficiencyPerLevel: number?,
 }
 
+export type FactionDef = {
+	id: string,
+	displayName: string,
+	troopId: TroopId, -- troop type this faction boosts
+	color: Color3,
+	motto: string,
+}
+
+-- This player's war record for one week (saved).
+export type WarRecord = {
+	weekId: number,
+	faction: string, -- faction the points were earned for
+	points: number,
+	dayId: number,
+	dayPoints: number,
+	active: boolean, -- reached ACTIVE_THRESHOLD this week
+}
+
+export type FactionStanding = {
+	points: number,
+	active: number, -- active members
+	average: number, -- points / active members (the score)
+}
+
+export type WarResult = {
+	weekId: number,
+	winner: string, -- faction id, or "" if nobody scored
+	standings: { [string]: FactionStanding },
+}
+
+-- Shared war info sent to every client (WarSync remote).
+export type WarState = {
+	weekId: number,
+	secondsLeft: number,
+	studioTestMode: boolean,
+	available: boolean, -- false if the cross-server store couldn't be reached
+	standings: { [string]: FactionStanding },
+	top: { [string]: { { name: string, points: number } } },
+	lastResult: WarResult?,
+}
+
 export type AreaTheme = {
 	name: string,
 	bossName: string,
@@ -105,6 +146,10 @@ export type PlayerData = {
 	honor: BigNum,
 	honorUpgrades: { [string]: number }, -- Honor upgrade id -> level
 	lastSeen: number, -- os.time() the server last saw this player (0 = never)
+	faction: string, -- faction id, "" = not chosen yet
+	factionChangedAt: number, -- os.time() of the last pick/switch (0 = never)
+	war: WarRecord, -- this week
+	lastWar: WarRecord, -- the previous week this player took part in
 	troops: TroopCounts,
 	gear: GearSet,
 	packs: PackState,
@@ -159,6 +204,13 @@ export type Snapshot = {
 	honorUpgrades: { [string]: number },
 	ascendHonor: BigNum, -- Honor you'd get for Ascending right now (zero if not allowed)
 	ascensions: number,
+
+	faction: string,
+	factionSwitchIn: number, -- seconds until you may switch (0 = now)
+	warPoints: number,
+	warDayPoints: number,
+	warActive: boolean,
+	warBonusActive: boolean, -- won last week's war: winner gold bonus applies
 }
 
 -- One-off messages from the server, shown as banners.
@@ -190,6 +242,11 @@ export type PackResult = {
 	rarity: number?, -- what was rolled
 	upgraded: boolean?, -- true if the slot's rarity went up
 	refund: BigNum?, -- gold refunded for a duplicate
+}
+
+export type FactionResult = {
+	ok: boolean,
+	reason: string?,
 }
 
 export type AscendResult = {

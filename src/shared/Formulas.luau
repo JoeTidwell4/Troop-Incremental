@@ -14,6 +14,7 @@ local PackConfig = require(Shared.Config.PackConfig)
 local AscendConfig = require(Shared.Config.AscendConfig)
 local HonorConfig = require(Shared.Config.HonorConfig)
 local EconomyConfig = require(Shared.Config.EconomyConfig)
+local FactionConfig = require(Shared.Config.FactionConfig)
 
 type BigNum = BigNum.BigNum
 type TroopCounts = Types.TroopCounts
@@ -112,44 +113,74 @@ end
 
 ---------------------------------------------------------------- army
 
--- Total DPS of all troops of one type, including that type's weapon.
-function Formulas.troopDps(troopId: string, count: number, gear: GearSet?): BigNum
+-- Per-troop-type multipliers from your faction (damage and HP), e.g. { Swordsman = 1.5 }.
+export type TroopMultipliers = { [string]: number }
+
+function Formulas.factionTroopMultipliers(factionId: string): TroopMultipliers
+	local def = FactionConfig.FACTIONS[factionId]
+	if def == nil then
+		return {}
+	end
+	return { [def.troopId] = FactionConfig.TROOP_BONUS }
+end
+
+-- Total DPS of all troops of one type, including that type's weapon and faction bonus.
+function Formulas.troopDps(troopId: string, count: number, gear: GearSet?, troopMultipliers: TroopMultipliers?): BigNum
 	if count <= 0 then
 		return BigNum.ZERO
 	end
 	local def = getTroop(troopId)
 	local troopGear = if gear ~= nil then gear[troopId] else nil
 	local weapon = Formulas.gearMultiplier(if troopGear ~= nil then troopGear.weapon else nil)
-	return BigNum.mul(BigNum.fromNumber(count * def.baseDps * weapon), Formulas.milestoneMultiplier(count))
+	local bonus = if troopMultipliers ~= nil then troopMultipliers[troopId] or 1 else 1
+	return BigNum.mul(BigNum.fromNumber(count * def.baseDps * weapon * bonus), Formulas.milestoneMultiplier(count))
 end
 
 -- Army DPS before any temporary or global multipliers (abilities etc. are applied by the server).
-function Formulas.armyDps(troops: TroopCounts, gear: GearSet?): BigNum
+function Formulas.armyDps(troops: TroopCounts, gear: GearSet?, troopMultipliers: TroopMultipliers?): BigNum
 	local total = BigNum.ZERO
 	for _, troopId in TroopConfig.ORDER do
-		total = BigNum.add(total, Formulas.troopDps(troopId, troops[troopId] or 0, gear))
+		total = BigNum.add(total, Formulas.troopDps(troopId, troops[troopId] or 0, gear, troopMultipliers))
 	end
 	return total
 end
 
--- Total HP of all troops of one type, including that type's armor.
-function Formulas.troopHp(troopId: string, count: number, gear: GearSet?): BigNum
+-- Total HP of all troops of one type, including that type's armor and faction bonus.
+function Formulas.troopHp(troopId: string, count: number, gear: GearSet?, troopMultipliers: TroopMultipliers?): BigNum
 	if count <= 0 then
 		return BigNum.ZERO
 	end
 	local def = getTroop(troopId)
 	local troopGear = if gear ~= nil then gear[troopId] else nil
 	local armor = Formulas.gearMultiplier(if troopGear ~= nil then troopGear.armor else nil)
-	return BigNum.mul(BigNum.fromNumber(count * def.baseHp * armor), Formulas.milestoneMultiplier(count))
+	local bonus = if troopMultipliers ~= nil then troopMultipliers[troopId] or 1 else 1
+	return BigNum.mul(BigNum.fromNumber(count * def.baseHp * armor * bonus), Formulas.milestoneMultiplier(count))
 end
 
 -- Army HP before global multipliers. Only used in boss fights.
-function Formulas.armyHp(troops: TroopCounts, gear: GearSet?): BigNum
+function Formulas.armyHp(troops: TroopCounts, gear: GearSet?, troopMultipliers: TroopMultipliers?): BigNum
 	local total = BigNum.ZERO
 	for _, troopId in TroopConfig.ORDER do
-		total = BigNum.add(total, Formulas.troopHp(troopId, troops[troopId] or 0, gear))
+		total = BigNum.add(total, Formulas.troopHp(troopId, troops[troopId] or 0, gear, troopMultipliers))
 	end
 	return total
+end
+
+---------------------------------------------------------------- faction war time
+
+-- War week number for a Unix time (os.time()). Weeks start Monday 00:00 UTC.
+function Formulas.warWeek(unixTime: number): number
+	return (unixTime - FactionConfig.WEEK_ANCHOR) // FactionConfig.WEEK_SECONDS
+end
+
+function Formulas.warWeekStart(weekId: number): number
+	return FactionConfig.WEEK_ANCHOR + weekId * FactionConfig.WEEK_SECONDS
+end
+
+-- War "day" number (the daily point cap resets each day).
+function Formulas.warDay(unixTime: number): number
+	local dayLength = FactionConfig.WEEK_SECONDS / FactionConfig.DAYS_PER_WEEK
+	return math.floor((unixTime - FactionConfig.WEEK_ANCHOR) / dayLength)
 end
 
 -- Gold cost to buy `amount` more troops when you already own `owned`.

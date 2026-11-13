@@ -145,8 +145,9 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 			local row = rows[troopId]
 			local count = snapshot.troops[troopId] or 0
 			row.owned.Text = `Owned: {count}`
-			local dps = format(Formulas.troopDps(troopId, count, snapshot.gear))
-			local hp = format(Formulas.troopHp(troopId, count, snapshot.gear))
+			local factionBonus = Formulas.factionTroopMultipliers(snapshot.faction)
+			local dps = format(Formulas.troopDps(troopId, count, snapshot.gear, factionBonus))
+			local hp = format(Formulas.troopHp(troopId, count, snapshot.gear, factionBonus))
 			local nextMilestone = Formulas.nextMilestone(count)
 			row.info.Text = `DPS {dps}  |  HP {hp}  |  x{TroopConfig.MILESTONE_MULTIPLIER} at {nextMilestone}`
 

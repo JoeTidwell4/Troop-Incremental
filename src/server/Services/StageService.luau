@@ -56,6 +56,8 @@ local StageService = {
 	-- Fires when a boss is beaten: (player, bossStage, firstClear).
 	-- firstClear is true the first time the player ever beats that boss stage.
 	BossDefeated = Signal.new() :: Signal.Signal<Player, number, boolean>,
+	-- Fires whenever enemies die: (player, stage, kills, wasBoss). Used for war points.
+	Killed = Signal.new() :: Signal.Signal<Player, number, number, boolean>,
 }
 
 local function now(): number
@@ -179,6 +181,7 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 	data.stats.lifetimeGold = BigNum.add(data.stats.lifetimeGold, gold)
 	data.stats.totalKills += kills
 	data.killsInStage += kills
+	StageService.Killed:Fire(player, data.stage, kills, encounter.kind == "Boss")
 
 	if data.killsInStage >= enemiesThisStage then
 		-- At most one stage clear per tick: leftover damage is discarded so a huge

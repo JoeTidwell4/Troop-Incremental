@@ -16,6 +16,10 @@ local function newGear(): Types.TroopGear
 	}
 end
 
+local function newWarRecord(): Types.WarRecord
+	return { weekId = -1, faction = "", points = 0, dayId = -1, dayPoints = 0, active = false }
+end
+
 local template: Types.PlayerData = {
 	gold = BigNum.fromNumber(EconomyConfig.STARTING_GOLD),
 	stage = 1,
@@ -27,6 +31,10 @@ local template: Types.PlayerData = {
 	honor = BigNum.ZERO,
 	honorUpgrades = {},
 	lastSeen = 0,
+	faction = "",
+	factionChangedAt = 0,
+	war = newWarRecord(),
+	lastWar = newWarRecord(),
 	troops = {
 		Swordsman = 0,
 		Archer = 0,

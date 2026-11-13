@@ -16,6 +16,7 @@ local BigNum = require(Shared:WaitForChild("BigNum"))
 local Types = require(Shared:WaitForChild("Types"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local GearConfig = require(Shared:WaitForChild("Config"):WaitForChild("GearConfig"))
+local FactionConfig = require(Shared:WaitForChild("Config"):WaitForChild("FactionConfig"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
 -- ProfileStore is third-party and not written in strict mode, so we describe only the
@@ -83,6 +84,22 @@ local function sanitize(data: PlayerData)
 	data.bestStage = math.max(wholeNumber(data.bestStage, 1, 1), data.highestStage)
 	data.honor = BigNum.sanitize(data.honor)
 	data.lastSeen = wholeNumber(data.lastSeen, 0, 0)
+	if typeof(data.faction) ~= "string" or (data.faction ~= "" and FactionConfig.FACTIONS[data.faction] == nil) then
+		data.faction = ""
+	end
+	data.factionChangedAt = wholeNumber(data.factionChangedAt, 0, 0)
+	for _, record in { data.war, data.lastWar } do
+		record.weekId = wholeNumber(record.weekId, -1, -1)
+		record.points = wholeNumber(record.points, 0, 0)
+		record.dayId = wholeNumber(record.dayId, -1, -1)
+		record.dayPoints = wholeNumber(record.dayPoints, 0, 0)
+		if typeof(record.faction) ~= "string" then
+			record.faction = ""
+		end
+		if typeof(record.active) ~= "boolean" then
+			record.active = false
+		end
+	end
 	for upgradeId, level in data.honorUpgrades do
 		data.honorUpgrades[upgradeId] = wholeNumber(level, 0, 0)
 	end

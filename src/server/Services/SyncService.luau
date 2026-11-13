@@ -40,6 +40,15 @@ function SyncService.isReady(player: Player): boolean
 	return ready[player] == true
 end
 
+-- Extra snapshot fields from services that themselves depend on SyncService (faction/war).
+-- They register here instead of SyncService requiring them, which would be a require loop.
+type ExtraFields = (player: Player, data: Types.PlayerData) -> { [string]: any }
+local extraProviders: { ExtraFields } = {}
+
+function SyncService.addSnapshotFields(provider: ExtraFields)
+	table.insert(extraProviders, provider)
+end
+
 local function buildSnapshot(player: Player): Snapshot?
 	local data = DataService.get(player)
 	local encounter = StageService.getEncounter(player)
@@ -47,7 +56,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		return nil
 	end
 	local modifiers = ModifierService.get(player)
-	return {
+	local snapshot: Snapshot = {
 		gold = data.gold,
 		stage = data.stage,
 		highestStage = data.highestStage,
@@ -81,7 +90,21 @@ local function buildSnapshot(player: Player): Snapshot?
 		honorUpgrades = data.honorUpgrades,
 		ascendHonor = Formulas.honorForStage(data.highestStage),
 		ascensions = data.stats.ascensions,
+
+		-- Filled in by FactionService below; defaults keep the shape complete.
+		faction = data.faction,
+		factionSwitchIn = 0,
+		warPoints = 0,
+		warDayPoints = 0,
+		warActive = false,
+		warBonusActive = false,
 	}
+	for _, provider in extraProviders do
+		for key, value in provider(player, data) do
+			(snapshot :: any)[key] = value
+		end
+	end
+	return snapshot
 end
 
 local function flush()

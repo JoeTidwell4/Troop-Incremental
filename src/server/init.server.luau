@@ -20,6 +20,8 @@ local AscendService = require(Services.AscendService)
 local TapService = require(Services.TapService)
 local SyncService = require(Services.SyncService)
 local OfflineService = require(Services.OfflineService)
+local WarService = require(Services.WarService)
+local FactionService = require(Services.FactionService)
 
 RemoteService.start() -- first: creates the remotes everything else listens to
 PlotService.start() -- gives each player a battlefield spot and places their avatar
@@ -34,6 +36,8 @@ AscendService.start()
 TapService.start()
 SyncService.start()
 OfflineService.start()
+WarService.start() -- faction war points, cross-server standings, weekly winner
+FactionService.start()
 DataService.start() -- last: starts loading players once every listener is connected
 
 print(`[Server] Troop-Incremental {Version} booted`)
