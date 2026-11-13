@@ -13,7 +13,8 @@ Incremental/idle Roblox game. The player is a commander; troops auto-fight waves
 **Phase 4: done (owner confirmed in Studio).** Factions + faction war.
 **Phase 5: done (owner confirmed in Studio).** Clans (5a) + clan raid boss (5b), plus the first Phase 6 polish, audio system, and Robux store (all confirmed working).
 **Waiting on the owner:** audio asset IDs for `AudioConfig`; Golden Sword pass + gold product IDs. Live pass IDs: DoubleGold 2088398382, AutoClicker 2089262362 (owner chose a real, fair auto clicker for this pass). AutoAbilities and GoldenSword passes exist in code with id 0 (hidden).
-**Phase 7 (look and feel, owner said go; code written, NOT yet tested in Studio):** themed world, real unit/enemy models, effects, UI layout + style pass. Owner wants the game fleshed out a lot before going public.
+**Phase 7: done (owner confirmed in Studio).** Themed world, real unit/enemy models, effects, UI layout + style pass. Owner wants the game fleshed out a lot before going public.
+**Phase 8 (plan proposed, waiting for OK):** content, split into 8a (daily login rewards, daily quests, achievements) and 8b (new troop types, area traits, boss mechanics).
 **After that (proposed):** Phase 8 content (daily rewards/quests, achievements, new troop types, area modifiers, boss mechanics), analytics funnel, balance pass with real data.
 Phase 3 decisions (owner approved): gear rarity DOES reset on Ascend; highestBossDefeated + packs.rewardedBossStage reset too, so free boss packs are re-earned every run. Unopened free packs and the pity counter are kept.
 
