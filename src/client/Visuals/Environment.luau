@@ -51,6 +51,15 @@ local function rock(rng: Random, at: CFrame, parent: Instance, color: Color3, ma
 		parent,
 		{ material = material, shadow = true }
 	)
+	-- A smaller rock leaning against it, so they read as a cluster.
+	local small = size * rng:NextNumber(0.35, 0.55)
+	Parts.block(
+		Vector3.new(small * 1.2, small * 0.8, small),
+		Parts.vary(color, rng, 0.08),
+		at * CFrame.new(size * 0.7, small * 0.3, rng:NextNumber(-0.5, 0.5) * size) * CFrame.Angles(rng:NextNumber(-0.4, 0.4), rng:NextNumber(0, 6), rng:NextNumber(-0.4, 0.4)),
+		parent,
+		{ material = material }
+	)
 end
 
 local function bush(rng: Random, at: CFrame, parent: Instance, color: Color3)
@@ -59,6 +68,12 @@ local function bush(rng: Random, at: CFrame, parent: Instance, color: Color3)
 		Parts.ball(d, Parts.vary(color, rng, 0.06), at * CFrame.new(rng:NextNumber(-1, 1), d * 0.35, rng:NextNumber(-1, 1)), parent, {
 			material = Enum.Material.Grass,
 		})
+	end
+	if rng:NextNumber() < 0.4 then
+		local petal = if rng:NextNumber() < 0.5 then Color3.fromRGB(255, 230, 120) else Color3.fromRGB(240, 120, 160)
+		for _ = 1, 3 do
+			Parts.ball(0.45, petal, at * CFrame.new(rng:NextNumber(-1.2, 1.2), rng:NextNumber(1, 1.6), rng:NextNumber(-1.2, 1.2)), parent)
+		end
 	end
 end
 
@@ -69,6 +84,20 @@ local function leafyTree(rng: Random, at: CFrame, parent: Instance)
 		shadow = true,
 	})
 	local leaf = Color3.fromRGB(70, 130, 60)
+	for i = 0, 2 do -- roots
+		local angle = i / 3 * math.pi * 2 + rng:NextNumber(0, 1)
+		Parts.wedge(Vector3.new(0.6, 1.2, 1.4), WOOD, at * CFrame.new(math.cos(angle) * 0.9, 0.6, math.sin(angle) * 0.9) * CFrame.Angles(0, -angle + math.pi / 2, 0), parent, {
+			material = Enum.Material.Wood,
+		})
+	end
+	for side = -1, 1, 2 do -- branches
+		Parts.block(Vector3.new(0.4, 2.2, 0.4), WOOD, at * CFrame.new(side * 0.9, height * 0.75, 0) * CFrame.Angles(0, 0, side * math.rad(-40)), parent, {
+			material = Enum.Material.Wood,
+		})
+	end
+	Parts.ball(rng:NextNumber(5, 7), Parts.vary(Color3.fromRGB(45, 95, 45), rng, 0.05), at * CFrame.new(0, height - 1.5, 0), parent, {
+		material = Enum.Material.Grass,
+	}) -- darker under-canopy
 	for i = 1, 3 do
 		local d = rng:NextNumber(5, 8) - i
 		Parts.ball(
@@ -548,7 +577,7 @@ local function mountains(rng: Random, theme: Theme, origin: Vector3, parent: Ins
 			Parts.ridge(width, height, height * 1.6, color, facing * CFrame.Angles(0, math.rad(90), 0), parent, {
 				material = Enum.Material.Rock,
 			})
-			if theme.scenery == "Frozen" then
+			if theme.scenery == "Frozen" or theme.scenery == "Forest" then
 				Parts.ridge(width * 0.55, height * 0.35, height * 0.56, Color3.fromRGB(245, 248, 255), facing * CFrame.Angles(0, math.rad(90), 0) * CFrame.new(0, height * 0.65, 0), parent, {
 					material = Enum.Material.Snow,
 				})
@@ -782,8 +811,44 @@ function Environment.build(theme: Theme, origin: Vector3, areaNumber: number, pa
 		})
 	end
 
-	local set = SCENERY[theme.scenery] or SCENERY.Forest
 	local quality = Quality.get()
+	-- Stone posts along the long edges, and a pillar with a burning brazier at each corner.
+	for _, side in { -1, 1 } do
+		for i = -3, 3 do
+			Parts.block(Vector3.new(1.3, 1.6, 1.3), Parts.vary(edgeColor, rng, 0.06), CFrame.new(origin + Vector3.new(i * 10, 1.0, side * (ARENA_SIZE.Z / 2 + 0.5))), model, {
+				material = Enum.Material.Slate,
+			})
+		end
+	end
+	for _, corner in { Vector3.new(-1, 0, -1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(1, 0, 1) } do
+		local base = origin + Vector3.new(corner.X * (ARENA_SIZE.X / 2 + 1), 0, corner.Z * (ARENA_SIZE.Z / 2 + 1))
+		Parts.block(Vector3.new(2, 4, 2), Parts.vary(edgeColor, rng, 0.05), CFrame.new(base + Vector3.new(0, 2.3, 0)), model, { material = Enum.Material.Slate, shadow = true })
+		Parts.block(Vector3.new(2.5, 0.5, 2.5), edgeColor, CFrame.new(base + Vector3.new(0, 4.5, 0)), model, { material = Enum.Material.Slate })
+		Parts.cylinder(0.8, 2.2, Color3.fromRGB(60, 55, 55), CFrame.new(base + Vector3.new(0, 5.1, 0)), model, { material = Enum.Material.Metal }) -- bowl
+		local flame = Parts.ball(1.3, Color3.fromRGB(255, 150, 50), CFrame.new(base + Vector3.new(0, 5.7, 0)), model, { material = Enum.Material.Neon, name = "Brazier" })
+		if quality.shadows then -- High graphics: real light + flickering fire
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 170, 90)
+			light.Brightness = 1.2
+			light.Range = 16
+			light.Parent = flame
+		end
+		if quality.particleRate > 0 then
+			local fire = Instance.new("ParticleEmitter")
+			fire.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			fire.Color = ColorSequence.new(Color3.fromRGB(255, 200, 80), Color3.fromRGB(255, 80, 30))
+			fire.LightEmission = 1
+			fire.Size = NumberSequence.new(0.8, 0)
+			fire.Lifetime = NumberRange.new(0.5, 0.9)
+			fire.Speed = NumberRange.new(2, 4)
+			fire.SpreadAngle = Vector2.new(15, 15)
+			fire.Rate = 12 * quality.particleRate
+			fire.EmissionDirection = Enum.NormalId.Top
+			fire.Parent = flame
+		end
+	end
+
+	local set = SCENERY[theme.scenery] or SCENERY.Forest
 	scatter(rng, origin, model, quality.props, set)
 	mountains(rng, theme, origin, model, quality.mountains)
 	ambientParticles(theme, origin, model)

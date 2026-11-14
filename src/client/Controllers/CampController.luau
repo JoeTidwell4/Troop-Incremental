@@ -29,6 +29,7 @@ local Plots = require(Shared:WaitForChild("Plots"))
 local CampConfig = require(Shared:WaitForChild("Config"):WaitForChild("CampConfig"))
 local VisualConfig = require(Shared:WaitForChild("Config"):WaitForChild("VisualConfig"))
 local CampProps = require(Client:WaitForChild("Visuals"):WaitForChild("CampProps"))
+local Quality = require(Client:WaitForChild("Visuals"):WaitForChild("Quality"))
 local Spotlight = require(Client.UI.Spotlight)
 local BattlefieldController = require(script.Parent.BattlefieldController)
 local AudioController = require(script.Parent.AudioController)
@@ -213,6 +214,14 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 		anchor.Size = Vector3.new(0.2, 0.2, 0.2)
 		anchor.CFrame = CFrame.new(feet + Vector3.new(0, height + 1.4, 0))
 		anchor.Parent = model
+		-- A soft warm lamp over each structure (High graphics), so the camp reads at night.
+		if Quality.get().shadows then
+			local lamp = Instance.new("PointLight")
+			lamp.Color = Color3.fromRGB(255, 200, 140)
+			lamp.Brightness = 0.7
+			lamp.Range = 11
+			lamp.Parent = anchor
+		end
 		local billboard = Instance.new("BillboardGui")
 		billboard.Size = UDim2.fromOffset(170, 52)
 		billboard.LightInfluence = 0
