@@ -70,6 +70,15 @@ local function setOwned(player: Player, passKey: string)
 end
 
 local function checkPasses(player: Player)
+	-- Comped passes (MonetizationConfig.FREE_PASSES): owned without buying.
+	local comps = MonetizationConfig.FREE_PASSES[player.UserId]
+	if comps ~= nil then
+		for _, passKey in comps do
+			if MonetizationConfig.PASSES[passKey] ~= nil then
+				setOwned(player, passKey)
+			end
+		end
+	end
 	for passKey, def in MonetizationConfig.PASSES do
 		if def.id > 0 then
 			local ok, result = pcall(function(): boolean

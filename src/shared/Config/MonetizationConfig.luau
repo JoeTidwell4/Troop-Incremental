@@ -18,6 +18,14 @@
 local Types = require(script.Parent.Parent.Types)
 
 local MonetizationConfig = {
+	-- Free passes ("comps"): Roblox has no way to gift a game pass, so the game itself
+	-- treats these players as owners. Key = Roblox user ID (the number in their profile
+	-- link, roblox.com/users/<id>/profile), value = pass keys from PASSES. They get the
+	-- pass's effect in this game only; it doesn't show as owned on their Roblox profile.
+	-- Example: [123456789] = { "DoubleGold", "AutoClicker" },
+	FREE_PASSES = {
+	} :: { [number]: { string } },
+
 	PASS_ORDER = { "DoubleGold", "AutoClicker", "AutoAbilities", "GoldenSword" } :: { string },
 	PASSES = {
 		DoubleGold = {
