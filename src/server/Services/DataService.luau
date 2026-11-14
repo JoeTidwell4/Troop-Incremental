@@ -341,6 +341,8 @@ local function sanitize(data: PlayerData)
 	if typeof(data.tutorial.initialized) ~= "boolean" then
 		data.tutorial.initialized = false
 	end
+	data.tower.best = wholeNumber(data.tower.best, 0, 0)
+	data.tower.tributeDay = wholeNumber(data.tower.tributeDay, -1, -1)
 	do
 		-- Challenge runs: known challenges only, tiers within the ladder, and a parked main
 		-- run that is complete. If the parked run is damaged the challenge is dropped and the
@@ -470,6 +472,9 @@ local function repairFutureIds(data: PlayerData)
 	end
 	if data.quests.day > day then
 		data.quests.day = -1 -- new quests get rolled for today
+	end
+	if data.tower.tributeDay > day then
+		data.tower.tributeDay = -1
 	end
 	if data.skills.respecDay > day then
 		data.skills.respecDay = -1

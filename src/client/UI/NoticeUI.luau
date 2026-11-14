@@ -13,6 +13,7 @@ local Areas = require(Shared:WaitForChild("Areas"))
 local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local ChallengeConfig = require(Shared:WaitForChild("Config"):WaitForChild("ChallengeConfig"))
+local TowerConfig = require(Shared:WaitForChild("Config"):WaitForChild("TowerConfig"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
 local AudioController = require(Client.Controllers.AudioController)
@@ -120,6 +121,25 @@ local function onNotice(notice: Notice)
 			table.insert(parts, 1, "You were the clan MVP!")
 		end
 		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
+	elseif notice.kind == "TowerFloor" then
+		local parts = { `+{notice.dust or 0} Relic Dust`, `+{NumberFormat.number(notice.honor or 0)} Honor` }
+		for _, prize in TowerConfig.CHEST_PRIZES do
+			if prize.id == notice.prize then
+				table.insert(parts, 1, `Tower Chest: {prize.text}!`)
+			end
+		end
+		if notice.bonus then
+			table.insert(parts, `+{math.floor(TowerConfig.BONUS_PER_STEP * 100 + 0.5)}% damage and gold forever`)
+		end
+		NoticeUI.show(`TOWER FLOOR {notice.stage} CLEARED!`, table.concat(parts, ", "), TowerConfig.COLOR)
+	elseif notice.kind == "TowerFailed" then
+		NoticeUI.show(
+			`FLOOR {notice.stage} HOLDS`,
+			if notice.reason == "ArmyDefeated" then "Your army fell. Nothing lost: come back stronger." else "Out of time. Nothing lost: come back stronger.",
+			Theme.HpFill
+		)
+	elseif notice.kind == "TowerTribute" then
+		NoticeUI.show("TOWER TRIBUTE", `+{math.floor((notice.seconds or 0) / 60)} minutes of gold, +{notice.dust or 0} Relic Dust`, TowerConfig.COLOR)
 	elseif notice.kind == "ChallengeTier" then
 		local def = ChallengeConfig.CHALLENGES[notice.challengeId or ""]
 		local parts = { `+{NumberFormat.number(notice.honor or 0)} Honor` }

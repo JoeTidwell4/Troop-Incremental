@@ -1,6 +1,7 @@
 --!strict
 -- The ADVENTURE hub (menu button): one window for the game modes outside the main run.
--- Phase 13e has the Challenges tab; the Tower and Expeditions join it later (tabs below).
+-- Tabs: Challenges (13e), Tower (13f); Expeditions join later. Each tab shows its own
+-- "locked until..." message. Red dot on the button when the Tower Tribute is ready.
 --
 -- While you're in a challenge a banner takes the Ascend button's place in the menu
 -- column (a challenge run can't be Ascended, so that spot is free): the challenge, its
@@ -18,6 +19,7 @@ local UIKit = require(script.Parent.UIKit)
 local Layout = require(script.Parent.Layout)
 local Spotlight = require(script.Parent.Spotlight)
 local ChallengesTab = require(script.Parent.ChallengesTab)
+local TowerTab = require(script.Parent.TowerTab)
 local StateController = require(Client.Controllers.StateController)
 
 type Snapshot = Types.Snapshot
@@ -56,6 +58,18 @@ function AdventureUI.start()
 		Parent = gui,
 	})
 	Spotlight.register("Menu:Adventure", menuButton)
+	-- Red dot: the daily Tower Tribute is waiting.
+	local dot = UIKit.create("Frame", {
+		Name = "Dot",
+		BackgroundColor3 = Color3.fromRGB(230, 60, 60),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -4, 0, 4),
+		Size = UDim2.fromOffset(14, 14),
+		Visible = false,
+		ZIndex = 5,
+		Parent = menuButton,
+	}, { UIKit.corner(7) }) :: Frame
 
 	-- In-challenge banner (in the Ascend button's spot).
 	local banner = UIKit.button({
@@ -107,16 +121,6 @@ function AdventureUI.start()
 		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
-	local lockedLabel = UIKit.label({
-		Text = `Challenges open after your first Ascend (stage 50).`,
-		TextColor3 = Theme.Muted,
-		TextSize = 14,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.new(0, 0, 0.5, -10),
-		Size = UDim2.new(1, 0, 0, 20),
-		Visible = false,
-		Parent = window,
-	})
 	local content = UIKit.create("Frame", {
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 0, 0, 72),
@@ -124,7 +128,7 @@ function AdventureUI.start()
 		Parent = window,
 	}) :: Frame
 
-	local tabs: { Tab } = { ChallengesTab.build(content) }
+	local tabs: { Tab } = { ChallengesTab.build(content), TowerTab.build(content) }
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
 
@@ -133,17 +137,11 @@ function AdventureUI.start()
 		if snapshot == nil or not overlay.Visible then
 			return
 		end
-		-- Nothing in here is open before the first Ascend.
-		local unlocked = snapshot.ascensions >= ChallengeConfig.UNLOCK_ASCENDS or snapshot.challengeActive ~= ""
-		lockedLabel.Visible = not unlocked
-		content.Visible = unlocked
 		for tab, button in tabButtons do
 			tab.frame.Visible = tab == activeTab
 			button.BackgroundColor3 = if tab == activeTab then Theme.Accent else Theme.PanelLight
 		end
-		if unlocked then
-			activeTab.render(snapshot)
-		end
+		activeTab.render(snapshot)
 	end
 
 	for index, tab in tabs do
@@ -189,7 +187,15 @@ function AdventureUI.start()
 	end)
 
 	local wasActive = ""
+	local wasInTower = false
 	StateController.Changed:Connect(function(snapshot: Snapshot)
+		dot.Visible = snapshot.towerTributeReady
+		-- A Tower fight just started: show the fight.
+		local inTower = snapshot.towerFloor > 0
+		if inTower and not wasInTower then
+			overlay.Visible = false
+		end
+		wasInTower = inTower
 		local def = ChallengeConfig.CHALLENGES[snapshot.challengeActive]
 		banner.Visible = def ~= nil
 		if def ~= nil then

@@ -19,6 +19,7 @@
 --   "inClan"           you're in a clan               "golden"      a golden enemy appears
 --   "relic"            your first relic drops
 --   "ascended"         you have Ascended at least once   "inChallenge"  you're in a challenge run
+--   "inTower"          you're fighting a Tower floor
 --   "offline"          you come back to offline earnings
 -- `stage` on event lessons = the earliest stage it can matter. When the tutorial system
 -- first runs on an old save, lessons below the player's best stage count as already seen
@@ -33,6 +34,7 @@ local GeneralConfig = require(script.Parent.GeneralConfig)
 local RelicConfig = require(script.Parent.RelicConfig)
 local LegacyConfig = require(script.Parent.LegacyConfig)
 local ClanConfig = require(script.Parent.ClanConfig)
+local TowerConfig = require(script.Parent.TowerConfig)
 
 type Lesson = Types.TutorialLesson
 
@@ -205,6 +207,21 @@ local LESSONS: { Lesson } = {
 			{ text = "This shows your challenge and the next goal. {tap} it to see your progress, or to leave and get your main run back.", spotlight = "ChallengeBanner" },
 			{ text = "No Ascending, raid attacks or free boss packs in here. Free packs, Hero Chests and gold rewards are saved for your main run." },
 			{ text = "Your main run earns nothing while it's parked (offline too), so don't camp in a challenge. Tiers you clear are kept even if you leave early." },
+		},
+	},
+	{
+		id = "Tower", topic = "Adventure", title = "The Endless Tower", when = "stage", stage = TowerConfig.UNLOCK_STAGE,
+		steps = {
+			{ text = "The Endless Tower is open! It's a ladder of boss fights against your current army. No gold, no farming, and losing costs nothing.", spotlight = "Menu:Adventure" },
+			{ text = "CLIMB fights the floor above your best and keeps going until a floor stops you. Floors never change, so come back when your army is stronger.", open = "Adventure:Tower", spotlight = "Tower:Climb" },
+			{ text = "Every new floor gives Relic Dust and Honor. Every 5th has a Tower Chest, every 10th adds +2% damage and gold forever. The daily Tribute is claimed here too." },
+		},
+	},
+	{
+		id = "TowerLaws", topic = "Adventure", title = "Tower Laws", when = "inTower", stage = TowerConfig.UNLOCK_STAGE,
+		steps = {
+			{ text = "Most floors have a Law that changes the rules. It's written under the boss: 'Warded' means your clicks do nothing, 'Silence' means no abilities." },
+			{ text = "Stuck on a Law? Try other abilities (ARMY) or a different mix of troops. This button stops the climb.", spotlight = "FightBoss" },
 		},
 	},
 	---------------------------------------------------------------- Prestige

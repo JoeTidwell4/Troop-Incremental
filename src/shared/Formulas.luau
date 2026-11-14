@@ -24,6 +24,7 @@ local SkillConfig = require(Shared.Config.SkillConfig)
 local GeneralConfig = require(Shared.Config.GeneralConfig)
 local RelicConfig = require(Shared.Config.RelicConfig)
 local ChallengeConfig = require(Shared.Config.ChallengeConfig)
+local TowerConfig = require(Shared.Config.TowerConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -148,12 +149,17 @@ end
 
 -- Per-troop DAMAGE multipliers for a fight: faction bonus x the area's trait x each
 -- troop's job (bosses vs normal enemies). HP only uses the faction bonus.
-function Formulas.fightDamageMultipliers(factionId: string, stage: number, vsBoss: boolean, generals: Types.GeneralsData?): TroopMultipliers
+-- `towerFloor` (> 0 in a Tower fight): no area trait there, the floor's laws instead.
+function Formulas.fightDamageMultipliers(factionId: string, stage: number, vsBoss: boolean, generals: Types.GeneralsData?, towerFloor: number?): TroopMultipliers
 	local result = Formulas.factionTroopMultipliers(factionId)
 	if generals ~= nil then
 		applyTroopBonuses(result, Formulas.generalBonuses(generals).troopDamage)
 	end
-	local trait = Areas.forStage(stage).theme.trait
+	local inTower = towerFloor ~= nil and towerFloor > 0
+	if inTower then
+		applyTroopBonuses(result, Formulas.towerFloor(towerFloor :: number).effects.troopDamage)
+	end
+	local trait = if inTower then nil else Areas.forStage(stage).theme.trait
 	for _, troopId in TroopConfig.ORDER do
 		local def = TroopConfig.TROOPS[troopId]
 		local multiplier = result[troopId] or 1
@@ -742,6 +748,115 @@ function Formulas.challengeRewardText(def: Types.ChallengeDef, tiers: number): s
 	end
 	local text = string.gsub(def.reward.text, "{v}", string.format("%g", math.floor(value * 10 + 0.5) / 10))
 	return text
+end
+
+---------------------------------------------------------------- endless tower
+
+-- A small integer hash, the same on the server and the client (whole numbers below 2^53).
+local function towerHash(floor: number, salt: number): number
+	local h = (floor * 7919 + salt * 104729 + 12345) % 4294967296
+	h = bit32.bxor(h, bit32.rshift(h, 7))
+	h = (h * 40503) % 4294967296
+	h = bit32.bxor(h, bit32.rshift(h, 11))
+	h = (h * 9973) % 4294967296
+	return bit32.bxor(h, bit32.rshift(h, 13))
+end
+
+local towerCache: { [number]: Types.TowerFloor } = {}
+
+-- Everything about a Tower floor that follows from its number: laws, Guardian, chest.
+function Formulas.towerFloor(floor: number): Types.TowerFloor
+	local cached = towerCache[floor]
+	if cached ~= nil then
+		return cached
+	end
+	local guardian = floor % TowerConfig.GUARDIAN_EVERY == 0
+	local lawCount = if floor <= TowerConfig.FREE_FLOORS
+		then 0
+		elseif not guardian and floor % TowerConfig.DOUBLE_LAW_EVERY == 0 then 2
+		else 1
+	local laws: { string } = {}
+	local order = TowerConfig.LAW_ORDER
+	if lawCount >= 1 then
+		table.insert(laws, order[towerHash(floor, 1) % #order + 1])
+	end
+	if lawCount >= 2 then
+		-- A different one: step 1..(#order - 1) places on from the first.
+		local first = table.find(order, laws[1]) :: number
+		local step = towerHash(floor, 2) % (#order - 1) + 1
+		table.insert(laws, order[(first - 1 + step) % #order + 1])
+	end
+	local effects: Types.TowerEffects = {
+		troopMultiplier = 1,
+		queuedMultiplier = 1,
+		troopDamage = {},
+		regen = 0,
+		bossDamage = 1,
+		timeScale = 1,
+		noClicks = false,
+		noAbilities = false,
+		weakPointGap = 1,
+	}
+	for _, lawId in laws do
+		local law = TowerConfig.LAWS[lawId].effects
+		effects.troopMultiplier *= law.troopMultiplier or 1
+		effects.queuedMultiplier *= law.queuedMultiplier or 1
+		effects.regen += law.regen or 0
+		effects.bossDamage *= law.bossDamage or 1
+		effects.timeScale *= law.timeScale or 1
+		effects.noClicks = effects.noClicks or law.noClicks == true
+		effects.noAbilities = effects.noAbilities or law.noAbilities == true
+		effects.weakPointGap *= law.weakPointGap or 1
+		if law.troopDamage ~= nil then
+			for troopId, multiplier in law.troopDamage do
+				effects.troopDamage[troopId] = (effects.troopDamage[troopId] or 1) * multiplier
+			end
+		end
+	end
+	local result: Types.TowerFloor = {
+		floor = floor,
+		stage = TowerConfig.BASE_STAGE + TowerConfig.STAGES_PER_FLOOR * floor,
+		guardian = guardian,
+		chest = floor % TowerConfig.CHEST_EVERY == 0,
+		laws = laws,
+		effects = effects,
+		model = TowerConfig.MODELS[(floor - 1) % #TowerConfig.MODELS + 1],
+	}
+	towerCache[floor] = result
+	return result
+end
+
+-- HP and damage per second (before the army-HP clamp) of a floor's boss.
+function Formulas.towerHp(floor: number): BigNum
+	local info = Formulas.towerFloor(floor)
+	return BigNum.round(BigNum.mulNumber(Formulas.bossHp(info.stage), if info.guardian then TowerConfig.GUARDIAN_HP else 1))
+end
+
+function Formulas.towerDps(floor: number): BigNum
+	return Formulas.bossDps(Formulas.towerFloor(floor).stage)
+end
+
+-- Permanent damage and gold multiplier from your best floor.
+function Formulas.towerBonus(bestFloor: number): number
+	return 1 + TowerConfig.BONUS_PER_STEP * (bestFloor // TowerConfig.BONUS_EVERY)
+end
+
+-- Relic Dust for clearing `floor` the first time.
+function Formulas.towerFloorDust(floor: number): number
+	return math.floor(TowerConfig.FLOOR_DUST_BASE + TowerConfig.FLOOR_DUST_PER_FLOOR * floor)
+end
+
+function Formulas.towerChestDust(floor: number): number
+	return TowerConfig.CHEST_DUST_BASE + TowerConfig.CHEST_DUST_PER_FLOOR * floor
+end
+
+-- The daily Tribute at `bestFloor`: (minutes of army gold, Relic Dust).
+function Formulas.towerTribute(bestFloor: number): (number, number)
+	local minutes = math.min(
+		TowerConfig.TRIBUTE_GOLD_MINUTES_BASE + TowerConfig.TRIBUTE_GOLD_MINUTES_PER_FLOOR * bestFloor,
+		TowerConfig.TRIBUTE_GOLD_MINUTES_MAX
+	)
+	return minutes, TowerConfig.TRIBUTE_DUST_BASE + TowerConfig.TRIBUTE_DUST_PER_FLOOR * bestFloor
 end
 
 ---------------------------------------------------------------- commander level + skills

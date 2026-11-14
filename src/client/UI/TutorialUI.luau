@@ -143,6 +143,9 @@ local function checkSnapshot(snapshot: Snapshot)
 	if snapshot.challengeActive ~= "" then
 		trigger(snapshot, "inChallenge")
 	end
+	if snapshot.towerFloor > 0 then
+		trigger(snapshot, "inTower")
+	end
 	local clan = ClanController.get()
 	if clan ~= nil and clan.inClan then
 		trigger(snapshot, "inClan")

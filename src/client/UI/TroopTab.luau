@@ -159,8 +159,8 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		local _, generals = Formulas.fightBuild(snapshot.challengeActive, nil, snapshot.generals, nil)
 		local gear = if rules.noGear then nil else snapshot.gear
 		local factionBonus = Formulas.troopHpMultipliers(snapshot.faction, generals)
-		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal", generals)
-		local trait = Areas.forStage(snapshot.stage).theme.trait
+		local fightBonus = Formulas.fightDamageMultipliers(snapshot.faction, snapshot.stage, snapshot.encounter ~= "Normal", generals, snapshot.towerFloor)
+		local trait = if snapshot.towerFloor > 0 then nil else Areas.forStage(snapshot.stage).theme.trait
 		for _, troopId in TroopConfig.ORDER do
 			local row = rows[troopId]
 			local def = TroopConfig.TROOPS[troopId]

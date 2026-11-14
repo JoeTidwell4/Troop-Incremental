@@ -218,7 +218,9 @@ function ChallengesTab.build(parent: Instance): { title: string, frame: Frame, r
 		else
 			statusTitle.Text = "Fresh run, one nasty rule"
 			statusTitle.TextColor3 = Theme.Text
-			statusText.Text = "Your main run is parked while you're in a challenge and comes back exactly as it was. Each tier you clear is a permanent bonus."
+			statusText.Text = if snapshot.ascensions >= ChallengeConfig.UNLOCK_ASCENDS
+				then "Your main run is parked while you're in a challenge and comes back exactly as it was. Each tier you clear is a permanent bonus."
+				else "Challenges open after your first Ascend (stage 50)."
 		end
 		statusStroke.Enabled = activeDef ~= nil
 		leaveButton.Visible = activeDef ~= nil

@@ -56,6 +56,8 @@ local function current(data: PlayerData, def: AchievementDef): number
 		return if data.faction ~= "" then 1 else 0
 	elseif kind == "warWin" then
 		return if WarService.hasWinnerBonus(data) then 1 else 0
+	elseif kind == "tower" then
+		return data.tower.best
 	elseif kind == "generals" then
 		local count = 0
 		for _ in data.generals.owned do

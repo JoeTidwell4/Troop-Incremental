@@ -78,6 +78,7 @@ local function buildSnapshot(player: Player): Snapshot?
 		minionHp = encounter.minionHp,
 		minionMaxHp = encounter.minionMaxHp,
 		enemyGolden = encounter.golden,
+		towerFloor = encounter.tower,
 
 		armyDps = CombatService.getDps(player),
 		tapDamage = CombatService.getTapDamage(player),

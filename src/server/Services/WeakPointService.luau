@@ -98,6 +98,9 @@ local function update(player: Player)
 		-- Some raid bosses show weak points more often (RaidConfig.BOSSES weakPointInterval).
 		local gapScale = if encounter.kind == "Raid" then Formulas.raidBossById(encounter.raidBoss).weakPointInterval else 1
 		gapScale *= AbilityService.weakPointGapScale(player) -- War Drums
+		if encounter.tower > 0 then
+			gapScale *= Formulas.towerFloor(encounter.tower).effects.weakPointGap -- Tower law Exposed
+		end
 		current.nextAt = time + rng:NextNumber(WeakPointConfig.INTERVAL_MIN, WeakPointConfig.INTERVAL_MAX) * gapScale
 		RemoteService.fireClient(Remotes.Events.WeakPoint, player, {
 			kind = "Spawn",

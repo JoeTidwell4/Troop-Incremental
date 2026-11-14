@@ -27,6 +27,8 @@ local BattlefieldController = require(Client.Controllers.BattlefieldController)
 local ClanController = require(Client.Controllers.ClanController)
 local Spotlight = require(script.Parent.Spotlight)
 local RaidConfig = require(Shared:WaitForChild("Config"):WaitForChild("RaidConfig"))
+local TowerConfig = require(Shared:WaitForChild("Config"):WaitForChild("TowerConfig"))
+local TowerController = require(Client.Controllers.TowerController)
 
 type Snapshot = Types.Snapshot
 type BigNum = BigNum.BigNum
@@ -326,6 +328,16 @@ function HudUI.start()
 	end)
 
 	local function renderStageButton(snapshot: Snapshot)
+		if snapshot.towerFloor > 0 then
+			-- In the Tower: the button walks out (and stops the climb).
+			stageButton.Visible = true
+			stageButton.Text = "LEAVE THE TOWER"
+			stageButton.BackgroundColor3 = Theme.PanelLight
+			buttonAction = function()
+				task.spawn(TowerController.request, "Leave")
+			end
+			return
+		end
 		if snapshot.encounter ~= "Normal" then
 			stageButton.Visible = false
 			return
@@ -398,9 +410,23 @@ function HudUI.start()
 			armyBack.Visible = false
 			stagePanel.Size = UDim2.new(0, 300, 0, PANEL_HEIGHT_NORMAL)
 		elseif snapshot.encounter == "Boss" then
-			stageLabel.Text = `BOSS: {area.bossName}`
-			stageLabel.TextColor3 = BOSS_HP_COLOR
-			hpFill.BackgroundColor3 = BOSS_HP_COLOR
+			if snapshot.towerFloor > 0 then
+				-- A Tower floor: its laws instead of the area line.
+				local info = Formulas.towerFloor(snapshot.towerFloor)
+				local color = if info.guardian then TowerConfig.GUARDIAN_COLOR else TowerConfig.COLOR
+				stageLabel.Text = if info.guardian then `TOWER FLOOR {info.floor}: GUARDIAN` else `TOWER FLOOR {info.floor}`
+				stageLabel.TextColor3 = color
+				hpFill.BackgroundColor3 = color
+				local names: { string } = {}
+				for _, lawId in info.laws do
+					table.insert(names, TowerConfig.LAWS[lawId].name)
+				end
+				areaLabel.Text = if #names > 0 then `The Endless Tower  |  Law: {table.concat(names, " + ")}` else "The Endless Tower"
+			else
+				stageLabel.Text = `BOSS: {area.bossName}`
+				stageLabel.TextColor3 = BOSS_HP_COLOR
+				hpFill.BackgroundColor3 = BOSS_HP_COLOR
+			end
 			local serverNow = workspace:GetServerTimeNow()
 			local timeLeft = math.max(0, math.ceil(snapshot.bossEndsAt - serverNow))
 			if serverNow < snapshot.bossIntroUntil then
@@ -454,7 +480,19 @@ function HudUI.start()
 
 		renderStageButton(snapshot)
 		local tip, spotlight = tipFor(snapshot)
+		if snapshot.towerFloor > 0 then
+			-- What this floor's laws do, in the tip line.
+			local lines: { string } = {}
+			for _, lawId in Formulas.towerFloor(snapshot.towerFloor).laws do
+				local law = TowerConfig.LAWS[lawId]
+				table.insert(lines, `{law.name}: {law.text}`)
+			end
+			tip = if #lines > 0 then table.concat(lines, "\n") else nil
+			spotlight = nil
+		end
 		hint.Visible = tip ~= nil
+		hint.TextSize = if snapshot.towerFloor > 0 then 15 else 18
+		hint.Size = UDim2.new(1, 0, 0, if snapshot.towerFloor > 0 then 40 else 24)
 		if tip ~= nil then
 			hint.Text = tip
 		end

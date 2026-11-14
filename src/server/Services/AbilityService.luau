@@ -118,6 +118,9 @@ local function useAbility(player: Player, abilityId: string)
 
 	local stats = Formulas.abilityStats(abilityId, data.abilityUpgrades, (Formulas.fightBuild(data.challenge.active, data.skills.ranks)))
 	local encounter = StageService.getEncounter(player)
+	if encounter ~= nil and encounter.tower > 0 and Formulas.towerFloor(encounter.tower).effects.noAbilities then
+		return -- Tower law Silence
+	end
 	if def.bossOnly and (encounter == nil or encounter.kind ~= "Boss") then
 		return -- would be wasted (the button says so)
 	end

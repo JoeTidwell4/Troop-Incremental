@@ -33,6 +33,7 @@ local ClanShopService = require(Services.ClanShopService)
 local SkillService = require(Services.SkillService)
 local RelicService = require(Services.RelicService)
 local ChallengeService = require(Services.ChallengeService)
+local TowerService = require(Services.TowerService)
 
 type PlayerData = Types.PlayerData
 type Result = { ok: boolean, message: string }
@@ -133,6 +134,14 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 	CommanderXp = function(player, _data, arg)
 		SkillService.addXp(player, arg or 5000)
 		return done(`+{arg} Commander XP.`)
+	end,
+	TowerFloors = function(player, _data, arg)
+		TowerService.debugAddFloors(player, arg or 10)
+		return done(`+{arg} Tower floors (no fights, no rewards).`)
+	end,
+	TowerTribute = function(player)
+		TowerService.debugResetTribute(player)
+		return done("The Tower Tribute can be claimed again.")
 	end,
 	Ascends = function(_player, data, arg)
 		data.stats.ascensions += arg or 10

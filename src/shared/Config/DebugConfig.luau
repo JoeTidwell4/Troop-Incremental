@@ -41,6 +41,13 @@ local DebugConfig = {
 			},
 		},
 		{
+			title = "Tower",
+			buttons = {
+				{ label = "+10 floors (no rewards)", action = "TowerFloors", arg = 10 },
+				{ label = "Reset daily Tribute", action = "TowerTribute" },
+			},
+		},
+		{
 			title = "Challenges",
 			buttons = {
 				{ label = "+10 Ascends (unlock all)", action = "Ascends", arg = 10 },

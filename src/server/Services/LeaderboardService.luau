@@ -3,7 +3,7 @@
 --
 --   * Player list: a "leaderstats" folder on each player with Best (all-time best stage)
 --     and Honor (lifetime Honor earned). Roblox shows these in the top-right list.
---   * Global: OrderedDataStores "TopBestStage" and "TopHonor", key = user id. Each player
+--   * Global: OrderedDataStores "TopBestStage", "TopHonor" and "TopTower", key = user id. Each player
 --     only ever writes their own key, so servers never conflict. Changed scores are saved
 --     every WRITE_INTERVAL and when the player leaves; the top lists are read every
 --     READ_INTERVAL and sent to everyone on this server.
@@ -30,12 +30,13 @@ type LeaderboardEntry = Types.LeaderboardEntry
 
 local stageStore = DataStoreService:GetOrderedDataStore(StoreNames.of("TopBestStage"))
 local honorStore = DataStoreService:GetOrderedDataStore(StoreNames.of("TopHonor"))
+local towerStore = DataStoreService:GetOrderedDataStore(StoreNames.of("TopTower")) -- best Tower floor
 
-type Saved = { stage: number, honor: number }
+type Saved = { stage: number, honor: number, tower: number }
 
 local lastSaved: { [Player]: Saved } = {}
 local stats: { [Player]: { best: IntValue, honor: StringValue } } = {}
-local boards: Types.Leaderboards = { bestStage = {}, honor = {} }
+local boards: Types.Leaderboards = { bestStage = {}, honor = {}, tower = {} }
 local nameCache: { [number]: string } = {}
 
 local LeaderboardService = {}
@@ -73,16 +74,24 @@ local function createStats(player: Player, data: PlayerData)
 end
 
 local function save(player: Player, data: PlayerData)
-	local current: Saved = { stage = data.bestStage, honor = honorScore(data) }
+	local current: Saved = { stage = data.bestStage, honor = honorScore(data), tower = data.tower.best }
 	local previous = lastSaved[player]
-	if previous ~= nil and previous.stage == current.stage and previous.honor == current.honor then
+	if previous ~= nil and previous.stage == current.stage and previous.honor == current.honor and previous.tower == current.tower then
 		return
 	end
 	lastSaved[player] = current
 	local key = tostring(player.UserId)
 	local ok, err = pcall(function()
-		stageStore:SetAsync(key, current.stage)
-		honorStore:SetAsync(key, current.honor)
+		-- Only what changed (each write counts against the DataStore budget).
+		if previous == nil or previous.stage ~= current.stage then
+			stageStore:SetAsync(key, current.stage)
+		end
+		if previous == nil or previous.honor ~= current.honor then
+			honorStore:SetAsync(key, current.honor)
+		end
+		if current.tower > 0 and (previous == nil or previous.tower ~= current.tower) then
+			towerStore:SetAsync(key, current.tower)
+		end
 	end)
 	if not ok then
 		lastSaved[player] = previous -- try again next time
@@ -123,9 +132,11 @@ end
 local function refresh()
 	local stage = readTop(stageStore)
 	local honor = readTop(honorStore)
+	local tower = readTop(towerStore)
 	boards = {
 		bestStage = stage or boards.bestStage,
 		honor = honor or boards.honor,
+		tower = tower or boards.tower,
 	}
 	for _, player in Players:GetPlayers() do
 		if SyncService.isReady(player) then

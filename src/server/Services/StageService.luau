@@ -14,6 +14,11 @@
 -- Raid attacks (clan raid, see RaidService): a timed fight against the clan raid boss.
 -- Normal progress pauses, the boss doesn't hit back, no gold or kills; damage is totalled
 -- and handed to RaidService through RaidFinished. Then the normal fight resumes.
+--
+-- Tower floors (TowerService): a boss fight (kind "Boss", `tower` = the floor) on top of
+-- the run, like a raid: the saved stage doesn't move, no gold, no kills counted, no
+-- weakening. Its HP, timer and laws come from Formulas.towerFloor. The result goes out on
+-- TowerFinished and the normal fight resumes.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,6 +36,7 @@ local Config = Shared:WaitForChild("Config")
 local StageConfig = require(Config:WaitForChild("StageConfig"))
 local CombatConfig = require(Config:WaitForChild("CombatConfig"))
 local BossConfig = require(Config:WaitForChild("BossConfig"))
+local TowerConfig = require(Config:WaitForChild("TowerConfig"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local Validate = require(Server.Util.Validate)
@@ -66,6 +72,7 @@ export type Encounter = {
 	weakened: number, -- bosses: HP taken off for failed attempts (0..WEAKEN_MAX)
 	raidBoss: string, -- raids: which RaidConfig.BOSSES boss ("" otherwise)
 	golden: boolean, -- normal stages: the current enemy is a golden one (StageConfig.GOLDEN_*)
+	tower: number, -- Tower fights: the floor (0 otherwise)
 }
 
 local encounters: { [Player]: Encounter } = {}
@@ -85,6 +92,9 @@ local StageService = {
 	GoldenKilled = Signal.new() :: Signal.Signal<Player>,
 	-- Fires when a raid attack ends (time up, cap reached, or leaving): (player, damage).
 	RaidFinished = Signal.new() :: Signal.Signal<Player, BigNum>,
+	-- Fires when a Tower fight ends: (player, floor, won, reason "" | "OutOfTime" |
+	-- "ArmyDefeated" | "Left").
+	TowerFinished = Signal.new() :: Signal.Signal<Player, number, boolean, string>,
 }
 
 local function now(): number
@@ -137,6 +147,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 			minionMaxHp = BigNum.ZERO,
 			summoned = false,
 			golden = false,
+			tower = 0,
 			kind = "Boss",
 			enemyHp = hp,
 			enemyMaxHp = hp,
@@ -160,6 +171,7 @@ local function newEncounter(stage: number, data: PlayerData?): Encounter
 		minionMaxHp = BigNum.ZERO,
 		summoned = false,
 		golden = false,
+		tower = 0,
 		kind = "Normal",
 		enemyHp = hp,
 		enemyMaxHp = hp,
@@ -194,6 +206,9 @@ function StageService.getBossHitRate(player: Player): BigNum
 	if encounter.enraged then
 		rate = BigNum.mulNumber(rate, BossConfig.ENRAGE_MULTIPLIER)
 	end
+	if encounter.tower > 0 then
+		rate = BigNum.mulNumber(rate, Formulas.towerFloor(encounter.tower).effects.bossDamage) -- Frenzied
+	end
 	return BigNum.mulNumber(rate, ModifierService.get(player).bossDamage) -- Shield Wall
 end
 
@@ -227,8 +242,8 @@ end
 -- traits and boss-vs-normal troop bonuses depend on it).
 local function setEncounter(player: Player, data: PlayerData, encounter: Encounter)
 	encounters[player] = encounter
-	CombatService.setFightContext(player, data.stage, encounter.kind ~= "Normal")
-	if encounter.kind == "Boss" then
+	CombatService.setFightContext(player, data.stage, encounter.kind ~= "Normal", encounter.tower)
+	if encounter.kind == "Boss" and encounter.tower == 0 then
 		StageService.BossStarted:Fire(player, data.stage)
 	end
 end
@@ -251,6 +266,74 @@ local function finishRaid(player: Player, data: PlayerData)
 	StageService.RaidFinished:Fire(player, encounter.raidDamage)
 end
 
+-- Ends a Tower fight (if one is on): back to the normal fight, then reports the result.
+local function finishTower(player: Player, data: PlayerData, won: boolean, reason: string)
+	local encounter = encounters[player]
+	if encounter == nil or encounter.tower == 0 then
+		return
+	end
+	local floor = encounter.tower
+	setEncounter(player, data, newEncounter(data.stage, data))
+	StageService.TowerFinished:Fire(player, floor, won, reason)
+end
+
+-- Starts the fight against Tower floor `floor`. Only from a normal stage.
+function StageService.startTower(player: Player, floor: number): boolean
+	local encounter = encounters[player]
+	local data = DataService.get(player)
+	if encounter == nil or data == nil or encounter.kind ~= "Normal" then
+		return false
+	end
+	local info = Formulas.towerFloor(floor)
+	local hp = Formulas.towerHp(floor)
+	local moves: { [string]: boolean } = {}
+	if info.guardian then
+		moves.Enrage = true
+		moves.Shield = true
+		moves.Summon = true
+	end
+	local ranks, generals, relics = Formulas.fightBuild(data.challenge.active, data.skills.ranks, data.generals, data.relics)
+	local seconds = (TowerConfig.TIME_LIMIT + Formulas.extras(ranks, generals, relics).bossTime + Formulas.challengeBonuses(data.challenge.tiers).bossTime)
+		* info.effects.timeScale
+	local introUntil = now() + TowerConfig.INTRO_SECONDS
+	setEncounter(player, data, {
+		moves = moves,
+		enraged = false,
+		shieldUntil = 0,
+		nextShieldAt = if moves.Shield then introUntil + BossConfig.SHIELD_EVERY else math.huge,
+		introUntil = introUntil,
+		weakened = 0,
+		raidBoss = "",
+		minionHp = BigNum.ZERO,
+		minionMaxHp = BigNum.ZERO,
+		summoned = false,
+		golden = false,
+		tower = floor,
+		kind = "Boss",
+		enemyHp = hp,
+		enemyMaxHp = hp,
+		goldPerKill = BigNum.ZERO,
+		bossEndsAt = introUntil + seconds,
+		bossDps = Formulas.towerDps(floor),
+		armyDamageTaken = BigNum.ZERO,
+		raidDamage = BigNum.ZERO,
+	})
+	DataService.markChanged(player)
+	return true
+end
+
+-- Walks out of a Tower fight (counts as a loss with reason "Left"). False if not in one.
+function StageService.leaveTower(player: Player): boolean
+	local encounter = encounters[player]
+	local data = DataService.get(player)
+	if encounter == nil or data == nil or encounter.tower == 0 then
+		return false
+	end
+	finishTower(player, data, false, "Left")
+	DataService.markChanged(player)
+	return true
+end
+
 -- Starts a raid attack lasting `seconds`. The HP bar is sized so emptying it means you hit
 -- the per-attack unit cap (`maxDamage`), which also ends the attack early.
 function StageService.startRaid(player: Player, seconds: number, maxDamage: BigNum, bossId: string): boolean
@@ -271,6 +354,7 @@ function StageService.startRaid(player: Player, seconds: number, maxDamage: BigN
 		minionMaxHp = BigNum.ZERO,
 		summoned = false,
 		golden = false,
+		tower = 0,
 		kind = "Raid",
 		enemyHp = maxDamage,
 		enemyMaxHp = maxDamage,
@@ -291,12 +375,18 @@ function StageService.restart(player: Player)
 		return
 	end
 	finishRaid(player, data) -- an Ascend mid-raid still counts the damage dealt
+	finishTower(player, data, false, "Left") -- a Tower fight is simply abandoned
 	CombatService.refreshArmy(player)
 	setEncounter(player, data, newEncounter(data.stage, data))
 	DataService.markChanged(player)
 end
 
 local function failBoss(player: Player, data: PlayerData, reason: "OutOfTime" | "ArmyDefeated")
+	local current = encounters[player]
+	if current ~= nil and current.tower > 0 then
+		finishTower(player, data, false, reason) -- no penalty: just back to the run
+		return
+	end
 	local bossStage = data.stage
 	-- Failing again on the same boss weakens it for the next try.
 	if data.bossWeaken.stage == bossStage then
@@ -380,6 +470,14 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 		return true
 	end
 
+	if encounter.tower > 0 then
+		-- A Tower floor falls: no gold or stage progress. (The kill is counted so the
+		-- client plays the boss's death, not a retreat.)
+		data.stats.totalKills += 1
+		finishTower(player, data, true, "")
+		return true
+	end
+
 	-- Current enemy dies. Leftover damage can kill more enemies on the same stage.
 	damage = BigNum.sub(damage, encounter.enemyHp)
 	local enemiesLeft = enemiesThisStage - data.killsInStage - 1
@@ -455,6 +553,14 @@ local function updateBoss(player: Player, data: PlayerData, dt: number): boolean
 	if time < encounter.introUntil then
 		return true -- still making its entrance: no hits yet
 	end
+	-- Tower law Regenerating: the boss heals a share of its max HP every second.
+	if encounter.tower > 0 then
+		local regen = Formulas.towerFloor(encounter.tower).effects.regen
+		if regen > 0 then
+			local healed = BigNum.add(encounter.enemyHp, BigNum.mulNumber(encounter.enemyMaxHp, regen * dt))
+			encounter.enemyHp = BigNum.min(healed, encounter.enemyMaxHp)
+		end
+	end
 	encounter.armyDamageTaken = BigNum.add(encounter.armyDamageTaken, BigNum.mulNumber(StageService.getBossHitRate(player), dt))
 	if BigNum.gte(encounter.armyDamageTaken, CombatService.getMaxHp(player)) then
 		failBoss(player, data, "ArmyDefeated")
@@ -475,6 +581,10 @@ local function tick(dt: number)
 				-- This week's raid boss changes how troops vs clicks/abilities count.
 				local boss = Formulas.raidBossById(current.raidBoss)
 				damage = CombatService.takeDamage(player, dt, false, boss.troopMultiplier, boss.queuedMultiplier)
+			elseif current ~= nil and current.tower > 0 then
+				-- Tower laws can change how troops vs clicks/abilities count (Thick Hide).
+				local effects = Formulas.towerFloor(current.tower).effects
+				damage = CombatService.takeDamage(player, dt, shielded, effects.troopMultiplier, effects.queuedMultiplier)
 			else
 				damage = CombatService.takeDamage(player, dt, shielded)
 			end
@@ -482,9 +592,12 @@ local function tick(dt: number)
 				if now() < current.introUntil then
 					damage = BigNum.ZERO -- making its entrance
 				else
-					-- Bosses lose at most MAX_DAMAGE_PER_SECOND_FRACTION of their HP per second.
-					local cap = BigNum.mulNumber(current.enemyMaxHp, BossConfig.MAX_DAMAGE_PER_SECOND_FRACTION * dt)
-					damage = BigNum.min(damage, cap)
+					-- Bosses lose at most MAX_DAMAGE_PER_SECOND_FRACTION of their HP per second
+					-- (Tower floors have their own, higher limit).
+					local fraction = if current.tower > 0
+						then TowerConfig.MAX_DAMAGE_PER_SECOND_FRACTION
+						else BossConfig.MAX_DAMAGE_PER_SECOND_FRACTION
+					damage = BigNum.min(damage, BigNum.mulNumber(current.enemyMaxHp, fraction * dt))
 				end
 			end
 			local changed = applyDamage(player, data, damage)

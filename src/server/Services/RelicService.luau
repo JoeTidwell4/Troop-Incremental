@@ -110,8 +110,14 @@ local function freshStat(item: RelicItem, except: string?): string
 	return pool[random:NextInteger(1, #pool)]
 end
 
-local function rollRelic(data: PlayerData): RelicItem
+local function rollRelic(data: PlayerData, minRarity: string?): RelicItem
 	local rarity = rollRarity(data)
+	if minRarity ~= nil and RelicConfig.RARITIES[rarity].order < RelicConfig.RARITIES[minRarity].order then
+		rarity = minRarity
+		if RelicConfig.RARITIES[rarity].order >= RelicConfig.RARITIES.Legendary.order then
+			data.relics.pity.sinceLegendary = 0
+		end
+	end
 	local id = tostring(data.relics.nextId)
 	data.relics.nextId += 1
 	local item: RelicItem = {
@@ -130,11 +136,12 @@ local function rollRelic(data: PlayerData): RelicItem
 end
 
 -- Gives the player a new relic (or its Dust if the inventory is full) and tells them.
-function RelicService.drop(player: Player, data: PlayerData)
+-- `minRarity`: the relic is at least that rarity (Tower Chests).
+function RelicService.drop(player: Player, data: PlayerData, minRarity: string?)
 	if data.bestStage < RelicConfig.UNLOCK_STAGE then
 		return
 	end
-	local item = rollRelic(data)
+	local item = rollRelic(data, minRarity)
 	local dust: number? = nil
 	if count(data) >= RelicConfig.MAX_ITEMS then
 		dust = Formulas.relicSalvageDust(item)

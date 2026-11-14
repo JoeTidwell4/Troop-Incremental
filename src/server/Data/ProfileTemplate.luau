@@ -37,6 +37,7 @@ local template: Types.PlayerData = {
 	tutorial = { seen = {}, initialized = false }, -- TutorialConfig lessons already shown
 	-- Challenge runs. `stash` (the parked main run) is only present while one is active.
 	challenge = { active = "", tiers = {}, goldMinutes = 0 },
+	tower = { best = 0, tributeDay = -1 }, -- Endless Tower (TowerConfig)
 	generals = { -- Generals roster (GeneralConfig; kept forever)
 		owned = {},
 		fielded = { "", "", "" },

@@ -42,6 +42,7 @@ local SkillConfig = {
 		QUEST = { 20, 40, 60 }, -- by quest difficulty
 		ACHIEVEMENT = 30,
 		WEAK_POINT = 1,
+		TOWER_FLOOR = 8, -- each new Tower floor cleared (TowerConfig)
 		CHALLENGE_TIER = 40, -- each challenge tier cleared (ChallengeConfig)
 	},
 

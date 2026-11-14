@@ -416,6 +416,7 @@ export type PlayerData = {
 	relics: RelicsData, -- relic inventory (kept on Ascend, turned to Dust on Legacy)
 	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
 	challenge: ChallengeState, -- challenge runs (tiers kept forever)
+	tower: { best: number, tributeDay: number }, -- Endless Tower: best floor (kept forever), last Tribute day
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
@@ -492,6 +493,9 @@ export type Snapshot = {
 	tutorialSeen: { [string]: boolean },
 	challengeActive: string, -- challenge id you're in ("" = none)
 	challengeTiers: { [string]: number }, -- challenge id -> tiers cleared
+	towerFloor: number, -- the Tower floor being fought right now (0 = not in the Tower)
+	towerBest: number, -- best Tower floor cleared
+	towerTributeReady: boolean, -- today's Tower Tribute can be claimed
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
 	enemyGolden: boolean, -- the current enemy is a golden one
@@ -521,7 +525,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -553,6 +557,11 @@ export type Notice = {
 	-- gold = held gold rewards paid out.
 	challengeId: string?,
 	challengeReason: string?,
+	-- TowerFloor: stage = the floor cleared, honor, dust, prize (TowerConfig.CHEST_PRIZES id
+	-- when the floor had a chest), bonus = true when a permanent bonus step was reached.
+	-- TowerFailed: stage = the floor, reason. TowerTribute: stage = best floor, gold, dust.
+	prize: string?,
+	bonus: boolean?,
 	scrolls: number?,
 }
 
@@ -672,6 +681,47 @@ export type ChallengeState = {
 	stash: ChallengeStash?, -- only while active
 }
 export type ChallengeResult = { ok: boolean, reason: string? }
+
+-- The Endless Tower (TowerConfig).
+export type TowerEffects = {
+	troopMultiplier: number,
+	queuedMultiplier: number,
+	troopDamage: { [string]: number },
+	regen: number,
+	bossDamage: number,
+	timeScale: number,
+	noClicks: boolean,
+	noAbilities: boolean,
+	weakPointGap: number,
+}
+export type TowerLawDef = {
+	id: string,
+	name: string,
+	text: string,
+	effects: {
+		troopMultiplier: number?,
+		queuedMultiplier: number?,
+		troopDamage: { [string]: number }?,
+		regen: number?,
+		bossDamage: number?,
+		timeScale: number?,
+		noClicks: boolean?,
+		noAbilities: boolean?,
+		weakPointGap: number?,
+	},
+}
+export type TowerPrizeDef = { id: string, weight: number, text: string, scrolls: number?, heroChests: number? }
+-- One floor, worked out from its number (Formulas.towerFloor).
+export type TowerFloor = {
+	floor: number,
+	stage: number, -- about as tough as this stage's boss
+	guardian: boolean,
+	chest: boolean,
+	laws: { string }, -- TowerConfig.LAWS ids
+	effects: TowerEffects, -- the laws added up
+	model: string, -- EnemyModels kind
+}
+export type TowerResult = { ok: boolean, reason: string? }
 
 -- Relics (RelicConfig).
 export type RelicSetDef = {
@@ -834,6 +884,7 @@ export type LeaderboardEntry = { name: string, value: number }
 export type Leaderboards = {
 	bestStage: { LeaderboardEntry },
 	honor: { LeaderboardEntry },
+	tower: { LeaderboardEntry },
 }
 
 export type SoundDef = { id: string, volume: number }

@@ -33,7 +33,7 @@ type Army = {
 local armies: { [Player]: Army } = {}
 -- What the army is fighting right now (set by StageService): the stage (for area traits)
 -- and whether it's a boss (for troops that are better against bosses or normal enemies).
-local contexts: { [Player]: { stage: number, vsBoss: boolean } } = {}
+local contexts: { [Player]: { stage: number, vsBoss: boolean, tower: number } } = {}
 
 local CombatService = {}
 
@@ -49,25 +49,27 @@ function CombatService.refreshArmy(player: Player)
 		army = { baseDps = BigNum.ZERO, baseHp = BigNum.ZERO, pendingDamage = BigNum.ZERO }
 		armies[player] = army
 	end
-	local context = contexts[player] or { stage = data.stage, vsBoss = false }
+	local context = contexts[player] or { stage = data.stage, vsBoss = false, tower = 0 }
 	-- Damage: faction x area trait x each troop's job. HP: faction only.
 	-- (plus per-troop bonuses of the fielded Generals, for both)
 	-- Challenge rules: Back to Basics switches Generals off, Bare Hands switches gear off.
 	local rules = Formulas.challengeRules(data.challenge.active)
 	local _, generals = Formulas.fightBuild(data.challenge.active, nil, data.generals, nil)
 	local gear = if rules.noGear then nil else data.gear
-	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss, generals)
+	local damageBonus = Formulas.fightDamageMultipliers(data.faction, context.stage, context.vsBoss, generals, context.tower)
 	army.baseDps = Formulas.armyDps(data.troops, gear, damageBonus)
 	army.baseHp = Formulas.armyHp(data.troops, gear, Formulas.troopHpMultipliers(data.faction, generals))
 end
 
 -- Called by StageService whenever the fight changes; recalculates the army's damage.
-function CombatService.setFightContext(player: Player, stage: number, vsBoss: boolean)
+-- `tower` = the Tower floor being fought (its laws replace the area trait), else 0.
+function CombatService.setFightContext(player: Player, stage: number, vsBoss: boolean, tower: number?)
+	local floor = tower or 0
 	local current = contexts[player]
-	if current ~= nil and current.stage == stage and current.vsBoss == vsBoss then
+	if current ~= nil and current.stage == stage and current.vsBoss == vsBoss and current.tower == floor then
 		return
 	end
-	contexts[player] = { stage = stage, vsBoss = vsBoss }
+	contexts[player] = { stage = stage, vsBoss = vsBoss, tower = floor }
 	CombatService.refreshArmy(player)
 end
 
@@ -109,6 +111,10 @@ function CombatService.applyTaps(player: Player, taps: number)
 	end
 	if Formulas.challengeRules(data.challenge.active).noClicks then
 		return -- Hands Off challenge: clicks do nothing
+	end
+	local context = contexts[player]
+	if context ~= nil and context.tower > 0 and Formulas.towerFloor(context.tower).effects.noClicks then
+		return -- Tower law Warded
 	end
 	-- Each click can crit. The crits' extra damage is sent to the client for a big number.
 	local extras = Formulas.extras(Formulas.fightBuild(data.challenge.active, data.skills.ranks, data.generals, data.relics)) -- skills, Generals, relics

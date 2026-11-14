@@ -25,6 +25,7 @@ local Config = Shared:WaitForChild("Config")
 local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local VisualConfig = require(Config:WaitForChild("VisualConfig"))
 local RaidConfig = require(Config:WaitForChild("RaidConfig"))
+local TowerConfig = require(Config:WaitForChild("TowerConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Environment = require(Visuals:WaitForChild("Environment"))
 local TroopModels = require(Visuals:WaitForChild("TroopModels"))
@@ -521,6 +522,13 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	if snapshot.encounter == "Raid" then
 		local raidBoss = Formulas.raidBossById(snapshot.raidBossId)
 		setEnemy(raidBoss.kind, raidBoss.color, RAID_SCALE, false, "Raid")
+	elseif isBoss and snapshot.towerFloor > 0 then
+		-- A Tower floor: the biome bosses take turns, in the Tower's colors (Guardians
+		-- gold and crowned). (Between two floors the normal fight shows for a moment, so
+		-- each floor gets a fresh model.)
+		local info = Formulas.towerFloor(snapshot.towerFloor)
+		local color = if info.guardian then TowerConfig.GUARDIAN_COLOR else TowerConfig.COLOR
+		setEnemy(info.model, color, BOSS_SCALE, info.guardian, "Boss")
 	elseif isBoss then
 		-- The area's own boss model; older areas without one get a crowned big enemy.
 		local bossKind = area.theme.bossKind

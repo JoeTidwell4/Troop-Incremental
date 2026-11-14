@@ -66,7 +66,7 @@ function LeaderboardUI.start()
 	}, {
 		UIKit.corner(14),
 		UIKit.padding(14),
-		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(520, 330) }),
+		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(740, 330) }),
 	}) :: Frame
 	UIKit.label({
 		Text = "Top Commanders",
@@ -98,8 +98,8 @@ function LeaderboardUI.start()
 		local box = UIKit.create("Frame", {
 			BackgroundColor3 = Theme.PanelLight,
 			BorderSizePixel = 0,
-			Position = UDim2.new((index - 1) * 0.5, if index == 1 then 0 else 4, 0, 50),
-			Size = UDim2.new(0.5, -4, 1, -50),
+			Position = UDim2.new((index - 1) / 3, if index == 1 then 0 else 4, 0, 50),
+			Size = UDim2.new(1 / 3, -4, 1, -50),
 			Parent = window,
 		}, { UIKit.corner(8), UIKit.padding(10) }) :: Frame
 		UIKit.label({ Text = titleText, Font = Theme.FontBold, TextSize = 15, Size = UDim2.new(1, 0, 0, 18), Parent = box })
@@ -120,6 +120,7 @@ function LeaderboardUI.start()
 	end
 	local stageLabels = column("Best stage", 1)
 	local honorLabels = column("Lifetime Honor", 2)
+	local towerLabels = column("Tower floor", 3)
 
 	local function fill(labels: { TextLabel }, entries: { Types.LeaderboardEntry }, prefix: string)
 		for i, label in labels do
@@ -135,6 +136,7 @@ function LeaderboardUI.start()
 	Remotes.waitForEvent(Remotes.Events.LeaderboardSync).OnClientEvent:Connect(function(boards: Leaderboards)
 		fill(stageLabels, boards.bestStage, "Stage ")
 		fill(honorLabels, boards.honor, "")
+		fill(towerLabels, boards.tower or {}, "Floor ")
 	end)
 
 	topButton.Activated:Connect(function()
