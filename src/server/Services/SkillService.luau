@@ -133,6 +133,8 @@ function SkillService.start()
 			SkillService.addXp(player, xp.ACHIEVEMENT * amount)
 		elseif activity == "WeakPoint" then
 			SkillService.addXp(player, xp.WEAK_POINT * amount)
+		elseif activity == "ExpeditionDone" then
+			SkillService.addXp(player, xp.EXPEDITION * amount)
 		elseif activity == "TowerFloor" then
 			SkillService.addXp(player, xp.TOWER_FLOOR * amount)
 		elseif activity == "ChallengeTier" then

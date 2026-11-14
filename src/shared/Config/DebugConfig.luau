@@ -41,6 +41,13 @@ local DebugConfig = {
 			},
 		},
 		{
+			title = "Expeditions",
+			buttons = {
+				{ label = "All teams back now", action = "ExpeditionsDone" },
+				{ label = "New mission board", action = "ExpeditionBoard" },
+			},
+		},
+		{
 			title = "Tower",
 			buttons = {
 				{ label = "+10 floors (no rewards)", action = "TowerFloors", arg = 10 },

@@ -25,6 +25,7 @@ local GeneralConfig = require(Shared.Config.GeneralConfig)
 local RelicConfig = require(Shared.Config.RelicConfig)
 local ChallengeConfig = require(Shared.Config.ChallengeConfig)
 local TowerConfig = require(Shared.Config.TowerConfig)
+local ExpeditionConfig = require(Shared.Config.ExpeditionConfig)
 local Areas = require(Shared.Areas)
 
 type BigNum = BigNum.BigNum
@@ -748,6 +749,51 @@ function Formulas.challengeRewardText(def: Types.ChallengeDef, tiers: number): s
 	end
 	local text = string.gsub(def.reward.text, "{v}", string.format("%g", math.floor(value * 10 + 0.5) / 10))
 	return text
+end
+
+---------------------------------------------------------------- expeditions
+
+-- Missions that can be away at once.
+function Formulas.expeditionSlots(bestStage: number): number
+	return ExpeditionConfig.SLOTS + (if bestStage >= ExpeditionConfig.THIRD_SLOT_STAGE then 1 else 0)
+end
+
+-- Team power of `generalIds` on a mission for `house` (empty list = the Scout Party).
+function Formulas.expeditionPower(generals: Types.GeneralsData, generalIds: { string }, house: string): number
+	if #generalIds == 0 then
+		return ExpeditionConfig.SCOUT_POWER
+	end
+	local power = 0
+	for _, generalId in generalIds do
+		local state = generals.owned[generalId]
+		if state ~= nil then
+			local one = state.stars * (1 + ExpeditionConfig.LEVEL_STEP * (state.level - 1))
+			local memberHouse = Formulas.generalHouse(generalId)
+			if memberHouse == house or generalId == GeneralConfig.WILDCARD then
+				one *= ExpeditionConfig.HOUSE_BONUS
+			end
+			power += one
+		end
+	end
+	return power
+end
+
+-- How much of the base reward comes back for `power` on a mission of `durationId`.
+function Formulas.expeditionScale(durationId: string, power: number): number
+	local duration = ExpeditionConfig.DURATIONS[durationId]
+	return math.clamp(power / duration.power, ExpeditionConfig.MIN_SCALE, ExpeditionConfig.MAX_SCALE)
+end
+
+-- The base amount of a mission's reward x `scale` (whole numbers; Honor and Relic as-is).
+function Formulas.expeditionAmount(mission: Types.ExpeditionMission, scale: number): number
+	local base = ExpeditionConfig.DURATIONS[mission.duration].rewards[mission.reward]
+	if typeof(base) ~= "number" then
+		return 1
+	end
+	if mission.reward == "Honor" then
+		return base * scale
+	end
+	return math.max(1, math.floor(base * scale + 0.5))
 end
 
 ---------------------------------------------------------------- endless tower

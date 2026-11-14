@@ -34,6 +34,7 @@ local SkillService = require(Services.SkillService)
 local RelicService = require(Services.RelicService)
 local ChallengeService = require(Services.ChallengeService)
 local TowerService = require(Services.TowerService)
+local ExpeditionService = require(Services.ExpeditionService)
 
 type PlayerData = Types.PlayerData
 type Result = { ok: boolean, message: string }
@@ -134,6 +135,14 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 	CommanderXp = function(player, _data, arg)
 		SkillService.addXp(player, arg or 5000)
 		return done(`+{arg} Commander XP.`)
+	end,
+	ExpeditionsDone = function(player)
+		ExpeditionService.debugFinishAll(player)
+		return done("Every team is back: collect them in ADVENTURE > Expeditions.")
+	end,
+	ExpeditionBoard = function(player)
+		ExpeditionService.debugNewBoard(player)
+		return done("New mission board (and the reroll is back).")
 	end,
 	TowerFloors = function(player, _data, arg)
 		TowerService.debugAddFloors(player, arg or 10)

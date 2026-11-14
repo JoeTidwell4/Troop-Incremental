@@ -157,6 +157,11 @@ local function field(player: Player, data: PlayerData, slot: number, generalId: 
 	if generalId ~= "" and generals.owned[generalId] == nil then
 		return { ok = false, reason = "NotOwned" }
 	end
+	for _, run in data.expeditions.active do
+		if generalId ~= "" and table.find(run.generals, generalId) ~= nil then
+			return { ok = false, reason = "OnExpedition" } -- away until the team is back
+		end
+	end
 	local current = generals.fielded[slot]
 	local other = if generalId ~= "" then table.find(generals.fielded, generalId) else nil
 	if other ~= nil then

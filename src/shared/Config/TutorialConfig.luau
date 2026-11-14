@@ -35,6 +35,7 @@ local RelicConfig = require(script.Parent.RelicConfig)
 local LegacyConfig = require(script.Parent.LegacyConfig)
 local ClanConfig = require(script.Parent.ClanConfig)
 local TowerConfig = require(script.Parent.TowerConfig)
+local ExpeditionConfig = require(script.Parent.ExpeditionConfig)
 
 type Lesson = Types.TutorialLesson
 
@@ -207,6 +208,14 @@ local LESSONS: { Lesson } = {
 			{ text = "This shows your challenge and the next goal. {tap} it to see your progress, or to leave and get your main run back.", spotlight = "ChallengeBanner" },
 			{ text = "No Ascending, raid attacks or free boss packs in here. Free packs, Hero Chests and gold rewards are saved for your main run." },
 			{ text = "Your main run earns nothing while it's parked (offline too), so don't camp in a challenge. Tiers you clear are kept even if you leave early." },
+		},
+	},
+	{
+		id = "Expeditions", topic = "Adventure", title = "Expeditions", when = "stage", stage = ExpeditionConfig.UNLOCK_STAGE,
+		steps = {
+			{ text = "Expeditions are open! Send spare Generals (the ones not fielded) on missions. They come back with loot, even while you're offline.", spotlight = "Menu:Adventure" },
+			{ text = "Pick a mission and a team. Generals from the mission's House count extra. No spare Generals yet? Send the Scout Party.", open = "Adventure:Expeditions", spotlight = "Expedition:Send" },
+			{ text = "Missions always succeed: a stronger team just brings back more. Check back when the timer runs out and collect." },
 		},
 	},
 	{

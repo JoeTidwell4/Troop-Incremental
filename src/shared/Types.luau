@@ -416,6 +416,7 @@ export type PlayerData = {
 	relics: RelicsData, -- relic inventory (kept on Ascend, turned to Dust on Legacy)
 	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
 	challenge: ChallengeState, -- challenge runs (tiers kept forever)
+	expeditions: ExpeditionsData, -- Expeditions (board, teams away)
 	tower: { best: number, tributeDay: number }, -- Endless Tower: best floor (kept forever), last Tribute day
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
@@ -493,6 +494,8 @@ export type Snapshot = {
 	tutorialSeen: { [string]: boolean },
 	challengeActive: string, -- challenge id you're in ("" = none)
 	challengeTiers: { [string]: number }, -- challenge id -> tiers cleared
+	expeditions: ExpeditionsData,
+	expeditionSlots: number, -- missions that can be away at once
 	towerFloor: number, -- the Tower floor being fought right now (0 = not in the Tower)
 	towerBest: number, -- best Tower floor cleared
 	towerTributeReady: boolean, -- today's Tower Tribute can be claimed
@@ -681,6 +684,46 @@ export type ChallengeState = {
 	stash: ChallengeStash?, -- only while active
 }
 export type ChallengeResult = { ok: boolean, reason: string? }
+
+-- Expeditions (ExpeditionConfig).
+export type ExpeditionDuration = {
+	id: string,
+	name: string,
+	seconds: number,
+	power: number, -- recommended team power
+	rewards: { [string]: any }, -- reward type -> amount (Relic: minimum rarity name)
+}
+export type ExpeditionMission = {
+	id: number,
+	duration: string, -- ExpeditionConfig.DURATIONS id
+	reward: string, -- ExpeditionConfig.REWARDS id
+	house: string, -- GeneralConfig.HOUSE_ORDER id: its Generals count x HOUSE_BONUS
+}
+export type ExpeditionRun = {
+	mission: ExpeditionMission,
+	generals: { string }, -- empty = the Scout Party
+	power: number, -- team power when sent
+	endsAt: number, -- os.time()
+}
+export type ExpeditionsData = {
+	day: number, -- board day (DailyConfig)
+	rerollDay: number, -- last day a reroll was used
+	rerolls: number, -- rerolls used that day
+	nextId: number,
+	board: { ExpeditionMission },
+	active: { ExpeditionRun },
+}
+-- What a returning team brought (ExpeditionRequest "Collect" and the notice).
+export type ExpeditionLoot = {
+	gold: BigNum?,
+	honor: number?,
+	dust: number?,
+	scrolls: number?,
+	heroChests: number?,
+	relic: boolean?,
+	bonus: string, -- ExpeditionConfig.BONUS id
+}
+export type ExpeditionResult = { ok: boolean, reason: string?, loot: ExpeditionLoot? }
 
 -- The Endless Tower (TowerConfig).
 export type TowerEffects = {

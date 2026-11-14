@@ -25,6 +25,8 @@ local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("Genera
 local RelicConfig = require(Shared:WaitForChild("Config"):WaitForChild("RelicConfig"))
 local TutorialConfig = require(Shared:WaitForChild("Config"):WaitForChild("TutorialConfig"))
 local ChallengeConfig = require(Shared:WaitForChild("Config"):WaitForChild("ChallengeConfig"))
+local ExpeditionConfig = require(Shared:WaitForChild("Config"):WaitForChild("ExpeditionConfig"))
+local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
 local ProfileTemplate = require(Server.Data.ProfileTemplate)
@@ -341,6 +343,61 @@ local function sanitize(data: PlayerData)
 	if typeof(data.tutorial.initialized) ~= "boolean" then
 		data.tutorial.initialized = false
 	end
+	do
+		-- Expeditions: only well-formed missions; a General can be on one team at most and
+		-- must still be owned (else the team is just smaller). Generals on a team can't
+		-- also be fielded: they come off the field.
+		local exp = data.expeditions
+		exp.day = wholeNumber(exp.day, -1, -1)
+		exp.rerollDay = wholeNumber(exp.rerollDay, -1, -1)
+		exp.rerolls = wholeNumber(exp.rerolls, 0, 0)
+		exp.nextId = wholeNumber(exp.nextId, 1, 1)
+		local function goodMission(m: any): boolean
+			return typeof(m) == "table" and typeof(m.id) == "number"
+				and ExpeditionConfig.DURATIONS[m.duration] ~= nil
+				and ExpeditionConfig.REWARDS[m.reward] ~= nil
+				and ExpeditionConfig.DURATIONS[m.duration].rewards[m.reward] ~= nil
+				and GeneralConfig.HOUSES[m.house] ~= nil
+		end
+		local board = {}
+		if typeof(exp.board) == "table" then
+			for _, m in exp.board do
+				if goodMission(m) and #board < ExpeditionConfig.BOARD_SIZE then
+					table.insert(board, m)
+				end
+			end
+		end
+		exp.board = board
+		local active = {}
+		local busy: { [string]: boolean } = {}
+		if typeof(exp.active) == "table" then
+			for _, run in exp.active :: any do
+				if typeof(run) == "table" and goodMission(run.mission) and typeof(run.generals) == "table"
+					and #active < ExpeditionConfig.SLOTS + 1 then
+					local team = {}
+					for _, generalId in run.generals do
+						if typeof(generalId) == "string" and data.generals.owned[generalId] ~= nil and not busy[generalId]
+							and #team < ExpeditionConfig.TEAM_SIZE then
+							busy[generalId] = true
+							table.insert(team, generalId)
+						end
+					end
+					table.insert(active, {
+						mission = run.mission,
+						generals = team,
+						power = if typeof(run.power) == "number" and run.power == run.power then math.max(0, run.power) else ExpeditionConfig.SCOUT_POWER,
+						endsAt = wholeNumber(run.endsAt, 0, 0),
+					})
+				end
+			end
+		end
+		exp.active = active
+		for slot, generalId in data.generals.fielded do
+			if busy[generalId] then
+				data.generals.fielded[slot] = ""
+			end
+		end
+	end
 	data.tower.best = wholeNumber(data.tower.best, 0, 0)
 	data.tower.tributeDay = wholeNumber(data.tower.tributeDay, -1, -1)
 	do
@@ -472,6 +529,12 @@ local function repairFutureIds(data: PlayerData)
 	end
 	if data.quests.day > day then
 		data.quests.day = -1 -- new quests get rolled for today
+	end
+	if data.expeditions.day > day then
+		data.expeditions.day = -1
+	end
+	if data.expeditions.rerollDay > day then
+		data.expeditions.rerollDay = -1
 	end
 	if data.tower.tributeDay > day then
 		data.tower.tributeDay = -1

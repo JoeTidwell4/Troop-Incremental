@@ -1,7 +1,7 @@
 --!strict
 -- The ADVENTURE hub (menu button): one window for the game modes outside the main run.
--- Tabs: Challenges (13e), Tower (13f); Expeditions join later. Each tab shows its own
--- "locked until..." message. Red dot on the button when the Tower Tribute is ready.
+-- Tabs: Challenges (13e), Tower (13f), Expeditions (13g). Each tab shows its own
+-- "locked until..." message. Red dot on the button when the Tower Tribute is ready or a team is back.
 --
 -- While you're in a challenge a banner takes the Ascend button's place in the menu
 -- column (a challenge run can't be Ascended, so that spot is free): the challenge, its
@@ -20,6 +20,8 @@ local Layout = require(script.Parent.Layout)
 local Spotlight = require(script.Parent.Spotlight)
 local ChallengesTab = require(script.Parent.ChallengesTab)
 local TowerTab = require(script.Parent.TowerTab)
+local ExpeditionsTab = require(script.Parent.ExpeditionsTab)
+local ExpeditionController = require(Client.Controllers.ExpeditionController)
 local StateController = require(Client.Controllers.StateController)
 
 type Snapshot = Types.Snapshot
@@ -128,7 +130,7 @@ function AdventureUI.start()
 		Parent = window,
 	}) :: Frame
 
-	local tabs: { Tab } = { ChallengesTab.build(content), TowerTab.build(content) }
+	local tabs: { Tab } = { ChallengesTab.build(content), TowerTab.build(content), ExpeditionsTab.build(content) }
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
 
@@ -189,7 +191,7 @@ function AdventureUI.start()
 	local wasActive = ""
 	local wasInTower = false
 	StateController.Changed:Connect(function(snapshot: Snapshot)
-		dot.Visible = snapshot.towerTributeReady
+		dot.Visible = snapshot.towerTributeReady or ExpeditionController.readyCount(snapshot) > 0
 		-- A Tower fight just started: show the fight.
 		local inTower = snapshot.towerFloor > 0
 		if inTower and not wasInTower then
