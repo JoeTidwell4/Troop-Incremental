@@ -127,6 +127,11 @@ local isBoss = false
 local bossAttackTimer = 0
 local shake = 0
 local cameraBase = CFrame.new()
+-- Camp signs (CampController): the camera glides to a sign and back.
+local focusTarget: CFrame? = nil
+local focusGoal = 0 -- 1 = at the sign, 0 = normal view
+local focusAmount = 0
+local focusSeconds = 0.45
 
 local unitsByType: { [string]: { Unit } } = {}
 local visibleCounts: { [string]: number } = {}
@@ -373,6 +378,27 @@ local function setEnemy(kind: string, color: Color3, scale: number, crowned: boo
 end
 
 -- A weak point was hit: the boss reels back.
+-- Glides the camera to `target` over `seconds` (nil = back to the normal view).
+function BattlefieldController.focusCamera(target: CFrame?, seconds: number?)
+	focusSeconds = seconds or focusSeconds
+	if target ~= nil then
+		focusTarget = target
+		focusGoal = 1
+	else
+		focusGoal = 0
+	end
+end
+
+-- 0 = normal view, 1 = fully at a camp sign (in between while gliding).
+function BattlefieldController.cameraFocus(): number
+	return focusAmount
+end
+
+-- The normal battlefield camera.
+function BattlefieldController.cameraHome(): CFrame
+	return cameraBase
+end
+
 function BattlefieldController.flinch()
 	if enemyMode ~= "Normal" and enemyModel ~= nil then
 		BossAnimator.play("Flinch")
@@ -712,15 +738,22 @@ local function animate(dt: number)
 		end
 	end
 
-	-- Camera shake fades out quickly.
+	-- Camp sign glide (eased), then camera shake on top (fades out quickly).
 	local camera = workspace.CurrentCamera
+	local step = dt / focusSeconds
+	focusAmount = if focusGoal > focusAmount then math.min(focusGoal, focusAmount + step) else math.max(focusGoal, focusAmount - step)
+	local view = cameraBase
+	if focusTarget ~= nil and focusAmount > 0 then
+		local eased = focusAmount * focusAmount * (3 - 2 * focusAmount)
+		view = cameraBase:Lerp(focusTarget, eased)
+	end
 	if shake > 0.01 then
 		shake *= math.exp(-dt * 8)
 		local offset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * shake
-		camera.CFrame = cameraBase * CFrame.new(offset)
+		camera.CFrame = view * CFrame.new(offset)
 	else
 		shake = 0
-		camera.CFrame = cameraBase
+		camera.CFrame = view
 	end
 end
 

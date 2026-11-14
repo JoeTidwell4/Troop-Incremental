@@ -84,6 +84,12 @@ function Spotlight.register(key: string, target: GuiObject)
 	targets[key] = target
 end
 
+-- Whatever is registered as `key` right now, on screen or not (the camp replaces the old
+-- menu buttons and needs to find them).
+function Spotlight.get(key: string): GuiObject?
+	return targets[key]
+end
+
 -- How to open the window behind a key (e.g. "Menu:Quests", "Army:Relics", "Tab:Gear").
 -- Tutorial lessons use these so they can open the right window without requiring it.
 function Spotlight.registerOpener(key: string, open: () -> ())
