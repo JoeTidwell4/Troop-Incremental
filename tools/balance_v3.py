@@ -47,6 +47,9 @@ def level_for(xp):
     return level
 
 
+DISABLED = set()   # systems left out: "skills", "generals", "relics", "tower", "gear", "extras"
+
+
 class State:
     def __init__(s, seed=3):
         s.rng = random.Random(seed)
@@ -111,7 +114,7 @@ class State:
     def mults(s, best):
         d = hp = g = tap = boss = 1.0; btime = 0.0; honor = 1.0
         # skills
-        pts = level_for(s.xp) - 1
+        pts = 0 if "skills" in DISABLED else level_for(s.xp) - 1
         add = {}
         for stat, v in SKILL_ORDER[:pts]:
             add[stat] = add.get(stat, 0) + v
@@ -119,7 +122,7 @@ class State:
         tap *= 1 + add.get("tap", 0) + add.get("crit", 0) * 3; boss *= 1 + add.get("boss", 0) + add.get("laststand", 0)
         btime += add.get("time", 0); honor *= 1 + add.get("honor", 0)
         # generals: best 3 by value, level grows with time
-        if s.gens:
+        if s.gens and "generals" not in DISABLED:
             lv = min(10, 5 + s.hours * 2)
             vals = []
             for gid, (stars, _c) in s.gens.items():
@@ -136,7 +139,7 @@ class State:
                 else: tap *= 1 + pv
                 d *= 1 + trait / 3     # troop traits help only one troop type
         # relics: sum of equipped values, damage share, levels from dust
-        if s.relics:
+        if s.relics and "relics" not in DISABLED:
             level = min(10, math.log(1 + s.dust / 40, 1.35))
             total = sum(s.relics.values()) * (1 + .1 * level)
             d *= 1 + total * DAMAGE_LINE_SHARE * 0.045
@@ -145,14 +148,15 @@ class State:
             if s.relic_count >= 60: d *= 1.15; boss *= 1.3     # Inferno 2 + 4
             if s.relic_count >= 150: d *= 1.5                  # Inferno 6
         # tower
-        tb = 1 + .02 * (s.tower // 10); d *= tb; g *= tb
+        tb = 1 if "tower" in DISABLED else 1 + .02 * (s.tower // 10); d *= tb; g *= tb
         # commander gear
+        if "gear" in DISABLED: best = 0
         tap *= 1.5 if best >= 120 else 1.3 if best >= 31 else 1.15 if best >= 25 else 1.05
         hp *= 1.35 if best >= 200 else 1.2 if best >= 100 else 1.1 if best >= 50 else 1.05 if best >= 10 else 1
         g *= 1.35 if best >= 150 else 1.2 if s.ascends >= 10 else 1.1 if s.ascends >= 1 else 1
         d *= 1.1 if best >= 75 else 1.05 if best >= 15 else 1
         # crits + golden enemies, clan
-        tap *= 1.24; g *= 1.19
+        if "extras" not in DISABLED: tap *= 1.24; g *= 1.19
         if best >= 40:
             d *= CLAN["damage"]; hp *= CLAN["hp"]; g *= CLAN["gold"]
         return dict(damage=d, hp=hp, gold=g, tap=tap, boss=boss, bossTime=btime, honor=honor)
@@ -195,6 +199,13 @@ def best_at(rows, minutes):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    if "each" in args:
+        print("all on:", best_at(campaign(6), 120), best_at(campaign(6), 360))
+        for system in ("skills", "generals", "relics", "tower", "gear", "extras"):
+            DISABLED.clear(); DISABLED.add(system)
+            rows = campaign(6)
+            print(f"without {system:8s}: 2h {best_at(rows, 120)}  6h {best_at(rows, 360)}")
+        sys.exit()
     if "sweep" in args:
         for active in (True, False):
             on = campaign(12, active, True); off = campaign(12, active, False)
