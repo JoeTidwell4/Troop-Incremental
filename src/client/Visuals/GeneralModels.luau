@@ -21,7 +21,10 @@ local WOOD = Color3.fromRGB(110, 75, 45)
 local GOLD = Color3.fromRGB(255, 205, 70)
 local SCALE = 1.35
 
+local BOOT = Color3.fromRGB(55, 40, 30)
+local EYE = Color3.fromRGB(30, 25, 30)
 local METAL = { material = Enum.Material.Metal }
+local FABRIC = { material = Enum.Material.Fabric }
 local NEON = { material = Enum.Material.Neon }
 
 -- The weapon fits what the General is known for.
@@ -44,7 +47,9 @@ local function weapon(def: GeneralDef, at: CFrame, model: Model, s: number)
 		Parts.cylinderZ(0.15 * s, 0.6 * s, GOLD, hand * CFrame.new(0, 0.1 * s, 0), model, NEON) -- a gold coin
 	else
 		Parts.block(Vector3.new(0.18, 2.2, 0.08) * s, STEEL, hand * CFrame.new(0, 0.9 * s, 0), model, METAL) -- sword
+		Parts.block(Vector3.new(0.06, 2.0, 0.1) * s, Color3.fromRGB(255, 240, 190), hand * CFrame.new(0, 0.95 * s, 0), model, if def.rarity == "Legendary" or def.rarity == "Mythic" then NEON else METAL) -- fuller / glowing edge
 		Parts.block(Vector3.new(0.6, 0.12, 0.12) * s, GOLD, hand * CFrame.new(0, -0.15 * s, 0), model)
+		Parts.ball(0.2 * s, GOLD, hand * CFrame.new(0, -0.6 * s, 0), model, METAL) -- pommel
 	end
 end
 
@@ -79,21 +84,42 @@ function GeneralModels.build(def: GeneralDef, houseColor: Color3, rarityColor: C
 	local at = CFrame.new()
 	local legendary = def.rarity == "Legendary" or def.rarity == "Mythic"
 
-	-- Legs, body, arms, head.
+	local epic = def.rarity ~= "Rare"
+	local trim = if epic then GOLD else STEEL
+
+	-- Legs with boots and knee guards, arms with gauntlets.
 	for side = -1, 1, 2 do
-		Parts.block(Vector3.new(0.5, 1.1, 0.55) * s, Color3.fromRGB(60, 50, 45), at * CFrame.new(side * 0.3 * s, 0.55 * s, 0), model)
+		Parts.block(Vector3.new(0.5, 0.85, 0.55) * s, Color3.fromRGB(60, 50, 45), at * CFrame.new(side * 0.3 * s, 0.75 * s, 0), model)
+		Parts.block(Vector3.new(0.56, 0.4, 0.72) * s, BOOT, at * CFrame.new(side * 0.3 * s, 0.2 * s, -0.08 * s), model)
+		Parts.ball(0.4 * s, STEEL, at * CFrame.new(side * 0.3 * s, 0.75 * s, -0.25 * s), model, METAL) -- knee guards
 		Parts.block(Vector3.new(0.42, 1.1, 0.48) * s, houseColor, at * CFrame.new(side * 0.9 * s, 1.75 * s, 0), model, METAL)
+		Parts.block(Vector3.new(0.48, 0.4, 0.54) * s, trim, at * CFrame.new(side * 0.9 * s, 1.3 * s, 0), model, METAL) -- gauntlets
 	end
 	local torso = Parts.block(Vector3.new(1.4, 1.35, 0.8) * s, houseColor, at * CFrame.new(0, 1.78 * s, 0), model, { material = Enum.Material.Metal, name = "Torso" })
 	model.PrimaryPart = torso
 	Parts.block(Vector3.new(1.44, 0.2, 0.84) * s, GOLD, at * CFrame.new(0, 1.22 * s, 0), model) -- belt
+	-- Tabard in the House color over the armor, with a gold emblem (front = -Z).
+	Parts.block(Vector3.new(0.7, 1.5, 0.06) * s, houseColor, at * CFrame.new(0, 1.35 * s, -0.43 * s), model, FABRIC)
+	Parts.block(Vector3.new(0.35, 0.35, 0.08) * s, trim, at * CFrame.new(0, 1.85 * s, -0.45 * s) * CFrame.Angles(0, 0, math.rad(45)), model, METAL)
 	for side = -1, 1, 2 do
 		Parts.ball(0.6 * s, STEEL, at * CFrame.new(side * 0.85 * s, 2.45 * s, 0), model, METAL) -- shoulder plates
+		Parts.block(Vector3.new(0.66, 0.1, 0.66) * s, trim, at * CFrame.new(side * 0.85 * s, 2.3 * s, 0), model, METAL) -- plate rim
+		if epic then
+			Parts.wedge(Vector3.new(0.14, 0.45, 0.3) * s, trim, at * CFrame.new(side * 0.95 * s, 2.75 * s, 0), model, METAL) -- shoulder spikes
+		end
 	end
 	Parts.ball(0.85 * s, SKIN, at * CFrame.new(0, 2.95 * s, 0), model, { name = "Head" })
+	for side = -1, 1, 2 do
+		Parts.block(Vector3.new(0.1, 0.15, 0.05) * s, EYE, at * CFrame.new(side * 0.16 * s, 2.95 * s, -0.42 * s), model)
+	end
+	Parts.block(Vector3.new(0.5, 0.35, 0.15) * s, Color3.fromRGB(110, 80, 55), at * CFrame.new(0, 2.68 * s, -0.36 * s), model) -- beard
 
-	-- Cape in the rarity color (behind them: local +Z).
-	Parts.block(Vector3.new(1.3, 2.1, 0.08) * s, rarityColor, at * CFrame.new(0, 1.6 * s, 0.46 * s) * CFrame.Angles(math.rad(-6), 0, 0), model, { material = Enum.Material.Fabric })
+	-- Cape in the rarity color (behind them: local +Z), gold hem, flared at the bottom.
+	local cape = at * CFrame.new(0, 1.55 * s, 0.48 * s) * CFrame.Angles(math.rad(-6), 0, 0)
+	Parts.block(Vector3.new(1.3, 2.2, 0.08) * s, rarityColor, cape, model, FABRIC)
+	Parts.block(Vector3.new(1.6, 0.6, 0.08) * s, rarityColor, cape * CFrame.new(0, -0.85 * s, 0.05 * s) * CFrame.Angles(math.rad(-8), 0, 0), model, FABRIC)
+	Parts.block(Vector3.new(1.62, 0.12, 0.1) * s, GOLD, cape * CFrame.new(0, -1.15 * s, 0.08 * s), model, METAL)
+	Parts.block(Vector3.new(1.5, 0.25, 0.4) * s, rarityColor, at * CFrame.new(0, 2.5 * s, 0.25 * s), model, FABRIC) -- collar
 
 	-- Crown from Legendary up.
 	if legendary then
@@ -102,8 +128,18 @@ function GeneralModels.build(def: GeneralDef, houseColor: Color3, rarityColor: C
 			local angle = i / 4 * math.pi * 2
 			Parts.wedge(Vector3.new(0.12, 0.25, 0.14) * s, GOLD, at * CFrame.new(math.sin(angle) * 0.32 * s, 3.62 * s, math.cos(angle) * 0.32 * s) * CFrame.Angles(0, angle, 0), model, METAL)
 		end
+		if def.rarity == "Mythic" then
+			-- A floating halo above the crown.
+			Parts.cylinder(0.06 * s, 1.1 * s, rarityColor, at * CFrame.new(0, 4.05 * s, 0), model, NEON)
+		end
 	else
-		Parts.block(Vector3.new(0.9, 0.3, 0.9) * s, STEEL, at * CFrame.new(0, 3.32 * s, 0), model, METAL) -- helm
+		-- Helm with a nose guard; Epic adds a plume in the House color.
+		Parts.cylinder(0.35 * s, 0.92 * s, STEEL, at * CFrame.new(0, 3.25 * s, 0), model, METAL)
+		Parts.ball(0.86 * s, STEEL, at * CFrame.new(0, 3.35 * s, 0), model, METAL)
+		Parts.block(Vector3.new(0.09, 0.35, 0.08) * s, STEEL, at * CFrame.new(0, 2.98 * s, -0.43 * s), model, METAL)
+		if epic then
+			Parts.block(Vector3.new(0.14, 0.5, 0.75) * s, houseColor, at * CFrame.new(0, 3.85 * s, 0.05 * s), model, FABRIC)
+		end
 	end
 
 	weapon(def, at, model, s)
@@ -126,7 +162,10 @@ function GeneralModels.build(def: GeneralDef, houseColor: Color3, rarityColor: C
 	-- A small standard in the House color beside them.
 	local pole = at * CFrame.new(-1.6 * s, 0, 0.4 * s)
 	Parts.cylinder(4.2 * s, 0.14 * s, WOOD, pole * CFrame.new(0, 2.1 * s, 0), model, { material = Enum.Material.Wood })
-	Parts.block(Vector3.new(0.06, 1.1, 0.9) * s, houseColor, pole * CFrame.new(0, 3.6 * s, -0.45 * s), model, { material = Enum.Material.Fabric })
+	Parts.block(Vector3.new(0.06, 1.1, 0.9) * s, houseColor, pole * CFrame.new(0, 3.6 * s, -0.45 * s), model, FABRIC)
+	Parts.wedge(Vector3.new(0.06, 0.4, 0.45) * s, houseColor, pole * CFrame.new(0, 2.85 * s, -0.68 * s) * CFrame.Angles(math.pi, 0, 0), model, FABRIC) -- swallowtail
+	Parts.block(Vector3.new(0.08, 0.35, 0.35) * s, GOLD, pole * CFrame.new(0, 3.65 * s, -0.45 * s) * CFrame.Angles(math.rad(45), 0, 0), model, METAL) -- emblem
+	Parts.block(Vector3.new(0.06, 0.06, 1.0) * s, WOOD, pole * CFrame.new(0, 4.15 * s, -0.45 * s), model) -- crossbar
 	Parts.ball(0.25 * s, GOLD, pole * CFrame.new(0, 4.3 * s, 0), model, METAL)
 
 	return model
