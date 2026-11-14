@@ -82,6 +82,11 @@ local CommanderConfig = {
 		"ClanCloak",
 		"ClanBlade",
 		"ClanStandard",
+		-- Mystery Merchant
+		"WandererHood",
+		"StarweaveCloak",
+		"MoonsilverSaber",
+		"LanternPack",
 	} :: { string },
 
 	ITEMS = {
@@ -129,6 +134,11 @@ local CommanderConfig = {
 		ClanWarhelm = { id = "ClanWarhelm", slot = "Helmet", displayName = "Clan Warhelm", rarity = 4, multiplier = 1.2, style = "Horned", color = Color3.fromRGB(90, 100, 120), unlock = { kind = "clanShop" } },
 		ClanCloak = { id = "ClanCloak", slot = "Cape", displayName = "Clan Cloak", rarity = 4, multiplier = 1.2, style = "Mantle", color = Color3.fromRGB(40, 70, 130), unlock = { kind = "clanShop" } },
 		ClanBlade = { id = "ClanBlade", slot = "Weapon", displayName = "Clan Blade", rarity = 4, multiplier = 1.3, style = "Glow", color = Color3.fromRGB(80, 160, 255), unlock = { kind = "clanShop" } },
+		-- Mystery Merchant only (MerchantConfig.COSMETICS): looks only, no stats.
+		WandererHood = { id = "WandererHood", slot = "Helmet", displayName = "Wanderer's Hood", rarity = 5, style = "Cap", color = Color3.fromRGB(70, 40, 100), unlock = { kind = "merchant" } },
+		StarweaveCloak = { id = "StarweaveCloak", slot = "Cape", displayName = "Starweave Cloak", rarity = 5, style = "Phoenix", color = Color3.fromRGB(40, 50, 120), unlock = { kind = "merchant" } },
+		MoonsilverSaber = { id = "MoonsilverSaber", slot = "Weapon", displayName = "Moonsilver Saber", rarity = 5, style = "Glow", color = Color3.fromRGB(200, 220, 255), unlock = { kind = "merchant" } },
+		LanternPack = { id = "LanternPack", slot = "Back", displayName = "Lantern Pack", rarity = 5, style = "Quiver", color = Color3.fromRGB(255, 190, 90), unlock = { kind = "merchant" } },
 		ClanStandard = { id = "ClanStandard", slot = "Back", displayName = "Clan Standard", rarity = 4, multiplier = 1.2, style = "Banner", color = Color3.fromRGB(40, 70, 130), unlock = { kind = "clanShop" } },
 	} :: { [string]: Types.CommanderItemDef },
 

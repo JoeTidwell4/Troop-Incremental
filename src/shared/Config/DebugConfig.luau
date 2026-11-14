@@ -41,6 +41,14 @@ local DebugConfig = {
 			},
 		},
 		{
+			title = "Wheel + Merchant",
+			buttons = {
+				{ label = "+3 wheel spins", action = "Spins", arg = 3 },
+				{ label = "Merchant arrives now", action = "MerchantArrive" },
+				{ label = "Merchant leaves", action = "MerchantLeave" },
+			},
+		},
+		{
 			title = "Expeditions",
 			buttons = {
 				{ label = "All teams back now", action = "ExpeditionsDone" },

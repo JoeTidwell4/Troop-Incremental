@@ -26,6 +26,8 @@ local RelicConfig = require(Shared:WaitForChild("Config"):WaitForChild("RelicCon
 local TutorialConfig = require(Shared:WaitForChild("Config"):WaitForChild("TutorialConfig"))
 local ChallengeConfig = require(Shared:WaitForChild("Config"):WaitForChild("ChallengeConfig"))
 local ExpeditionConfig = require(Shared:WaitForChild("Config"):WaitForChild("ExpeditionConfig"))
+local FortuneConfig = require(Shared:WaitForChild("Config"):WaitForChild("FortuneConfig"))
+local MerchantConfig = require(Shared:WaitForChild("Config"):WaitForChild("MerchantConfig"))
 local GeneralConfig = require(Shared:WaitForChild("Config"):WaitForChild("GeneralConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataConfig = require(Server.Data.DataConfig)
@@ -398,6 +400,43 @@ local function sanitize(data: PlayerData)
 			end
 		end
 	end
+	-- Fortune Wheel + Mystery Merchant.
+	data.fortune.spins = math.min(wholeNumber(data.fortune.spins, 0, 0), FortuneConfig.MAX_SPINS)
+	data.fortune.freeDay = wholeNumber(data.fortune.freeDay, -1, -1)
+	data.fortune.pity = wholeNumber(data.fortune.pity, 0, 0)
+	do
+		local merchant = data.merchant
+		merchant.nextAt = wholeNumber(merchant.nextAt, 0, 0)
+		merchant.leaveAt = wholeNumber(merchant.leaveAt, 0, 0)
+		local offers = {}
+		local kinds: { [string]: boolean } = {}
+		for _, kind in MerchantConfig.KINDS do
+			kinds[kind.id] = true
+		end
+		if typeof(merchant.offers) == "table" then
+			for _, offer in merchant.offers :: any do
+				if typeof(offer) == "table" and kinds[offer.kind] and typeof(offer.item) == "string" and typeof(offer.rarity) == "string"
+					and typeof(offer.amount) == "number" and (offer.currency == "Gold" or offer.currency == "Dust" or offer.currency == "Honor")
+					and #offers < MerchantConfig.OFFER_COUNT then
+					offer.price = BigNum.sanitize(offer.price)
+					table.insert(offers, offer)
+				end
+			end
+		end
+		merchant.offers = offers
+		local bought: { [string]: boolean } = {}
+		if typeof(merchant.bought) == "table" then
+			for key, value in merchant.bought :: any do
+				if typeof(key) == "string" and value == true then
+					bought[key] = true
+				end
+			end
+		end
+		merchant.bought = bought
+		if #offers == 0 then
+			merchant.leaveAt = 0
+		end
+	end
 	data.tower.best = wholeNumber(data.tower.best, 0, 0)
 	data.tower.tributeDay = wholeNumber(data.tower.tributeDay, -1, -1)
 	do
@@ -529,6 +568,9 @@ local function repairFutureIds(data: PlayerData)
 	end
 	if data.quests.day > day then
 		data.quests.day = -1 -- new quests get rolled for today
+	end
+	if data.fortune.freeDay > day then
+		data.fortune.freeDay = -1
 	end
 	if data.expeditions.day > day then
 		data.expeditions.day = -1

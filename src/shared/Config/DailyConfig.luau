@@ -23,7 +23,7 @@ local DailyConfig = {
 		{ packs = 2 },
 		{ goldMinutes = 60 },
 		{ packs = 3 },
-		{ heroChests = 1, honor = 10, honorShare = 0.25, scrolls = 3 }, -- Epic+ pack, Honor, 3 Recruit Scrolls
+		{ heroChests = 1, honor = 10, honorShare = 0.25, scrolls = 3, spins = 1 }, -- Epic+ pack, Honor, 3 Recruit Scrolls, a Fortune Wheel spin
 	} :: { Types.RewardDef },
 
 	-- Gold rewards always give at least this much (e.g. before you own troops).
@@ -31,7 +31,7 @@ local DailyConfig = {
 
 	QUESTS_PER_DAY = 3,
 	REROLLS_PER_DAY = 1,
-	ALL_QUESTS_BONUS = { heroChests = 1, honor = 5, honorShare = 0.1, scrolls = 1 } :: Types.RewardDef,
+	ALL_QUESTS_BONUS = { heroChests = 1, honor = 5, honorShare = 0.1, scrolls = 1, spins = 1 } :: Types.RewardDef,
 
 	-- Each quest also pays Honor by difficulty: a share of what an Ascend at your best
 	-- stage gives (Formulas.scaledHonor), never less than QUEST_HONOR_MIN.

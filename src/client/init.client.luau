@@ -32,6 +32,8 @@ local TowerController = require(Controllers.TowerController)
 local ExpeditionController = require(Controllers.ExpeditionController)
 local CampController = require(Controllers.CampController)
 local MenuUI = require(UI.MenuUI)
+local FortuneUI = require(UI.FortuneUI)
+local MerchantUI = require(UI.MerchantUI)
 local HudUI = require(UI.HudUI)
 local ShopUI = require(UI.ShopUI)
 local AbilityBarUI = require(UI.AbilityBarUI)
@@ -98,6 +100,8 @@ GuideUI.start()
 TutorialUI.start() -- after every window so its openers are registered
 CampController.start() -- after every window: the camp signs take over their menu buttons
 MenuUI.start() -- MENU: list of every camp sign (fallback)
+FortuneUI.start() -- Fortune Wheel window (camp)
+MerchantUI.start() -- Mystery Merchant window (camp)
 DebugPanelUI.start() -- Studio only; does nothing in the live game
 StateController.start() -- last: asks the server for state once everything is listening
 

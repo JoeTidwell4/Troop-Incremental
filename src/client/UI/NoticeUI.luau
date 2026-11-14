@@ -121,6 +121,8 @@ local function onNotice(notice: Notice)
 			table.insert(parts, 1, "You were the clan MVP!")
 		end
 		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
+	elseif notice.kind == "MerchantArrived" then
+		NoticeUI.show("THE MYSTERY MERCHANT IS HERE!", "He's in your camp for a while with rare wares. Come take a look.", Color3.fromRGB(150, 100, 210))
 	elseif notice.kind == "TowerFloor" then
 		local parts = { `+{notice.dust or 0} Relic Dust`, `+{NumberFormat.number(notice.honor or 0)} Honor` }
 		for _, prize in TowerConfig.CHEST_PRIZES do

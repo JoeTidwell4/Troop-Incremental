@@ -133,6 +133,14 @@ local function addCopy(data: PlayerData, generalId: string): { id: string, isNew
 	return { id = generalId, isNew = false, stars = state.stars, shards = 0 }
 end
 
+-- One copy of a specific General (Mystery Merchant). Returns what happened.
+function GeneralService.addCopyOf(player: Player, data: PlayerData, generalId: string): { id: string, isNew: boolean, stars: number, shards: number }
+	local result = addCopy(data, generalId)
+	CombatService.refreshArmy(player)
+	DataService.markChanged(player)
+	return result
+end
+
 local function recruit(player: Player, data: PlayerData, count: number): RecruitResult
 	if data.bestStage < GeneralConfig.UNLOCK_STAGE then
 		return { ok = false, reason = "Locked" }

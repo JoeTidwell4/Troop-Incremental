@@ -110,9 +110,10 @@ local function freshStat(item: RelicItem, except: string?): string
 	return pool[random:NextInteger(1, #pool)]
 end
 
-local function rollRelic(data: PlayerData, minRarity: string?): RelicItem
-	local rarity = rollRarity(data)
-	if minRarity ~= nil and RelicConfig.RARITIES[rarity].order < RelicConfig.RARITIES[minRarity].order then
+-- `exact` (Mystery Merchant): this slot, set and rarity, no rarity roll and no pity.
+local function rollRelic(data: PlayerData, minRarity: string?, exact: { slot: string, set: string, rarity: string }?): RelicItem
+	local rarity = if exact ~= nil then exact.rarity else rollRarity(data)
+	if exact == nil and minRarity ~= nil and RelicConfig.RARITIES[rarity].order < RelicConfig.RARITIES[minRarity].order then
 		rarity = minRarity
 		if RelicConfig.RARITIES[rarity].order >= RelicConfig.RARITIES.Legendary.order then
 			data.relics.pity.sinceLegendary = 0
@@ -122,8 +123,8 @@ local function rollRelic(data: PlayerData, minRarity: string?): RelicItem
 	data.relics.nextId += 1
 	local item: RelicItem = {
 		id = id,
-		slot = RelicConfig.SLOTS[random:NextInteger(1, #RelicConfig.SLOTS)],
-		set = RelicConfig.SET_ORDER[random:NextInteger(1, #RelicConfig.SET_ORDER)],
+		slot = if exact ~= nil then exact.slot else RelicConfig.SLOTS[random:NextInteger(1, #RelicConfig.SLOTS)],
+		set = if exact ~= nil then exact.set else RelicConfig.SET_ORDER[random:NextInteger(1, #RelicConfig.SET_ORDER)],
 		rarity = rarity,
 		level = 0,
 		lines = {},
@@ -136,12 +137,13 @@ local function rollRelic(data: PlayerData, minRarity: string?): RelicItem
 end
 
 -- Gives the player a new relic (or its Dust if the inventory is full) and tells them.
--- `minRarity`: the relic is at least that rarity (Tower Chests).
-function RelicService.drop(player: Player, data: PlayerData, minRarity: string?)
-	if data.bestStage < RelicConfig.UNLOCK_STAGE then
+-- `minRarity`: the relic is at least that rarity (Tower Chests). `exact`: this slot, set
+-- and rarity (Mystery Merchant; given even below UNLOCK_STAGE).
+function RelicService.drop(player: Player, data: PlayerData, minRarity: string?, exact: { slot: string, set: string, rarity: string }?)
+	if data.bestStage < RelicConfig.UNLOCK_STAGE and exact == nil then
 		return
 	end
-	local item = rollRelic(data, minRarity)
+	local item = rollRelic(data, minRarity, exact)
 	local dust: number? = nil
 	if count(data) >= RelicConfig.MAX_ITEMS then
 		dust = Formulas.relicSalvageDust(item)

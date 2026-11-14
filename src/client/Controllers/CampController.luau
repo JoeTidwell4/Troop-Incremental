@@ -29,6 +29,7 @@ local Spotlight = require(Client.UI.Spotlight)
 local BattlefieldController = require(script.Parent.BattlefieldController)
 local AudioController = require(script.Parent.AudioController)
 local ClanController = require(script.Parent.ClanController)
+local StateController = require(script.Parent.StateController)
 
 type SignDef = typeof(CampConfig.SIGNS[1])
 type Sign = {
@@ -43,7 +44,8 @@ type Sign = {
 	highlight: Highlight,
 	oldButton: GuiObject?,
 	bounceAt: number,
-	hidden: boolean, -- model parts made invisible (hiddenInClan)
+	hidden: boolean, -- model parts made invisible (hiddenInClan / onlyWhenMerchant)
+	absent: boolean, -- onlyWhenMerchant and he's not here: no label, no click
 }
 
 local BOUNCE_SECONDS = 0.35
@@ -51,6 +53,7 @@ local BOUNCE_SECONDS = 0.35
 local CampController = {}
 
 local signs: { Sign } = {}
+local badges: { [string]: boolean } = {} -- "!" for signs without an old menu button
 local busy = false -- a glide / window is in progress
 
 local function windowOpen(def: SignDef): boolean
@@ -191,6 +194,7 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 			oldButton = Spotlight.get(def.menu),
 			bounceAt = -math.huge,
 			hidden = false,
+			absent = false,
 		}
 		hitbox.MouseEnter:Connect(function()
 			highlight.FillTransparency = 0.8
@@ -223,6 +227,9 @@ local function setHidden(sign: Sign, hidden: boolean)
 		if part:IsA("BasePart") and part.Name ~= "LabelAnchor" then
 			part.LocalTransparencyModifier = if hidden then 1 else 0
 		end
+		if part:IsA("Light") then
+			part.Enabled = not hidden
+		end
 	end
 	sign.highlight.Enabled = not hidden
 end
@@ -238,9 +245,21 @@ local function update()
 	local now = os.clock()
 	local clan = ClanController.get()
 	local inClan = clan ~= nil and clan.inClan
+	local snapshot = StateController.get()
+	local merchantHere = snapshot ~= nil and snapshot.merchant.leaveAt > workspace:GetServerTimeNow()
 	for _, sign in signs do
 		if sign.def.hiddenInClan then
 			setHidden(sign, inClan)
+		end
+		if sign.def.onlyWhenMerchant then
+			sign.absent = not merchantHere
+			setHidden(sign, sign.absent)
+			local billboard = sign.label.Parent :: BillboardGui
+			billboard.Enabled = not sign.absent
+			if sign.absent then
+				sign.hitbox.Visible = false
+				continue
+			end
 		end
 		-- Bounce: a quick hop and squash when clicked.
 		local t = (now - sign.bounceAt) / BOUNCE_SECONDS
@@ -251,7 +270,7 @@ local function update()
 		end
 
 		local dot = if sign.oldButton ~= nil then (sign.oldButton :: GuiObject):FindFirstChild("Dot") else nil
-		sign.badge.Visible = dot ~= nil and (dot :: GuiObject).Visible
+		sign.badge.Visible = (dot ~= nil and (dot :: GuiObject).Visible) or badges[sign.def.key] == true
 		if sign.badge.Visible then
 			sign.badge.Position = UDim2.new(0.5, 0, 0, 22 - math.abs(math.sin(now * 3)) * 4)
 		end
@@ -289,9 +308,16 @@ end
 function CampController.list(): { { key: string, label: string, badge: boolean } }
 	local result = {}
 	for _, sign in signs do
-		table.insert(result, { key = sign.def.key, label = sign.def.label, badge = sign.badge.Visible })
+		if not sign.absent then
+			table.insert(result, { key = sign.def.key, label = sign.def.label, badge = sign.badge.Visible })
+		end
 	end
 	return result
+end
+
+-- Shows a "!" over a sign that has no old menu button (Fortune Wheel, Merchant).
+function CampController.setBadge(key: string, on: boolean)
+	badges[key] = on
 end
 
 -- Visit a sign by key (camera glide + window), as if it was clicked.

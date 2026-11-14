@@ -417,6 +417,8 @@ export type PlayerData = {
 	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
 	challenge: ChallengeState, -- challenge runs (tiers kept forever)
 	expeditions: ExpeditionsData, -- Expeditions (board, teams away)
+	fortune: FortuneState, -- Fortune Wheel
+	merchant: MerchantState, -- Mystery Merchant visits
 	tower: { best: number, tributeDay: number }, -- Endless Tower: best floor (kept forever), last Tribute day
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
@@ -495,7 +497,11 @@ export type Snapshot = {
 	challengeActive: string, -- challenge id you're in ("" = none)
 	challengeTiers: { [string]: number }, -- challenge id -> tiers cleared
 	expeditions: ExpeditionsData,
-	expeditionSlots: number, -- missions that can be away at once
+	expeditionSlots: number,
+	fortuneSpins: number,
+	fortunePity: number, -- spins since the last Jackpot
+	fortuneFreeAt: number, -- os.time() of the next free spin
+	merchant: MerchantState, -- missions that can be away at once
 	towerFloor: number, -- the Tower floor being fought right now (0 = not in the Tower)
 	towerBest: number, -- best Tower floor cleared
 	towerTributeReady: boolean, -- today's Tower Tribute can be claimed
@@ -528,7 +534,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -684,6 +690,41 @@ export type ChallengeState = {
 	stash: ChallengeStash?, -- only while active
 }
 export type ChallengeResult = { ok: boolean, reason: string? }
+
+-- Fortune Wheel (FortuneConfig) and Mystery Merchant (MerchantConfig).
+export type FortunePrize = {
+	id: string,
+	name: string,
+	weight: number,
+	color: Color3,
+	reward: RewardDef,
+	dust: number?,
+	relic: string?, -- minimum rarity of a relic
+}
+export type FortuneState = { spins: number, freeDay: number, pity: number }
+export type FortuneResult = {
+	ok: boolean,
+	reason: string?,
+	index: number?, -- FortuneConfig.PRIZES index
+	honor: number?,
+	gold: BigNum?,
+	dust: number?,
+	relic: boolean?,
+}
+export type MerchantOffer = {
+	kind: string, -- MerchantConfig.KINDS id
+	item: string, -- General id / cosmetic id / "slot:set" for relics / "" otherwise
+	rarity: string, -- relics and Generals ("" otherwise)
+	amount: number,
+	currency: string, -- "Gold" | "Dust" | "Honor"
+	price: BigNum,
+}
+export type MerchantState = {
+	nextAt: number, -- os.time() of the next arrival (0 = not scheduled yet)
+	leaveAt: number, -- os.time() he leaves; 0 = not here
+	offers: { MerchantOffer },
+	bought: { [string]: boolean }, -- offer index (as text) -> bought
+}
 
 -- Expeditions (ExpeditionConfig).
 export type ExpeditionDuration = {
@@ -940,6 +981,7 @@ export type RewardDef = {
 	honor: number?, -- flat Honor (the minimum when honorShare is set)
 	honorShare: number?, -- share of an Ascend's Honor at your best stage (Formulas.scaledHonor)
 	scrolls: number?, -- Recruit Scrolls for Generals
+	spins: number?, -- Fortune Wheel spins (capped at FortuneConfig.MAX_SPINS)
 }
 
 export type QuestDef = {

@@ -23,6 +23,7 @@ local Formulas = require(Shared:WaitForChild("Formulas"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Config = Shared:WaitForChild("Config")
 local DailyConfig = require(Config:WaitForChild("DailyConfig"))
+local FortuneConfig = require(Shared:WaitForChild("Config"):WaitForChild("FortuneConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local RemoteService = require(Services.RemoteService)
@@ -82,6 +83,9 @@ function DailyService.grant(player: Player, data: PlayerData, reward: RewardDef,
 	end
 	if reward.scrolls ~= nil then
 		data.generals.scrolls += reward.scrolls
+	end
+	if reward.spins ~= nil then
+		data.fortune.spins = math.min(data.fortune.spins + reward.spins, FortuneConfig.MAX_SPINS)
 	end
 	local honor = BigNum.ZERO
 	if reward.honorShare ~= nil then

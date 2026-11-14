@@ -44,6 +44,8 @@ local TutorialService = require(Services.TutorialService)
 local ChallengeService = require(Services.ChallengeService)
 local TowerService = require(Services.TowerService)
 local ExpeditionService = require(Services.ExpeditionService)
+local FortuneService = require(Services.FortuneService)
+local MerchantService = require(Services.MerchantService)
 local DebugService = require(Services.DebugService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
@@ -87,6 +89,8 @@ TutorialService.start() -- which tutorial lessons each player has seen
 ChallengeService.start() -- challenge runs: parked main run, rules, tiers
 TowerService.start() -- Endless Tower: climbing, rewards, Tribute
 ExpeditionService.start() -- Expeditions: mission board, teams away, loot
+FortuneService.start() -- Fortune Wheel: free earned spins
+MerchantService.start() -- Mystery Merchant: visits and offers
 DebugService.start() -- Studio-only test panel (does nothing in the live game)
 DataService.start() -- last: starts loading players once every listener is connected
 

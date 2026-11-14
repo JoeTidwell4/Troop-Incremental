@@ -19,7 +19,7 @@
 --   "inClan"           you're in a clan               "golden"      a golden enemy appears
 --   "relic"            your first relic drops
 --   "ascended"         you have Ascended at least once   "inChallenge"  you're in a challenge run
---   "inTower"          you're fighting a Tower floor
+--   "inTower"          you're fighting a Tower floor   "merchantHere" the Mystery Merchant is visiting
 --   "offline"          you come back to offline earnings
 -- `stage` on event lessons = the earliest stage it can matter. When the tutorial system
 -- first runs on an old save, lessons below the player's best stage count as already seen
@@ -36,6 +36,8 @@ local LegacyConfig = require(script.Parent.LegacyConfig)
 local ClanConfig = require(script.Parent.ClanConfig)
 local TowerConfig = require(script.Parent.TowerConfig)
 local ExpeditionConfig = require(script.Parent.ExpeditionConfig)
+local FortuneConfig = require(script.Parent.FortuneConfig)
+local MerchantConfig = require(script.Parent.MerchantConfig)
 
 type Lesson = Types.TutorialLesson
 
@@ -55,6 +57,20 @@ local LESSONS: { Lesson } = {
 		steps = {
 			{ text = "The tents, boards and carts around the battlefield are your menus: Quests, Army, Store, Clan and more. {tap} one to walk over and open it.", spotlight = "Menu:Quests" },
 			{ text = "A red ! over one means something is waiting there. Can't find one? MENU lists them all.", spotlight = "Menu:Menu" },
+		},
+	},
+	{
+		id = "FortuneWheel", topic = "Basics", title = "Fortune Wheel", when = "stage", stage = FortuneConfig.UNLOCK_STAGE,
+		steps = {
+			{ text = "The Fortune Wheel in your camp gives a free spin every day, plus one for finishing all your daily quests. Spins are never sold.", spotlight = "Menu:Wheel" },
+			{ text = "Every spin wins something: gold, Dust, Honor, scrolls, chests, relics, or the Jackpot. The odds are on the wheel." },
+		},
+	},
+	{
+		id = "Merchant", topic = "Basics", title = "Mystery Merchant", when = "merchantHere", stage = MerchantConfig.UNLOCK_STAGE,
+		steps = {
+			{ text = "A Mystery Merchant is visiting your camp! He comes every few hours, even while you're away, and stays for a while.", spotlight = "Menu:Merchant" },
+			{ text = "He brings 4 rare offers: a specific General, a relic you can pick by slot and set, scrolls, chests, or a cosmetic only he sells. What you see is what you get." },
 		},
 	},
 	{

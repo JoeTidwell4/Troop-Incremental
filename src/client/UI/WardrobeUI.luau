@@ -59,6 +59,8 @@ local function howToGet(def: ItemDef): string
 		return "Robux pass in the Store (looks only)"
 	elseif unlock.kind == "clanShop" then
 		return "Buy in the clan shop"
+	elseif unlock.kind == "merchant" then
+		return "Sold by the Mystery Merchant (looks only)"
 	elseif unlock.kind == "chest" then
 		local chest = CommanderConfig.CHESTS[unlock.chest or ""]
 		return `From the {if chest ~= nil then chest.displayName else "chest"}`

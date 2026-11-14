@@ -35,6 +35,8 @@ local RelicService = require(Services.RelicService)
 local ChallengeService = require(Services.ChallengeService)
 local TowerService = require(Services.TowerService)
 local ExpeditionService = require(Services.ExpeditionService)
+local FortuneService = require(Services.FortuneService)
+local MerchantService = require(Services.MerchantService)
 
 type PlayerData = Types.PlayerData
 type Result = { ok: boolean, message: string }
@@ -135,6 +137,21 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 	CommanderXp = function(player, _data, arg)
 		SkillService.addXp(player, arg or 5000)
 		return done(`+{arg} Commander XP.`)
+	end,
+	Spins = function(player, _data, arg)
+		FortuneService.debugAddSpins(player, arg or 3)
+		return done(`+{arg} Fortune Wheel spins (max 3 saved).`)
+	end,
+	MerchantArrive = function(player, data)
+		if data.bestStage < 30 then
+			return failed("The Merchant comes from best stage 30: jump to stage 31 first.")
+		end
+		MerchantService.debugArrive(player)
+		return done("The Mystery Merchant is here.")
+	end,
+	MerchantLeave = function(player)
+		MerchantService.debugLeave(player)
+		return done("The Merchant left (next visit in 1-2 minutes in Studio).")
 	end,
 	ExpeditionsDone = function(player)
 		ExpeditionService.debugFinishAll(player)

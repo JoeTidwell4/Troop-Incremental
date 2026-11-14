@@ -37,6 +37,8 @@ local template: Types.PlayerData = {
 	tutorial = { seen = {}, initialized = false }, -- TutorialConfig lessons already shown
 	-- Challenge runs. `stash` (the parked main run) is only present while one is active.
 	challenge = { active = "", tiers = {}, goldMinutes = 0 },
+	fortune = { spins = 0, freeDay = -1, pity = 0 }, -- FortuneConfig
+	merchant = { nextAt = 0, leaveAt = 0, offers = {}, bought = {} }, -- MerchantConfig
 	expeditions = { day = -1, rerollDay = -1, rerolls = 0, nextId = 1, board = {}, active = {} }, -- ExpeditionConfig
 	tower = { best = 0, tributeDay = -1 }, -- Endless Tower (TowerConfig)
 	generals = { -- Generals roster (GeneralConfig; kept forever)

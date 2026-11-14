@@ -45,6 +45,8 @@
 -- RelicRequest   client -> server, returns {ok, reason}  (action, arg, extra): Equip(id) Unequip(slot) Upgrade(id) Reroll(id, line) Salvage(id) SalvageBelow(rarityOrder) Lock(id)
 -- RelicSync      server -> client   (relics: Types.RelicsData)  the relic inventory, sent only when it changes
 -- TutorialSeen   client -> server   (lessonId: string)  a tutorial lesson was finished or skipped
+-- FortuneRequest client -> server, returns Types.FortuneResult  ("Spin")  FortuneService
+-- MerchantRequest client -> server, returns {ok, reason}  ("Buy", offerIndex)  MerchantService
 -- ExpeditionRequest client -> server, returns Types.ExpeditionResult  ("Send", missionId, {generalIds}) ("Collect", slot) ("Reroll")
 -- TowerRequest   client -> server, returns Types.TowerResult  ("Climb" | "Leave" | "Tribute")  TowerService
 -- ChallengeRequest client -> server, returns Types.ChallengeResult  ("Start", challengeId) ("Leave")  ChallengeService
@@ -104,6 +106,8 @@ local Remotes = {
 		ChallengeRequest = "ChallengeRequest",
 		TowerRequest = "TowerRequest",
 		ExpeditionRequest = "ExpeditionRequest",
+		FortuneRequest = "FortuneRequest",
+		MerchantRequest = "MerchantRequest",
 		ChooseFaction = "ChooseFaction",
 		ClanRequest = "ClanRequest",
 		ProgressRequest = "ProgressRequest",

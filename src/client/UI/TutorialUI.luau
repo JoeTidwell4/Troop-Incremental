@@ -146,6 +146,9 @@ local function checkSnapshot(snapshot: Snapshot)
 	if snapshot.towerFloor > 0 then
 		trigger(snapshot, "inTower")
 	end
+	if snapshot.merchant.leaveAt > workspace:GetServerTimeNow() then
+		trigger(snapshot, "merchantHere")
+	end
 	local clan = ClanController.get()
 	if clan ~= nil and clan.inClan then
 		trigger(snapshot, "inClan")

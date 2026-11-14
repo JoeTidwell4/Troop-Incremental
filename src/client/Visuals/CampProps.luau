@@ -166,7 +166,62 @@ local function clanStand(model: Model, at: CFrame, color: Color3): number
 	return 15
 end
 
+-- A big wooden wheel on a stand (war-camp look, not a casino: wood, iron, banners).
+local function wheel(model: Model, at: CFrame, color: Color3): number
+	for _, side in { -1, 1 } do
+		Parts.block(Vector3.new(0.6, 7, 0.6), DARK_WOOD, at * CFrame.new(side * 2.6, 3.5, 0.6) * CFrame.Angles(0, 0, side * 0.12), model, { material = Enum.Material.Wood, shadow = true })
+	end
+	Parts.block(Vector3.new(6.4, 0.5, 1.6), DARK_WOOD, at * CFrame.new(0, 0.25, 0.6), model, { material = Enum.Material.Wood })
+	local hub = at * CFrame.new(0, 4.6, 0)
+	Parts.cylinderZ(0.5, 6.4, METAL, hub, model, { material = Enum.Material.Metal, shadow = true }) -- iron rim
+	Parts.cylinderZ(0.55, 5.8, Color3.fromRGB(150, 110, 70), hub, model, { material = Enum.Material.WoodPlanks })
+	local colors = { Color3.fromRGB(240, 200, 70), Color3.fromRGB(170, 120, 230), Color3.fromRGB(120, 180, 255), Color3.fromRGB(90, 200, 140),
+		Color3.fromRGB(255, 170, 40), Color3.fromRGB(200, 90, 240), Color3.fromRGB(230, 90, 90), Color3.fromRGB(255, 230, 120) }
+	for i, c in colors do
+		local angle = (i - 1) * math.pi / 4
+		Parts.block(Vector3.new(0.9, 2.5, 0.1), c, hub * CFrame.Angles(0, 0, angle) * CFrame.new(0, 1.5, -0.32), model)
+	end
+	Parts.cylinderZ(0.7, 1, color, hub * CFrame.new(0, 0, -0.1), model, { material = Enum.Material.Metal })
+	-- pointer on top
+	Parts.wedge(Vector3.new(0.3, 0.9, 0.7), Color3.fromRGB(200, 40, 40), at * CFrame.new(0, 8.2, -0.3) * CFrame.Angles(math.pi, 0, 0), model)
+	-- pennants on the posts
+	for _, side in { -1, 1 } do
+		Parts.block(Vector3.new(1.2, 0.8, 0.08), color, at * CFrame.new(side * 3.2, 6.9, 0.6), model, { material = Enum.Material.Fabric })
+	end
+	return 8.6
+end
+
+-- A hooded traveler with a pack, a lantern staff and a rug of goods.
+local function merchant(model: Model, at: CFrame, color: Color3): number
+	local robe = Color3.fromRGB(60, 40, 85)
+	Parts.block(Vector3.new(4.5, 0.1, 3), color, at * CFrame.new(-2.6, 0.06, -0.6), model, { material = Enum.Material.Fabric })
+	Parts.ball(0.7, Color3.fromRGB(80, 220, 255), at * CFrame.new(-3.3, 0.45, -1), model, { material = Enum.Material.Neon })
+	Parts.ball(0.8, Color3.fromRGB(240, 195, 70), at * CFrame.new(-2.2, 0.45, -0.3), model, { material = Enum.Material.Metal })
+	Parts.block(Vector3.new(0.9, 0.6, 0.6), WOOD, at * CFrame.new(-1.6, 0.35, -1.2), model, { material = Enum.Material.WoodPlanks })
+	-- body: robe + hood
+	Parts.cylinder(3.4, 2, robe, at * CFrame.new(0, 1.7, 0), model, { material = Enum.Material.Fabric, shadow = true })
+	Parts.ball(2.2, robe, at * CFrame.new(0, 3.5, 0), model, { material = Enum.Material.Fabric, shadow = true })
+	Parts.ball(1.5, Color3.fromRGB(15, 10, 20), at * CFrame.new(0, 3.45, -0.45), model)
+	for _, side in { -1, 1 } do
+		Parts.ball(0.22, Color3.fromRGB(255, 220, 120), at * CFrame.new(side * 0.25, 3.55, -1.15), model, { material = Enum.Material.Neon })
+	end
+	-- big pack on his back
+	Parts.block(Vector3.new(1.8, 2.2, 1.2), Color3.fromRGB(140, 100, 60), at * CFrame.new(0, 2.7, 1.2), model, { material = Enum.Material.Fabric, shadow = true })
+	Parts.cylinderZ(1.8, 0.6, Color3.fromRGB(120, 80, 50), at * CFrame.new(0, 4, 1.2) * CFrame.Angles(0, math.pi / 2, 0), model)
+	-- staff with a lantern
+	Parts.block(Vector3.new(0.25, 5.4, 0.25), DARK_WOOD, at * CFrame.new(1.3, 2.7, -0.3), model, { material = Enum.Material.Wood })
+	local lantern = Parts.ball(0.7, Color3.fromRGB(190, 140, 255), at * CFrame.new(1.3, 5.6, -0.3), model, { material = Enum.Material.Neon })
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(190, 140, 255)
+	light.Range = 9
+	light.Brightness = 1.3
+	light.Parent = lantern
+	return 6.2
+end
+
 local BUILDERS: { [string]: (Model, CFrame, Color3) -> number } = {
+	Wheel = wheel,
+	Merchant = merchant,
 	Cart = cart,
 	Trophy = trophy,
 	Drum = warDrum,
