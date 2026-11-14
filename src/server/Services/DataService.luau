@@ -400,6 +400,9 @@ local function sanitize(data: PlayerData)
 			end
 		end
 	end
+	if typeof(data.community.welcomed) ~= "boolean" then
+		data.community.welcomed = false
+	end
 	-- Fortune Wheel + Mystery Merchant.
 	data.fortune.spins = math.min(wholeNumber(data.fortune.spins, 0, 0), FortuneConfig.MAX_SPINS)
 	data.fortune.freeDay = wholeNumber(data.fortune.freeDay, -1, -1)

@@ -121,6 +121,13 @@ local function onNotice(notice: Notice)
 			table.insert(parts, 1, "You were the clan MVP!")
 		end
 		NoticeUI.show(title, table.concat(parts, ", "), Theme.Gold)
+	elseif notice.kind == "GroupWelcome" then
+		AudioController.play("Reward")
+		NoticeUI.show(
+			"THANKS FOR JOINING THE GROUP!",
+			`+{notice.packs or 0} free gear packs, +{notice.heroChests or 0} Hero Chest, +10% gold forever and the Commander's Pennant`,
+			Theme.Gold
+		)
 	elseif notice.kind == "MerchantArrived" then
 		NoticeUI.show("THE MYSTERY MERCHANT IS HERE!", "He's in your camp for a while with rare wares. Come take a look.", Color3.fromRGB(150, 100, 210))
 	elseif notice.kind == "TowerFloor" then

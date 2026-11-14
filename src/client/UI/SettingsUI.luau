@@ -170,7 +170,7 @@ function SettingsUI.start()
 	Spotlight.register("Settings:Guide", guideButton)
 	-- The game's Roblox group: Roblox's own join prompt, then the server re-checks.
 	local groupButton = UIKit.button({
-		Text = "JOIN OUR GROUP: free Commander's Pennant",
+		Text = "JOIN OUR GROUP: +10% gold + free packs",
 		TextSize = 14,
 		BackgroundColor3 = Color3.fromRGB(200, 150, 50),
 		Position = UDim2.new(0, 0, 0, 38 + 2 * sectionHeight + ROW_HEIGHT + 8),
@@ -196,7 +196,7 @@ function SettingsUI.start()
 	table.insert(refreshers, function()
 		local snapshot = StateController.get()
 		local member = snapshot ~= nil and snapshot.groupMember
-		groupButton.Text = if member then "Group member: Commander's Pennant unlocked!" else "JOIN OUR GROUP: free Commander's Pennant"
+		groupButton.Text = if member then "Group member: +10% gold active!" else "JOIN OUR GROUP: +10% gold + free packs"
 		groupButton.BackgroundColor3 = if member then Theme.PanelLight else Color3.fromRGB(200, 150, 50)
 		groupButton.AutoButtonColor = not member
 	end)

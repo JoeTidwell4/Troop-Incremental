@@ -417,6 +417,7 @@ export type PlayerData = {
 	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
 	challenge: ChallengeState, -- challenge runs (tiers kept forever)
 	expeditions: ExpeditionsData, -- Expeditions (board, teams away)
+	community: { welcomed: boolean }, -- the game's Roblox group: welcome gift given
 	fortune: FortuneState, -- Fortune Wheel
 	merchant: MerchantState, -- Mystery Merchant visits
 	tower: { best: number, tributeDay: number }, -- Endless Tower: best floor (kept forever), last Tribute day
@@ -535,7 +536,7 @@ export type Snapshot = {
 
 -- One-off messages from the server, shown as banners.
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived" | "GroupWelcome",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)

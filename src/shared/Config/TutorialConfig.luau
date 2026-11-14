@@ -76,7 +76,7 @@ local LESSONS: { Lesson } = {
 	{
 		id = "Group", topic = "Basics", title = "Join the group", when = "stage", stage = 15,
 		steps = {
-			{ text = "Join the game's group for update news and a free Commander's Pennant to wear. It's in SETTINGS.", open = "Menu:Settings", spotlight = "Settings:Group" },
+			{ text = "Join the game's group: +10% gold forever, 3 free gear packs and a Hero Chest, plus a Commander's Pennant to wear. It's in SETTINGS.", open = "Menu:Settings", spotlight = "Settings:Group" },
 		},
 	},
 	{
