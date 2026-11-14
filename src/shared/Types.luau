@@ -417,6 +417,7 @@ export type PlayerData = {
 	tutorial: { seen: { [string]: boolean }, initialized: boolean }, -- lessons already shown
 	challenge: ChallengeState, -- challenge runs (tiers kept forever)
 	expeditions: ExpeditionsData, -- Expeditions (board, teams away)
+	codes: { redeemed: { [string]: boolean } }, -- promo codes this player has used
 	community: { welcomed: boolean }, -- the game's Roblox group: welcome gift given
 	fortune: FortuneState, -- Fortune Wheel
 	merchant: MerchantState, -- Mystery Merchant visits
@@ -727,6 +728,18 @@ export type MerchantState = {
 	offers: { MerchantOffer },
 	bought: { [string]: boolean }, -- offer index (as text) -> bought
 }
+
+-- Promo codes (PromoConfig). `rewards` uses PromoConfig.REWARD_ORDER fields.
+export type PromoCode = {
+	code: string,
+	rewards: { [string]: number },
+	expiresAt: number, -- os.time()
+	maxUses: number, -- 0 = no limit
+	uses: number,
+}
+export type PassGrant = { userId: number, name: string, passes: { string } }
+export type AdminResult = { ok: boolean, message: string, codes: { PromoCode }?, grants: { PassGrant }? }
+export type RedeemResult = { ok: boolean, reason: string?, rewards: { [string]: number }? }
 
 -- Expeditions (ExpeditionConfig).
 export type ExpeditionDuration = {

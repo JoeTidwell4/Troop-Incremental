@@ -13,12 +13,14 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Version = require(Shared:WaitForChild("Version")) :: string
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local CommunityConfig = require(Shared:WaitForChild("Config"):WaitForChild("CommunityConfig"))
+local PromoConfig = require(Shared:WaitForChild("Config"):WaitForChild("PromoConfig"))
 local UIKit = require(script.Parent.UIKit)
 local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 local SettingsController = require(Client.Controllers.SettingsController)
 local StateController = require(Client.Controllers.StateController)
 local GuideUI = require(script.Parent.GuideUI)
+local NoticeUI = require(script.Parent.NoticeUI)
 
 local Theme = UIKit.Theme
 
@@ -70,7 +72,7 @@ function SettingsUI.start()
 		Visible = false,
 		Parent = gui,
 	}) :: Frame
-	local windowHeight = 14 + 34 + 2 * (22 + ROW_HEIGHT + 22 + 8) + 2 * (ROW_HEIGHT + 8) + 18 + 14
+	local windowHeight = 14 + 34 + 2 * (22 + ROW_HEIGHT + 22 + 8) + 3 * (ROW_HEIGHT + 8) + 18 + 18 + 14
 	local window = UIKit.create("Frame", {
 		Name = "Window",
 		BackgroundColor3 = Theme.Panel,
@@ -82,6 +84,8 @@ function SettingsUI.start()
 	}, {
 		UIKit.corner(14),
 		UIKit.padding(14),
+		-- Shrinks to fit short (phone) screens; Layout.DESIGN_HEIGHT is the usable height.
+		UIKit.create("UIScale", { Scale = math.min(1, (Layout.DESIGN_HEIGHT - 16) / windowHeight) }),
 	}) :: Frame
 	UIKit.label({
 		Text = "Settings",
@@ -201,6 +205,82 @@ function SettingsUI.start()
 		groupButton.AutoButtonColor = not member
 	end)
 	Spotlight.register("Settings:Group", groupButton)
+
+	-- Promo codes (PromoService): type a code, REDEEM.
+	local codeTop = 38 + 2 * sectionHeight + 2 * (ROW_HEIGHT + 8)
+	local codeBox = UIKit.create("TextBox", {
+		Text = "",
+		PlaceholderText = "Have a code? Type it here",
+		ClearTextOnFocus = false,
+		Font = Theme.Font,
+		TextSize = 15,
+		TextColor3 = Theme.Text,
+		PlaceholderColor3 = Theme.Muted,
+		BackgroundColor3 = Theme.PanelLight,
+		BorderSizePixel = 0,
+		Position = UDim2.new(0, 0, 0, codeTop),
+		Size = UDim2.new(1, -116, 0, ROW_HEIGHT),
+		Parent = window,
+	}, { UIKit.corner(8) }) :: TextBox
+	local redeemButton = UIKit.button({
+		Text = "REDEEM",
+		TextSize = 15,
+		BackgroundColor3 = Theme.Good,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, codeTop),
+		Size = UDim2.new(0, 110, 0, ROW_HEIGHT),
+		Parent = window,
+	})
+	local codeLabel = UIKit.label({
+		Text = "",
+		TextSize = 12,
+		TextColor3 = Theme.Muted,
+		Position = UDim2.new(0, 0, 0, codeTop + ROW_HEIGHT + 2),
+		Size = UDim2.new(1, 0, 0, 16),
+		Parent = window,
+	})
+	Spotlight.register("Settings:Codes", codeBox)
+	local redeemRemote = Remotes.waitForFunction(Remotes.Functions.RedeemCode)
+	local REDEEM_MESSAGES: { [string]: string } = {
+		Invalid = "That code doesn't exist.",
+		Expired = "That code has expired.",
+		UsedUp = "That code has been used up.",
+		Already = "You already used that code.",
+		Slow = "Wait a moment before trying again.",
+		TryLater = "Couldn't check the code right now. Try again soon.",
+	}
+	local redeeming = false
+	redeemButton.Activated:Connect(function()
+		if redeeming or codeBox.Text == "" then
+			return
+		end
+		redeeming = true
+		codeLabel.Text = "Checking..."
+		codeLabel.TextColor3 = Theme.Muted
+		task.spawn(function()
+			local ok, result = pcall(function(): any
+				return redeemRemote:InvokeServer(codeBox.Text)
+			end)
+			redeeming = false
+			if ok and typeof(result) == "table" and result.ok then
+				local parts: { string } = {}
+				for _, field in PromoConfig.REWARD_ORDER do
+					local amount = (result.rewards or {})[field]
+					if amount ~= nil then
+						table.insert(parts, `+{amount} {PromoConfig.REWARDS[field].name}`)
+					end
+				end
+				codeLabel.Text = "Redeemed!"
+				codeLabel.TextColor3 = Theme.Good
+				codeBox.Text = ""
+				NoticeUI.show("CODE REDEEMED!", table.concat(parts, ", "), Theme.Gold)
+			else
+				local reason = if ok and typeof(result) == "table" then result.reason or "" else "TryLater"
+				codeLabel.Text = REDEEM_MESSAGES[reason] or "That didn't work. Try again."
+				codeLabel.TextColor3 = Theme.HpFill
+			end
+		end)
+	end)
 	UIKit.label({
 		Text = `Version {Version}`,
 		TextColor3 = Theme.Muted,

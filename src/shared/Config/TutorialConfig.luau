@@ -80,6 +80,12 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
+		id = "Codes", topic = "Basics", title = "Codes", when = "stage", stage = 4,
+		steps = {
+			{ text = "Got a code from the group or a friend? Type it in SETTINGS for free rewards. Each code works once per player.", open = "Menu:Settings", spotlight = "Settings:Codes" },
+		},
+	},
+	{
 		id = "Stages", topic = "Basics", title = "Stages", when = "stage", stage = 3,
 		steps = {
 			{ text = "Beat 10 enemies to clear a stage. Each stage is tougher, but pays more gold. Every 10th stage is a boss." },

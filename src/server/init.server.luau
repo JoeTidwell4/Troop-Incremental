@@ -47,6 +47,8 @@ local ExpeditionService = require(Services.ExpeditionService)
 local FortuneService = require(Services.FortuneService)
 local MerchantService = require(Services.MerchantService)
 local CommunityService = require(Services.CommunityService)
+local PromoService = require(Services.PromoService)
+local AdminService = require(Services.AdminService)
 local DebugService = require(Services.DebugService)
 local DailyService = require(Services.DailyService)
 local AchievementService = require(Services.AchievementService)
@@ -93,6 +95,8 @@ ExpeditionService.start() -- Expeditions: mission board, teams away, loot
 FortuneService.start() -- Fortune Wheel: free earned spins
 MerchantService.start() -- Mystery Merchant: visits and offers
 CommunityService.start() -- the game's Roblox group: member cosmetic
+PromoService.start() -- promo codes (redeem in Settings)
+AdminService.start() -- owner-only ADMIN panel: codes + free passes
 DebugService.start() -- Studio-only test panel (does nothing in the live game)
 DataService.start() -- last: starts loading players once every listener is connected
 

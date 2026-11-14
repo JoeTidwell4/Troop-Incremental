@@ -13,7 +13,9 @@
 --      Otherwise answer NotProcessedYet; Roblox retries, and step 2 won't grant twice.
 -- This means a purchase is granted exactly once even if the server crashes mid-way.
 
+local DataStoreService = game:GetService("DataStoreService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local MessagingService = game:GetService("MessagingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,7 +30,9 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Config = Shared:WaitForChild("Config")
 local MonetizationConfig = require(Config:WaitForChild("MonetizationConfig"))
 local AbilityConfig = require(Config:WaitForChild("AbilityConfig"))
+local PromoConfig = require(Config:WaitForChild("PromoConfig"))
 local RateLimiter = require(Server.Util.RateLimiter)
+local StoreNames = require(Server.Util.StoreNames)
 local Validate = require(Server.Util.Validate)
 local RemoteService = require(Services.RemoteService)
 local DataService = require(Services.DataService)
@@ -42,6 +46,12 @@ type ProductDef = Types.ProductDef
 type ToggleRequest = { passKey: string, enabled: boolean }
 
 local owned: { [Player]: { [string]: boolean } } = {}
+
+-- Free passes the owner gives from the ADMIN panel (AdminService): DataStore "PassGrants",
+-- key "u<userId>" = { passKeys }, plus key "index" = the list shown in the panel. A
+-- MessagingService nudge makes other servers re-check a player who's online right now.
+local grantStore = DataStoreService:GetDataStore(StoreNames.of("PassGrants"))
+local GRANT_TOPIC = StoreNames.of("PassGrant")
 local passByid: { [number]: string } = {}
 local productById: { [number]: ProductDef } = {}
 
@@ -70,13 +80,20 @@ local function setOwned(player: Player, passKey: string)
 end
 
 local function checkPasses(player: Player)
-	-- Comped passes (MonetizationConfig.FREE_PASSES): owned without buying.
-	local comps = MonetizationConfig.FREE_PASSES[player.UserId]
-	if comps ~= nil then
-		for _, passKey in comps do
-			if MonetizationConfig.PASSES[passKey] ~= nil then
-				setOwned(player, passKey)
-			end
+	-- Comped passes (MonetizationConfig.FREE_PASSES and the ADMIN panel's grants): owned
+	-- without buying.
+	local comps = table.clone(MonetizationConfig.FREE_PASSES[player.UserId] or {})
+	local ok, stored = pcall(function(): any
+		return grantStore:GetAsync(`u{player.UserId}`)
+	end)
+	if ok and typeof(stored) == "table" then
+		for _, passKey in stored do
+			table.insert(comps, passKey)
+		end
+	end
+	for _, passKey in comps do
+		if typeof(passKey) == "string" and MonetizationConfig.PASSES[passKey] ~= nil then
+			setOwned(player, passKey)
 		end
 	end
 	for passKey, def in MonetizationConfig.PASSES do
@@ -164,7 +181,73 @@ local function processReceipt(receipt: any): Enum.ProductPurchaseDecision
 	return if saved then Enum.ProductPurchaseDecision.PurchaseGranted else Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
+-- Forget what this player owns and check again (after a free pass is given or taken).
+local function recheck(player: Player)
+	owned[player] = {}
+	for passKey in MonetizationConfig.PASSES do
+		player:SetAttribute("Pass_" .. passKey, nil)
+	end
+	checkPasses(player)
+	DataService.markChanged(player)
+end
+
+-- ADMIN panel: give `userId` exactly these free passes ({} = take them all away). Yields.
+function MonetizationService.setGrant(userId: number, name: string, passes: { string }): (boolean, string?)
+	local key = `u{userId}`
+	local ok, err = pcall(function()
+		if #passes == 0 then
+			grantStore:RemoveAsync(key)
+		else
+			grantStore:SetAsync(key, passes)
+		end
+		grantStore:UpdateAsync("index", function(old: any): any
+			local list: { Types.PassGrant } = {}
+			if typeof(old) == "table" then
+				for _, entry in old do
+					if typeof(entry) == "table" and entry.userId ~= userId and #list < PromoConfig.MAX_GRANTS - 1 then
+						table.insert(list, entry)
+					end
+				end
+			end
+			if #passes > 0 then
+				table.insert(list, 1, { userId = userId, name = name, passes = passes })
+			end
+			return list
+		end)
+	end)
+	if not ok then
+		return false, tostring(err)
+	end
+	local online = Players:GetPlayerByUserId(userId)
+	if online ~= nil then
+		task.spawn(recheck, online)
+	end
+	pcall(function()
+		MessagingService:PublishAsync(GRANT_TOPIC, userId)
+	end)
+	return true, nil
+end
+
+-- ADMIN panel: everyone who has free passes. Yields.
+function MonetizationService.listGrants(): { Types.PassGrant }
+	local ok, list = pcall(function(): any
+		return grantStore:GetAsync("index")
+	end)
+	return if ok and typeof(list) == "table" then list else {}
+end
+
 function MonetizationService.start()
+	task.spawn(function()
+		pcall(function()
+			MessagingService:SubscribeAsync(GRANT_TOPIC, function(message: any)
+				local userId = tonumber(message.Data)
+				local player = if userId ~= nil then Players:GetPlayerByUserId(userId) else nil
+				if player ~= nil then
+					recheck(player)
+				end
+			end)
+		end)
+	end)
 	for passKey, def in MonetizationConfig.PASSES do
 		if def.id > 0 then
 			passByid[def.id] = passKey

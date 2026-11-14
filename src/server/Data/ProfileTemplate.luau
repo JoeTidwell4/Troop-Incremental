@@ -37,6 +37,7 @@ local template: Types.PlayerData = {
 	tutorial = { seen = {}, initialized = false }, -- TutorialConfig lessons already shown
 	-- Challenge runs. `stash` (the parked main run) is only present while one is active.
 	challenge = { active = "", tiers = {}, goldMinutes = 0 },
+	codes = { redeemed = {} }, -- PromoConfig codes used
 	community = { welcomed = false }, -- CommunityConfig welcome gift
 	fortune = { spins = 0, freeDay = -1, pity = 0 }, -- FortuneConfig
 	merchant = { nextAt = 0, leaveAt = 0, offers = {}, bought = {} }, -- MerchantConfig

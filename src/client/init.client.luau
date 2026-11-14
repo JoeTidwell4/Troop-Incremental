@@ -34,6 +34,7 @@ local CampController = require(Controllers.CampController)
 local MenuUI = require(UI.MenuUI)
 local FortuneUI = require(UI.FortuneUI)
 local MerchantUI = require(UI.MerchantUI)
+local AdminUI = require(UI.AdminUI)
 local HudUI = require(UI.HudUI)
 local ShopUI = require(UI.ShopUI)
 local AbilityBarUI = require(UI.AbilityBarUI)
@@ -102,6 +103,7 @@ CampController.start() -- after every window: the camp signs take over their men
 MenuUI.start() -- MENU: list of every camp sign (fallback)
 FortuneUI.start() -- Fortune Wheel window (camp)
 MerchantUI.start() -- Mystery Merchant window (camp)
+task.spawn(AdminUI.start) -- owner-only ADMIN panel (waits until the server says you're the owner)
 DebugPanelUI.start() -- Studio only; does nothing in the live game
 StateController.start() -- last: asks the server for state once everything is listening
 

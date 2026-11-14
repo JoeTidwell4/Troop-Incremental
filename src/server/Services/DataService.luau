@@ -400,6 +400,17 @@ local function sanitize(data: PlayerData)
 			end
 		end
 	end
+	do
+		local redeemed: { [string]: boolean } = {}
+		if typeof(data.codes.redeemed) == "table" then
+			for code, value in data.codes.redeemed :: any do
+				if typeof(code) == "string" and value == true then
+					redeemed[code] = true
+				end
+			end
+		end
+		data.codes.redeemed = redeemed
+	end
 	if typeof(data.community.welcomed) ~= "boolean" then
 		data.community.welcomed = false
 	end
