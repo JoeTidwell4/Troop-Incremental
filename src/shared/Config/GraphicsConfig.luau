@@ -12,6 +12,9 @@ export type Profile = {
 	debris: number, -- multiplier on pieces flying off defeated enemies (0 = none)
 	trails: boolean, -- glowing trails behind arrows
 	damageNumbers: number, -- max floating damage numbers at once
+	ambientSkirmishes: number, -- background fights (AmbientConfig.SKIRMISHES, in order)
+	ambientMarchers: number, -- troops marching along the road
+	ambientRoamers: number, -- creatures wandering on the flanks
 }
 
 local GraphicsConfig = {
@@ -26,6 +29,9 @@ local GraphicsConfig = {
 			debris = 1,
 			trails = true,
 			damageNumbers = 12,
+			ambientSkirmishes = 3,
+			ambientMarchers = 7,
+			ambientRoamers = 6,
 		},
 		Low = {
 			name = "Low",
@@ -37,6 +43,9 @@ local GraphicsConfig = {
 			debris = 0,
 			trails = false,
 			damageNumbers = 6,
+			ambientSkirmishes = 1,
+			ambientMarchers = 4,
+			ambientRoamers = 2,
 		},
 	} :: { [string]: Profile },
 }

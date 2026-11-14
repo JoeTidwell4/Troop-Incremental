@@ -13,13 +13,20 @@ local Types = require(Shared:WaitForChild("Types"))
 local Plots = require(Shared:WaitForChild("Plots"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local ClanConfig = require(Shared:WaitForChild("Config"):WaitForChild("ClanConfig"))
+local CampConfig = require(Shared:WaitForChild("Config"):WaitForChild("CampConfig"))
 local ClanBanner = require(Controllers.Parent:WaitForChild("Visuals"):WaitForChild("ClanBanner"))
 local ClanController = require(Controllers.ClanController)
 
 type ClanView = Types.ClanView
 
--- Where the banner stands: the left edge of the arena, beside your army.
+-- Where the banner stands: the Clan sign's spot in the camp (CampConfig), which hides its
+-- own stand while you're in a clan.
 local OFFSET = Vector3.new(-30, 0.5, 10)
+for _, sign in CampConfig.SIGNS do
+	if sign.key == "Clan" then
+		OFFSET = sign.offset
+	end
+end
 
 local ClanBannerController = {}
 

@@ -8,7 +8,11 @@
 -- between the camera and the arena so it never blocks the fight.
 
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config")
+local CampConfig = require(Config:WaitForChild("CampConfig"))
+local AmbientConfig = require(Config:WaitForChild("AmbientConfig"))
 local Parts = require(script.Parent.Parts)
 local Quality = require(script.Parent.Quality)
 
@@ -466,7 +470,8 @@ local SCENERY: { [string]: { near: { PropBuilder }, far: { PropBuilder } } } = {
 
 ---------------------------------------------------------------- layout
 
--- True where scenery must not go: the arena (plus a margin) and the camera's view lane.
+-- True where scenery must not go: the arena (plus a margin), the camera's view lane,
+-- the camp signs (CampConfig) and the background skirmish lanes (AmbientConfig).
 local function blocked(x: number, z: number): boolean
 	if math.abs(x) < 42 and z > -26 and z < 24 then
 		return true
@@ -474,7 +479,18 @@ local function blocked(x: number, z: number): boolean
 	if math.abs(x) < 32 and z < -18 then
 		return true
 	end
-	return false
+	for _, sign in CampConfig.SIGNS do
+		if math.abs(sign.offset.X - x) < 8 and math.abs(sign.offset.Z - z) < 8 then
+			return true
+		end
+	end
+	for _, spot in AmbientConfig.SKIRMISHES do
+		local dx, dz = spot.X - x, spot.Z - z
+		if dx * dx + dz * dz < AmbientConfig.CLEAR_RADIUS * AmbientConfig.CLEAR_RADIUS then
+			return true
+		end
+	end
+	return math.abs(z - AmbientConfig.ROAD_Z) < AmbientConfig.ROAD_WIDTH and math.abs(x) < AmbientConfig.ROAD_HALF_LENGTH + 5
 end
 
 local function scatter(rng: Random, origin: Vector3, parent: Instance, count: number, set: { near: { PropBuilder }, far: { PropBuilder } })

@@ -28,6 +28,7 @@ local RaidConfig = require(Config:WaitForChild("RaidConfig"))
 local TowerConfig = require(Config:WaitForChild("TowerConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Environment = require(Visuals:WaitForChild("Environment"))
+local Ambient = require(Visuals:WaitForChild("Ambient"))
 local TroopModels = require(Visuals:WaitForChild("TroopModels"))
 local EnemyModels = require(Visuals:WaitForChild("EnemyModels"))
 local Effects = require(Visuals:WaitForChild("Effects"))
@@ -90,6 +91,7 @@ local origin = Vector3.zero
 local folder: Folder
 local troopsModel: Model
 local environment: Model? = nil
+local ambient: Ambient.Handle? = nil -- background skirmishes, marchers and roamers
 local currentArea = -1
 
 local enemyModel: Model? = nil
@@ -521,6 +523,16 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 			environment:Destroy()
 		end
 		environment = Environment.build(area.theme, origin, area.number, folder)
+		if ambient ~= nil then
+			ambient.destroy()
+		end
+		local owned: { string } = {}
+		for _, troopId in TroopConfig.ORDER do
+			if (snapshot.troops[troopId] or 0) > 0 then
+				table.insert(owned, troopId)
+			end
+		end
+		ambient = Ambient.build(area.theme, origin, folder, owned)
 		Environment.applyLighting(area.theme)
 	end
 
@@ -649,6 +661,9 @@ end
 
 local function animate(dt: number)
 	local now = os.clock()
+	if ambient ~= nil then
+		ambient.update(dt)
+	end
 
 	-- Troops: melee units lunge, archers hold position and loose arrows. After a boss
 	-- falls they hop and cheer for a moment instead.
