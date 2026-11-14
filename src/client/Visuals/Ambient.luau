@@ -110,7 +110,7 @@ function Ambient.build(theme: Types.AreaTheme, origin: Vector3, parent: Instance
 
 	local function makeTroop(troopId: string, pos: Vector3, facing: Vector3): Unit
 		local def = TroopConfig.TROOPS[troopId]
-		local model = TroopModels.build(troopId, def.color, CFrame.new(pos), folder)
+		local model = TroopModels.build(troopId, def.color, CFrame.new(pos), folder, rng:NextInteger(1, 3))
 		model:ScaleTo(scale)
 		local unit = newUnit(model, true, troopId, false, pos, facing, rng)
 		place(unit)

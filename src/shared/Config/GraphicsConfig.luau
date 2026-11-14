@@ -15,6 +15,7 @@ export type Profile = {
 	ambientSkirmishes: number, -- background fights (AmbientConfig.SKIRMISHES, in order)
 	ambientMarchers: number, -- troops marching along the road
 	ambientRoamers: number, -- creatures wandering on the flanks
+	troopDetail: boolean, -- small decorative parts on troop models (boots, hands, trims...)
 }
 
 local GraphicsConfig = {
@@ -32,6 +33,7 @@ local GraphicsConfig = {
 			ambientSkirmishes = 3,
 			ambientMarchers = 7,
 			ambientRoamers = 6,
+			troopDetail = true,
 		},
 		Low = {
 			name = "Low",
@@ -46,6 +48,7 @@ local GraphicsConfig = {
 			ambientSkirmishes = 1,
 			ambientMarchers = 4,
 			ambientRoamers = 2,
+			troopDetail = false,
 		},
 	} :: { [string]: Profile },
 }

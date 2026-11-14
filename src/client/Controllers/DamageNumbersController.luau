@@ -17,6 +17,8 @@ local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 local BattlefieldController = require(Controllers.BattlefieldController)
 local Quality = require(script.Parent.Parent:WaitForChild("Visuals"):WaitForChild("Quality"))
+local TroopModels = require(script.Parent.Parent:WaitForChild("Visuals"):WaitForChild("TroopModels"))
+local TroopConfig = require(Shared:WaitForChild("Config"):WaitForChild("TroopConfig"))
 
 type Snapshot = Types.Snapshot
 
@@ -113,6 +115,18 @@ function DamageNumbersController.start()
 		local snapshot = StateController.get()
 		if snapshot ~= nil then
 			spawnText(NumberFormat.big(snapshot.tapDamage), CLICK_COLOR, 20)
+		end
+	end)
+	-- A troop type reached a new look (VisualConfig.TROOP_TIERS).
+	StateController.Changed:Connect(function(snapshot: Snapshot, previous: Snapshot?)
+		if previous == nil then
+			return
+		end
+		for _, troopId in TroopConfig.ORDER do
+			local before = TroopModels.tierFor(previous.troops[troopId] or 0)
+			if TroopModels.tierFor(snapshot.troops[troopId] or 0) > before and (previous.troops[troopId] or 0) > 0 then
+				spawnText(`{TroopConfig.TROOPS[troopId].displayName}s got new armor!`, PACK_COLOR, 26)
+			end
 		end
 	end)
 	StateController.Changed:Connect(function(snapshot: Snapshot, previous: Snapshot?)

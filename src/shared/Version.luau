@@ -1,4 +1,4 @@
 --!strict
 -- Build identifier shown in Output on boot so you can tell Rojo synced the latest code.
 
-return "0.38.0-camp-spacing-ambient"
+return "0.39.0-troop-models"

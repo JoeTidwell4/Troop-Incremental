@@ -137,6 +137,7 @@ local focusSeconds = 0.45
 
 local unitsByType: { [string]: { Unit } } = {}
 local visibleCounts: { [string]: number } = {}
+local visibleTiers: { [string]: number } = {} -- TroopModels look per type (by count owned)
 local lastGear: Types.GearSet? = nil
 
 local BattlefieldController = {}
@@ -150,10 +151,13 @@ local updateMinions: (on: boolean, kind: string, color: Color3) -> ()
 local function setVisibleCount(troopId: string, count: number, gear: Types.GearSet?)
 	local cap = math.max(1, math.floor((MAX_VISIBLE[troopId] or VisualConfig.MAX_VISIBLE_PER_TYPE) * Quality.get().unitScale))
 	local wanted = math.min(count, cap)
-	if visibleCounts[troopId] == wanted then
+	local tier = TroopModels.tierFor(count)
+	if visibleCounts[troopId] == wanted and visibleTiers[troopId] == tier then
 		return
 	end
+	local upgraded = visibleTiers[troopId] ~= nil and tier > visibleTiers[troopId] and wanted > 0
 	visibleCounts[troopId] = wanted
+	visibleTiers[troopId] = tier
 
 	for _, unit in unitsByType[troopId] or {} do
 		unit.model:Destroy()
@@ -163,7 +167,10 @@ local function setVisibleCount(troopId: string, count: number, gear: Types.GearS
 	for index = 1, wanted do
 		local x = (index - (wanted + 1) / 2) * (SPACING[troopId] or UNIT_SPACING)
 		local home = CFrame.new(origin + Vector3.new(x, ARENA_TOP, ROW_Z[troopId] or 0))
-		local model = TroopModels.build(troopId, def.color, home, troopsModel)
+		local model = TroopModels.build(troopId, def.color, home, troopsModel, tier)
+		if upgraded then
+			Effects.dustRing(home.Position)
+		end
 		TroopModels.applyGear(model, if gear ~= nil then gear[troopId] else nil)
 		table.insert(units, {
 			troopId = troopId,
@@ -879,6 +886,7 @@ function BattlefieldController.start()
 	Quality.Changed:Connect(function()
 		currentArea = -1
 		visibleCounts = {}
+		visibleTiers = {}
 		local snapshot = StateController.get()
 		if snapshot ~= nil then
 			onStateChanged(snapshot, nil)

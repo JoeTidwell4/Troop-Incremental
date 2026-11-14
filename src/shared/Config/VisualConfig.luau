@@ -4,6 +4,9 @@
 local VisualConfig = {
 	-- Cosmetic troop models shown per type, no matter how many you own.
 	MAX_VISIBLE_PER_TYPE = 8,
+	-- Troop looks (Visuals/TroopModels): owning this many of a type unlocks the next look
+	-- (tier 2, 3, 4). Same counts as the first damage milestones.
+	TROOP_TIERS = { 25, 100, 300 },
 
 	-- Camera position relative to your plot's center (see WorldConfig / Plots).
 	CAMERA_OFFSET = Vector3.new(0, 22, -38),
