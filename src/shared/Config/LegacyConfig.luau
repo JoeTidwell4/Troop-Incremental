@@ -12,8 +12,10 @@
 local Types = require(script.Parent.Parent.Types)
 
 local LegacyConfig = {
-	-- Best stage reached during THIS Legacy needed to Legacy again.
-	MIN_STAGE = 150,
+	-- Best stage reached during THIS Legacy needed to Legacy again. Was 150; raised to
+	-- 200 in the balance pass after Phase 13 (tools/balance_v3.py: players now reach 150
+	-- in ~1.5 h and stall around 250-290, and Legacy should unlock near the stall).
+	MIN_STAGE = 200,
 
 	-- Crowns = floor(CROWN_SCALE * (Honor earned this Legacy / CROWN_HONOR_UNIT) ^ CROWN_EXPONENT)
 	CROWN_SCALE = 3,

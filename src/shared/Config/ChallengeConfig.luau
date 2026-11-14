@@ -25,8 +25,9 @@
 --   bossTime (+seconds), offline (+ to offline earnings), xp (+ to Commander XP).
 --
 -- Goals were checked with the simulator: with fixed goals 30-110 a player a few hours in
--- cleared every tier in two minutes, so the ladder goes to 210. Rough reach of a 6 h
--- player (normal run 190): Lone Legion 160, Bare Hands 160, Hands Off 180, Tyrants 180.
+-- cleared every tier in two minutes, so the ladder went to 210; the balance pass after
+-- Phase 13 (tools/balance_v3.py: 6 h players now reach ~250) moved it to 40-265, every
+-- 25. Tiers already cleared stay cleared.
 
 local Types = require(script.Parent.Parent.Types)
 
@@ -34,7 +35,7 @@ local ChallengeConfig = {
 	UNLOCK_ASCENDS = 1, -- Ascends before the first challenges open
 
 	-- Tier n is cleared by beating the boss of stage TIER_GOALS[n].
-	TIER_GOALS = { 30, 50, 70, 90, 110, 130, 150, 170, 190, 210 } :: { number },
+	TIER_GOALS = { 40, 65, 90, 115, 140, 165, 190, 215, 240, 265 } :: { number },
 
 	-- One-off prize the first time a tier is cleared (same for every challenge).
 	-- honorShare = share of an Ascend's Honor at your best stage; honor = the minimum.

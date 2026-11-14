@@ -98,7 +98,7 @@ local CommanderConfig = {
 		-- Weapons: click damage (they restyle the commander's sword)
 		IronSword = { id = "IronSword", slot = "Weapon", displayName = "Iron Sword", rarity = 1, multiplier = 1.05, style = "Blade", color = Color3.fromRGB(200, 205, 215), unlock = { kind = "default" } },
 		SteelBlade = { id = "SteelBlade", slot = "Weapon", displayName = "Steel Blade", rarity = 3, multiplier = 1.15, style = "Blade", color = Color3.fromRGB(150, 190, 230), unlock = { kind = "stage", value = 25 } },
-		Frostbrand = { id = "Frostbrand", slot = "Weapon", displayName = "Frostbrand", rarity = 4, multiplier = 1.3, style = "Glow", color = Color3.fromRGB(130, 220, 255), unlock = { kind = "stage", value = 31 } },
+		Frostbrand = { id = "Frostbrand", slot = "Weapon", displayName = "Frostbrand", rarity = 4, multiplier = 1.3, style = "Glow", color = Color3.fromRGB(130, 220, 255), unlock = { kind = "stage", value = 60 } }, -- was 31 (balance pass: too soon after Steel Blade)
 		SunfireBlade = { id = "SunfireBlade", slot = "Weapon", displayName = "Sunfire Blade", rarity = 5, multiplier = 1.5, style = "Glow", color = Color3.fromRGB(255, 150, 40), unlock = { kind = "stage", value = 120 } },
 		GoldenSword = { id = "GoldenSword", slot = "Weapon", displayName = "Golden Sword", rarity = 5, style = "Glow", color = Color3.fromRGB(255, 200, 60), unlock = { kind = "pass", pass = "GoldenSword" } }, -- Robux: looks only
 		-- Back: army damage
