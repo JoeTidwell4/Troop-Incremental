@@ -14,6 +14,7 @@ local NumberFormat = require(Shared:WaitForChild("NumberFormat"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local ChallengeConfig = require(Shared:WaitForChild("Config"):WaitForChild("ChallengeConfig"))
 local TowerConfig = require(Shared:WaitForChild("Config"):WaitForChild("TowerConfig"))
+local StoryConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("StoryConfig"))
 local AbilityConfig = require(Shared:WaitForChild("Config"):WaitForChild("AbilityConfig"))
 local UIKit = require(script.Parent.UIKit)
 local AudioController = require(Client.Controllers.AudioController)
@@ -126,6 +127,21 @@ local function onNotice(notice: Notice)
 		NoticeUI.show(
 			"THANKS FOR JOINING THE GROUP!",
 			`+{notice.packs or 0} free gear packs, +{notice.heroChests or 0} Hero Chest, +10% gold forever and the Commander's Pennant`,
+			Theme.Gold
+		)
+	elseif notice.kind == "StoryChapter" then
+		local chapter = StoryConfig.CHAPTERS[notice.chapter or 0]
+		AudioController.play("Reward")
+		NoticeUI.show(
+			`CHAPTER {notice.chapter or 0} COMPLETE: {if chapter ~= nil then string.upper(chapter.title) else ""}`,
+			`+{math.floor(StoryConfig.BONUS_PER_CHAPTER * 100 + 0.5)}% damage forever, Recruit Scrolls, Honor, Relic Dust and gold`,
+			Theme.Gold
+		)
+	elseif notice.kind == "StoryCaughtUp" then
+		local count = notice.chapter or 0
+		NoticeUI.show(
+			"STORY MODE IS HERE!",
+			`You're already past {count} chapter{if count == 1 then "" else "s"} of The Hollow King: +{math.floor(count * StoryConfig.BONUS_PER_CHAPTER * 100 + 0.5)}% damage forever and their rewards are yours.`,
 			Theme.Gold
 		)
 	elseif notice.kind == "MerchantArrived" then

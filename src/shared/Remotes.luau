@@ -52,6 +52,7 @@
 -- MerchantRequest client -> server, returns {ok, reason}  ("Buy", offerIndex)  MerchantService
 -- ExpeditionRequest client -> server, returns Types.ExpeditionResult  ("Send", missionId, {generalIds}) ("Collect", slot) ("Reroll")
 -- TowerRequest   client -> server, returns Types.TowerResult  ("Climb" | "Leave" | "Tribute")  TowerService
+-- StoryRequest   client -> server, returns Types.StoryResult  ("Begin" | "End", sceneId)  StoryService
 -- ChallengeRequest client -> server, returns Types.ChallengeResult  ("Start", challengeId) ("Leave")  ChallengeService
 -- DebugCommand   client -> server, returns {ok, message}  (action: string, arg: any)  STUDIO ONLY
 --                test panel (DebugConfig.ACTIONS); the server ignores it in the live game
@@ -109,6 +110,7 @@ local Remotes = {
 		RelicRequest = "RelicRequest",
 		ChallengeRequest = "ChallengeRequest",
 		TowerRequest = "TowerRequest",
+		StoryRequest = "StoryRequest",
 		RedeemCode = "RedeemCode",
 		AdminRequest = "AdminRequest",
 		ExpeditionRequest = "ExpeditionRequest",

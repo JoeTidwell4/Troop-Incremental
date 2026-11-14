@@ -43,6 +43,7 @@ local RelicService = require(Services.RelicService)
 local TutorialService = require(Services.TutorialService)
 local ChallengeService = require(Services.ChallengeService)
 local TowerService = require(Services.TowerService)
+local StoryService = require(Services.StoryService)
 local ExpeditionService = require(Services.ExpeditionService)
 local FortuneService = require(Services.FortuneService)
 local MerchantService = require(Services.MerchantService)
@@ -91,6 +92,7 @@ RelicService.start() -- Relics: boss drops, slots, sets, Dust
 TutorialService.start() -- which tutorial lessons each player has seen
 ChallengeService.start() -- challenge runs: parked main run, rules, tiers
 TowerService.start() -- Endless Tower: climbing, rewards, Tribute
+StoryService.start() -- story mode: scenes watched, chapters cleared, the story bonus
 ExpeditionService.start() -- Expeditions: mission board, teams away, loot
 FortuneService.start() -- Fortune Wheel: free earned spins
 MerchantService.start() -- Mystery Merchant: visits and offers

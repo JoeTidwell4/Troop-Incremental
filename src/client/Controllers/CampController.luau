@@ -30,6 +30,7 @@ local CampConfig = require(Shared:WaitForChild("Config"):WaitForChild("CampConfi
 local VisualConfig = require(Shared:WaitForChild("Config"):WaitForChild("VisualConfig"))
 local CampProps = require(Client:WaitForChild("Visuals"):WaitForChild("CampProps"))
 local Quality = require(Client:WaitForChild("Visuals"):WaitForChild("Quality"))
+local Cinematic = require(script.Parent.Cinematic)
 local Spotlight = require(Client.UI.Spotlight)
 local BattlefieldController = require(script.Parent.BattlefieldController)
 local AudioController = require(script.Parent.AudioController)
@@ -352,7 +353,7 @@ local function update()
 		return
 	end
 	local inset = GuiService:GetGuiInset()
-	local away = BattlefieldController.cameraFocus() > 0.01 or busy
+	local away = BattlefieldController.cameraFocus() > 0.01 or busy or Cinematic.active
 	local now = os.clock()
 	local clan = ClanController.get()
 	local inClan = clan ~= nil and clan.inClan
@@ -372,6 +373,8 @@ local function update()
 				continue
 			end
 		end
+		-- No floating name labels in the middle of a story cutscene.
+		(sign.label.Parent :: BillboardGui).Enabled = not Cinematic.active
 		-- Bounce: a quick hop and squash when clicked.
 		local t = (now - sign.bounceAt) / BOUNCE_SECONDS
 		if t >= 0 and t <= 1 then

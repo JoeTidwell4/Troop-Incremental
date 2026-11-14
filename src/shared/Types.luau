@@ -422,6 +422,7 @@ export type PlayerData = {
 	fortune: FortuneState, -- Fortune Wheel
 	merchant: MerchantState, -- Mystery Merchant visits
 	tower: { best: number, tributeDay: number }, -- Endless Tower: best floor (kept forever), last Tribute day
+	story: StoryState, -- story mode (kept forever)
 	skills: { ranks: { [string]: number }, respecDay: number }, -- skill tree (SkillConfig)
 	legacy: LegacyState, -- the second prestige (kept forever)
 	clanQuestClaims: { weekId: number, claimed: { [string]: boolean } }, -- quest index -> claimed this week
@@ -507,6 +508,8 @@ export type Snapshot = {
 	merchant: MerchantState, -- missions that can be away at once
 	towerFloor: number, -- the Tower floor being fought right now (0 = not in the Tower)
 	towerBest: number, -- best Tower floor cleared
+	storySeen: { [string]: boolean }, -- story scene ids already watched
+	storyCleared: { [string]: boolean }, -- chapter number (as text) -> cleared
 	towerTributeReady: boolean, -- today's Tower Tribute can be claimed
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
@@ -536,8 +539,18 @@ export type Snapshot = {
 }
 
 -- One-off messages from the server, shown as banners.
+-- Story mode progress (StoryConfig). Keys are text so the save stays a plain dictionary.
+export type StoryState = {
+	seen: { [string]: boolean }, -- scene id -> watched
+	cleared: { [string]: boolean }, -- chapter number as text ("1".."10") -> cleared
+	initialized: boolean, -- caught up once (existing players get earlier chapters cleared)
+}
+
+-- Answer to StoryRequest.
+export type StoryResult = { ok: boolean, reason: string? }
+
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived" | "GroupWelcome",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived" | "GroupWelcome" | "StoryChapter" | "StoryCaughtUp",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -561,6 +574,7 @@ export type Notice = {
 	heroChests: number?,
 	-- LevelUp only: the new Commander Level (stage = 0).
 	level: number?,
+	chapter: number?, -- StoryChapter: the chapter cleared; StoryCaughtUp: how many were marked cleared
 	-- Relic only: what dropped, and whether it went straight to Dust (inventory full).
 	relic: RelicItem?,
 	dust: number?,

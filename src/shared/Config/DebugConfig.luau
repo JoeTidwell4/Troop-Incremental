@@ -56,6 +56,13 @@ local DebugConfig = {
 			},
 		},
 		{
+			title = "Story",
+			buttons = {
+				{ label = "Rewatch all scenes", action = "StoryScenes" },
+				{ label = "Reset story (chapters too)", action = "StoryReset" },
+			},
+		},
+		{
 			title = "Tower",
 			buttons = {
 				{ label = "+10 floors (no rewards)", action = "TowerFloors", arg = 10 },

@@ -451,6 +451,30 @@ local function sanitize(data: PlayerData)
 			merchant.leaveAt = 0
 		end
 	end
+	do
+		-- Story mode: plain dictionaries of known scene ids / chapter numbers only.
+		local story = data.story
+		local seen: { [string]: boolean } = {}
+		local cleared: { [string]: boolean } = {}
+		if typeof(story.seen) == "table" then
+			for key, value in story.seen :: any do
+				if typeof(key) == "string" and value == true and #key <= 40 then
+					seen[key] = true
+				end
+			end
+		end
+		if typeof(story.cleared) == "table" then
+			for key, value in story.cleared :: any do
+				local number = tonumber(key)
+				if value == true and number ~= nil and number >= 1 and number <= 10 and number % 1 == 0 then
+					cleared[tostring(number)] = true
+				end
+			end
+		end
+		story.seen = seen
+		story.cleared = cleared
+		story.initialized = story.initialized == true
+	end
 	data.tower.best = wholeNumber(data.tower.best, 0, 0)
 	data.tower.tributeDay = wholeNumber(data.tower.tributeDay, -1, -1)
 	do

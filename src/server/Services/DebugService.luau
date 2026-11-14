@@ -165,6 +165,15 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 		TowerService.debugAddFloors(player, arg or 10)
 		return done(`+{arg} Tower floors (no fights, no rewards).`)
 	end,
+	StoryScenes = function(_player, data)
+		data.story.seen = {}
+		return done("Every story scene will play again (the one for where you are plays right away).")
+	end,
+	StoryReset = function(_player, data)
+		data.story.seen = {}
+		data.story.cleared = {}
+		return done("Story reset: scenes and chapters (the bonus is gone until you beat the bosses again).")
+	end,
 	TowerTribute = function(player)
 		TowerService.debugResetTribute(player)
 		return done("The Tower Tribute can be claimed again.")

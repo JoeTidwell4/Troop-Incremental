@@ -570,10 +570,41 @@ local function updateBoss(player: Player, data: PlayerData, dt: number): boolean
 	return true
 end
 
+-- Story cutscenes freeze a player's fight (StoryService): no damage either way, and a
+-- boss's clocks (timer, intro, shield) move forward with the pause so nothing is lost.
+-- Never for raids or Tower floors (those don't trigger scenes).
+local pausedUntil: { [Player]: number } = {}
+
+function StageService.pause(player: Player, seconds: number)
+	pausedUntil[player] = now() + seconds
+end
+
+function StageService.resume(player: Player)
+	pausedUntil[player] = nil
+end
+
+local function frozen(player: Player, encounter: Encounter?, dt: number): boolean
+	local untilTime = pausedUntil[player]
+	if untilTime == nil then
+		return false
+	end
+	if now() >= untilTime or encounter == nil or encounter.kind == "Raid" or encounter.tower > 0 then
+		pausedUntil[player] = nil
+		return false
+	end
+	if encounter.kind == "Boss" then
+		encounter.bossEndsAt += dt
+		encounter.introUntil += dt
+		encounter.nextShieldAt += dt
+		encounter.shieldUntil += dt
+	end
+	return true
+end
+
 local function tick(dt: number)
 	for player in encounters do
 		local data = DataService.get(player)
-		if data ~= nil then
+		if data ~= nil and not frozen(player, encounters[player], dt) then
 			local current = encounters[player]
 			local shielded = current ~= nil and current.kind == "Boss" and now() < current.shieldUntil
 			local damage: BigNum
@@ -701,6 +732,7 @@ function StageService.start()
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		encounters[player] = nil
+		pausedUntil[player] = nil
 	end)
 
 	RemoteService.onEvent(Remotes.Events.FightBoss, RateLimiter.new(3, 1), function(): boolean?

@@ -254,6 +254,13 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
+		id = "Story", topic = "Progress", title = "The Hollow King", when = "storyCleared", stage = 10,
+		steps = {
+			{ text = "You freed your first guardian! Each of the ten lands is a chapter of the story: beat its boss for the first time to clear it." },
+			{ text = "Every cleared chapter gives +2% damage forever, plus Recruit Scrolls, Honor, Relic Dust and gold. Story scenes pause your fight while they play, so you never lose a boss to one." },
+		},
+	},
+	{
 		id = "Tower", topic = "Adventure", title = "The Endless Tower", when = "stage", stage = TowerConfig.UNLOCK_STAGE,
 		steps = {
 			{ text = "The Endless Tower is open! It's a ladder of boss fights against your current army. No gold, no farming, and losing costs nothing.", spotlight = "Menu:Adventure" },

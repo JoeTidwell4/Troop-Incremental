@@ -26,6 +26,7 @@ local ChestRevealUI = require(script.Parent.ChestRevealUI)
 local StateController = require(Client.Controllers.StateController)
 local ClanController = require(Client.Controllers.ClanController)
 local RelicController = require(Client.Controllers.RelicController)
+local StoryController = require(Client.Controllers.StoryController)
 
 type Snapshot = Types.Snapshot
 type Lesson = Types.TutorialLesson
@@ -146,6 +147,9 @@ local function checkSnapshot(snapshot: Snapshot)
 	if snapshot.towerFloor > 0 then
 		trigger(snapshot, "inTower")
 	end
+	if snapshot.storyCleared ~= nil and next(snapshot.storyCleared) ~= nil then
+		trigger(snapshot, "storyCleared")
+	end
 	if snapshot.merchant.leaveAt > workspace:GetServerTimeNow() then
 		trigger(snapshot, "merchantHere")
 	end
@@ -256,7 +260,7 @@ function TutorialUI.start()
 	local waitingSince = 0
 	RunService.Heartbeat:Connect(function()
 		local now = os.clock()
-		if current == nil and #queue > 0 and now >= readyAt and not ChestRevealUI.isPlaying() then
+		if current == nil and #queue > 0 and now >= readyAt and not ChestRevealUI.isPlaying() and not StoryController.busy() then
 			if waitingSince == 0 then
 				waitingSince = now
 			elseif now - waitingSince >= TutorialConfig.SHOW_DELAY then
