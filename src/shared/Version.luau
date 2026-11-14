@@ -1,4 +1,4 @@
 --!strict
 -- Build identifier shown in Output on boot so you can tell Rojo synced the latest code.
 
-return "0.31.0-camp1"
+return "0.32.0-camp2"

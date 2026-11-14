@@ -28,6 +28,7 @@ local CampProps = require(Client:WaitForChild("Visuals"):WaitForChild("CampProps
 local Spotlight = require(Client.UI.Spotlight)
 local BattlefieldController = require(script.Parent.BattlefieldController)
 local AudioController = require(script.Parent.AudioController)
+local ClanController = require(script.Parent.ClanController)
 
 type SignDef = typeof(CampConfig.SIGNS[1])
 type Sign = {
@@ -42,6 +43,7 @@ type Sign = {
 	highlight: Highlight,
 	oldButton: GuiObject?,
 	bounceAt: number,
+	hidden: boolean, -- model parts made invisible (hiddenInClan)
 }
 
 local BOUNCE_SECONDS = 0.35
@@ -188,6 +190,7 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 			highlight = highlight,
 			oldButton = Spotlight.get(def.menu),
 			bounceAt = -math.huge,
+			hidden = false,
 		}
 		hitbox.MouseEnter:Connect(function()
 			highlight.FillTransparency = 0.8
@@ -211,6 +214,19 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 	end
 end
 
+local function setHidden(sign: Sign, hidden: boolean)
+	if sign.hidden == hidden then
+		return
+	end
+	sign.hidden = hidden
+	for _, part in sign.model:GetDescendants() do
+		if part:IsA("BasePart") and part.Name ~= "LabelAnchor" then
+			part.LocalTransparencyModifier = if hidden then 1 else 0
+		end
+	end
+	sign.highlight.Enabled = not hidden
+end
+
 -- Keeps every hitbox over its sign's outline on screen, the "!" badges, and the bounce.
 local function update()
 	local camera = workspace.CurrentCamera
@@ -220,7 +236,12 @@ local function update()
 	local inset = GuiService:GetGuiInset()
 	local away = BattlefieldController.cameraFocus() > 0.01 or busy
 	local now = os.clock()
+	local clan = ClanController.get()
+	local inClan = clan ~= nil and clan.inClan
 	for _, sign in signs do
+		if sign.def.hiddenInClan then
+			setHidden(sign, inClan)
+		end
 		-- Bounce: a quick hop and squash when clicked.
 		local t = (now - sign.bounceAt) / BOUNCE_SECONDS
 		if t >= 0 and t <= 1 then
@@ -260,6 +281,24 @@ local function update()
 			-- (viewport points include the top bar; this ScreenGui starts below it)
 			sign.hitbox.Position = UDim2.fromOffset(minX - inset.X, minY - inset.Y - 30) -- + the label above
 			sign.hitbox.Size = UDim2.fromOffset(maxX - minX, maxY - minY + 30)
+		end
+	end
+end
+
+-- For the MENU fallback (UI/MenuUI): every sign's key, label and whether it has a "!".
+function CampController.list(): { { key: string, label: string, badge: boolean } }
+	local result = {}
+	for _, sign in signs do
+		table.insert(result, { key = sign.def.key, label = sign.def.label, badge = sign.badge.Visible })
+	end
+	return result
+end
+
+-- Visit a sign by key (camera glide + window), as if it was clicked.
+function CampController.visitKey(key: string)
+	for _, sign in signs do
+		if sign.def.key == key then
+			visit(sign)
 		end
 	end
 end

@@ -31,6 +31,7 @@ local ChallengeController = require(Controllers.ChallengeController)
 local TowerController = require(Controllers.TowerController)
 local ExpeditionController = require(Controllers.ExpeditionController)
 local CampController = require(Controllers.CampController)
+local MenuUI = require(UI.MenuUI)
 local HudUI = require(UI.HudUI)
 local ShopUI = require(UI.ShopUI)
 local AbilityBarUI = require(UI.AbilityBarUI)
@@ -96,6 +97,7 @@ AdventureUI.start()
 GuideUI.start()
 TutorialUI.start() -- after every window so its openers are registered
 CampController.start() -- after every window: the camp signs take over their menu buttons
+MenuUI.start() -- MENU: list of every camp sign (fallback)
 DebugPanelUI.start() -- Studio only; does nothing in the live game
 StateController.start() -- last: asks the server for state once everything is listening
 

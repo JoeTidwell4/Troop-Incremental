@@ -64,10 +64,10 @@ local Layout = {
 
 	ROW_HEIGHT = if compact then 42 else 40,
 	MENU_TEXT_SIZE = if compact then 14 else 17,
-	-- Desktop: Ascend sits between the gold panel and the menu rows (188).
-	-- Compact: it sits under the menu grid (366).
+	-- Desktop: Ascend sits between the gold panel and the MENU / SETTINGS row (188).
+	-- Compact: under that row (174).
 	-- (While in a challenge run the challenge banner uses this spot: AdventureUI.)
-	ASCEND_TOP = if compact then 366 else 188,
+	ASCEND_TOP = if compact then 174 else 188,
 	ASCEND_HEIGHT = 40,
 
 	-- Shop panel (ShopUI).
@@ -93,9 +93,12 @@ local Layout = {
 -- Total shop panel height (8px padding top and bottom, header, gap, content).
 Layout.SHOP_HEIGHT = 16 + Layout.SHOP_HEADER_HEIGHT + 6 + Layout.SHOP_CONTENT_HEIGHT
 
--- Menu buttons in the right column, by name.
+-- Menu buttons in the right column, by name. Since the camp UI only MENU and SETTINGS are
+-- shown; the others are hidden by CampController (their windows open from camp signs)
+-- and keep these slots only because their modules still create them.
 local DESKTOP_MENU: { [string]: Slot } = {
-	Settings = { top = 234, index = 1, count = 2 },
+	Menu = { top = 234, index = 1, count = 2 },
+	Settings = { top = 234, index = 2, count = 2 },
 	Store = { top = 234, index = 2, count = 2 },
 	War = { top = 280, index = 1, count = 3 },
 	Clan = { top = 280, index = 2, count = 3 },
@@ -106,12 +109,13 @@ local DESKTOP_MENU: { [string]: Slot } = {
 	Adventure = { top = 372, index = 2, count = 2 },
 }
 local COMPACT_MENU: { [string]: Slot } = {
+	Menu = { top = 126, index = 1, count = 2 },
 	Quests = { top = 126, index = 1, count = 2 },
 	Store = { top = 126, index = 2, count = 2 },
 	War = { top = 174, index = 1, count = 2 },
 	Clan = { top = 174, index = 2, count = 2 },
 	Top = { top = 222, index = 1, count = 2 },
-	Settings = { top = 222, index = 2, count = 2 },
+	Settings = { top = 126, index = 2, count = 2 },
 	Wardrobe = { top = 270, index = 1, count = 2 },
 	Army = { top = 270, index = 2, count = 2 },
 	Adventure = { top = 318, index = 1, count = 1 },

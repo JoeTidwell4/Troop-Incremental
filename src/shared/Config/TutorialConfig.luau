@@ -51,6 +51,13 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
+		id = "Camp", topic = "Basics", title = "Your camp", when = "stage", stage = 2,
+		steps = {
+			{ text = "The tents, boards and carts around the battlefield are your menus: Quests, Army, Store, Clan and more. {tap} one to walk over and open it.", spotlight = "Menu:Quests" },
+			{ text = "A red ! over one means something is waiting there. Can't find one? MENU lists them all.", spotlight = "Menu:Menu" },
+		},
+	},
+	{
 		id = "Stages", topic = "Basics", title = "Stages", when = "stage", stage = 3,
 		steps = {
 			{ text = "Beat 10 enemies to clear a stage. Each stage is tougher, but pays more gold. Every 10th stage is a boss." },

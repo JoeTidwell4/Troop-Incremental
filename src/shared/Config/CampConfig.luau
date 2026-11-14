@@ -9,6 +9,10 @@
 -- (Visuals/CampProps). Spots were checked to stay on screen from 4:3 tablets to wide
 -- phones and clear of the troops, Generals (x = -21) and clan banner (-30, 10).
 --
+-- `hiddenInClan`: the model is hidden while you're in a clan (the Clan stand stands
+-- where ClanBannerController puts your real banner; the label and click still work).
+-- Settings stays a small screen button; MENU (UI/MenuUI) lists every sign as a fallback.
+--
 -- The old menu button of a converted window is hidden; its red dot (a child "Dot") is
 -- shown as a "!" above the sign instead.
 
@@ -22,8 +26,12 @@ local CampConfig = {
 		{ key = "Quests", label = "QUESTS", menu = "Menu:Quests", gui = "Quests", kind = "Board", offset = Vector3.new(31, 0.5, 6), color = Color3.fromRGB(150, 105, 65) },
 		{ key = "Army", label = "ARMY", menu = "Menu:Army", gui = "Army", kind = "Tent", offset = Vector3.new(29, 0.5, -6), color = Color3.fromRGB(70, 110, 200) },
 		{ key = "Adventure", label = "ADVENTURE", menu = "Menu:Adventure", gui = "Adventure", kind = "Signpost", offset = Vector3.new(-31, 0.5, 2), color = Color3.fromRGB(200, 110, 50) },
+		{ key = "Store", label = "STORE", menu = "Menu:Store", gui = "Store", kind = "Cart", offset = Vector3.new(29, 0.5, 16), color = Color3.fromRGB(0, 160, 110) },
+		{ key = "Top", label = "TOP", menu = "Menu:Top", gui = "Leaderboards", kind = "Trophy", offset = Vector3.new(24, 0.5, 24), color = Color3.fromRGB(240, 195, 70) },
+		{ key = "War", label = "WAR", menu = "Menu:War", gui = "FactionWar", kind = "Drum", offset = Vector3.new(-24, 0.5, 24), color = Color3.fromRGB(190, 60, 60) },
+		{ key = "Clan", label = "CLAN", menu = "Menu:Clan", gui = "Clan", kind = "ClanStand", offset = Vector3.new(-30, 0.5, 10), color = Color3.fromRGB(200, 200, 205), hiddenInClan = true },
 		{ key = "Wardrobe", label = "WARDROBE", menu = "Menu:Wardrobe", gui = "Wardrobe", kind = "Rack", offset = Vector3.new(-28, 0.5, -8), color = Color3.fromRGB(170, 90, 200) },
-	} :: { { key: string, label: string, menu: string, gui: string, kind: string, offset: Vector3, color: Color3 } },
+	} :: { { key: string, label: string, menu: string, gui: string, kind: string, offset: Vector3, color: Color3, hiddenInClan: boolean? } },
 }
 
 return table.freeze(CampConfig)
