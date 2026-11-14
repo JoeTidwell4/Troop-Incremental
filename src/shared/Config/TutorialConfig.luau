@@ -74,6 +74,12 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
+		id = "Group", topic = "Basics", title = "Join the group", when = "stage", stage = 15,
+		steps = {
+			{ text = "Join the game's group for update news and a free Commander's Pennant to wear. It's in SETTINGS.", open = "Menu:Settings", spotlight = "Settings:Group" },
+		},
+	},
+	{
 		id = "Stages", topic = "Basics", title = "Stages", when = "stage", stage = 3,
 		steps = {
 			{ text = "Beat 10 enemies to clear a stage. Each stage is tougher, but pays more gold. Every 10th stage is a boss." },

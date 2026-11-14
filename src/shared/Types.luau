@@ -498,6 +498,7 @@ export type Snapshot = {
 	challengeTiers: { [string]: number }, -- challenge id -> tiers cleared
 	expeditions: ExpeditionsData,
 	expeditionSlots: number,
+	groupMember: boolean, -- in the game's Roblox group (CommunityConfig)
 	fortuneSpins: number,
 	fortunePity: number, -- spins since the last Jackpot
 	fortuneFreeAt: number, -- os.time() of the next free spin

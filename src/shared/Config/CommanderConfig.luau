@@ -82,6 +82,8 @@ local CommanderConfig = {
 		"ClanCloak",
 		"ClanBlade",
 		"ClanStandard",
+		-- Group members
+		"CommandersPennant",
 		-- Mystery Merchant
 		"WandererHood",
 		"StarweaveCloak",
@@ -134,6 +136,8 @@ local CommanderConfig = {
 		ClanWarhelm = { id = "ClanWarhelm", slot = "Helmet", displayName = "Clan Warhelm", rarity = 4, multiplier = 1.2, style = "Horned", color = Color3.fromRGB(90, 100, 120), unlock = { kind = "clanShop" } },
 		ClanCloak = { id = "ClanCloak", slot = "Cape", displayName = "Clan Cloak", rarity = 4, multiplier = 1.2, style = "Mantle", color = Color3.fromRGB(40, 70, 130), unlock = { kind = "clanShop" } },
 		ClanBlade = { id = "ClanBlade", slot = "Weapon", displayName = "Clan Blade", rarity = 4, multiplier = 1.3, style = "Glow", color = Color3.fromRGB(80, 160, 255), unlock = { kind = "clanShop" } },
+		-- Group members (CommunityConfig): looks only, no stats.
+		CommandersPennant = { id = "CommandersPennant", slot = "Back", displayName = "Commander's Pennant", rarity = 4, style = "Banner", color = Color3.fromRGB(240, 190, 60), unlock = { kind = "group" } },
 		-- Mystery Merchant only (MerchantConfig.COSMETICS): looks only, no stats.
 		WandererHood = { id = "WandererHood", slot = "Helmet", displayName = "Wanderer's Hood", rarity = 5, style = "Cap", color = Color3.fromRGB(70, 40, 100), unlock = { kind = "merchant" } },
 		StarweaveCloak = { id = "StarweaveCloak", slot = "Cape", displayName = "Starweave Cloak", rarity = 5, style = "Phoenix", color = Color3.fromRGB(40, 50, 120), unlock = { kind = "merchant" } },

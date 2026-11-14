@@ -6,14 +6,18 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GroupService = game:GetService("GroupService")
 
 local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Version = require(Shared:WaitForChild("Version")) :: string
+local Remotes = require(Shared:WaitForChild("Remotes"))
+local CommunityConfig = require(Shared:WaitForChild("Config"):WaitForChild("CommunityConfig"))
 local UIKit = require(script.Parent.UIKit)
 local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 local SettingsController = require(Client.Controllers.SettingsController)
+local StateController = require(Client.Controllers.StateController)
 local GuideUI = require(script.Parent.GuideUI)
 
 local Theme = UIKit.Theme
@@ -66,7 +70,7 @@ function SettingsUI.start()
 		Visible = false,
 		Parent = gui,
 	}) :: Frame
-	local windowHeight = 14 + 34 + 2 * (22 + ROW_HEIGHT + 22 + 8) + ROW_HEIGHT + 8 + 18 + 14
+	local windowHeight = 14 + 34 + 2 * (22 + ROW_HEIGHT + 22 + 8) + 2 * (ROW_HEIGHT + 8) + 18 + 14
 	local window = UIKit.create("Frame", {
 		Name = "Window",
 		BackgroundColor3 = Theme.Panel,
@@ -164,6 +168,39 @@ function SettingsUI.start()
 		GuideUI.open()
 	end)
 	Spotlight.register("Settings:Guide", guideButton)
+	-- The game's Roblox group: Roblox's own join prompt, then the server re-checks.
+	local groupButton = UIKit.button({
+		Text = "JOIN OUR GROUP: free Commander's Pennant",
+		TextSize = 14,
+		BackgroundColor3 = Color3.fromRGB(200, 150, 50),
+		Position = UDim2.new(0, 0, 0, 38 + 2 * sectionHeight + ROW_HEIGHT + 8),
+		Size = UDim2.new(1, 0, 0, ROW_HEIGHT),
+		Parent = window,
+	})
+	local checkRemote = Remotes.waitForEvent(Remotes.Events.CommunityCheck)
+	local prompting = false
+	groupButton.Activated:Connect(function()
+		local snapshot = StateController.get()
+		if prompting or (snapshot ~= nil and snapshot.groupMember) then
+			return
+		end
+		prompting = true
+		task.spawn(function()
+			pcall(function()
+				GroupService:PromptJoinAsync(CommunityConfig.GROUP_ID)
+			end)
+			prompting = false
+			checkRemote:FireServer()
+		end)
+	end)
+	table.insert(refreshers, function()
+		local snapshot = StateController.get()
+		local member = snapshot ~= nil and snapshot.groupMember
+		groupButton.Text = if member then "Group member: Commander's Pennant unlocked!" else "JOIN OUR GROUP: free Commander's Pennant"
+		groupButton.BackgroundColor3 = if member then Theme.PanelLight else Color3.fromRGB(200, 150, 50)
+		groupButton.AutoButtonColor = not member
+	end)
+	Spotlight.register("Settings:Group", groupButton)
 	UIKit.label({
 		Text = `Version {Version}`,
 		TextColor3 = Theme.Muted,
@@ -180,6 +217,11 @@ function SettingsUI.start()
 		end
 	end
 	SettingsController.Changed:Connect(refresh)
+	StateController.Changed:Connect(function()
+		if overlay.Visible then
+			refresh()
+		end
+	end)
 	refresh()
 
 	local function openSettings()
