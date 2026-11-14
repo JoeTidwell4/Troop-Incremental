@@ -845,6 +845,9 @@ function BattlefieldController.start()
 	-- Red flash on the army when a boss hits it; white flash on the enemy when you hit it.
 	hurtHighlight = makeHighlight(HURT_COLOR, 1, troopsModel)
 	enemyHighlight = makeHighlight(Color3.new(1, 1, 1), 1, nil)
+	-- Always on: a dark cartoon outline around the enemy (the white fill flashes on hits).
+	enemyHighlight.OutlineColor = Color3.fromRGB(25, 18, 30)
+	enemyHighlight.OutlineTransparency = 0.3
 	enrageHighlight = makeHighlight(Color3.fromRGB(255, 40, 40), 0.55, nil)
 	enrageHighlight.Enabled = false
 

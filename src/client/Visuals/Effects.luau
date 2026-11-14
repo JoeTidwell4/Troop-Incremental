@@ -117,7 +117,7 @@ function Effects.shatter(model: Model, maxPieces: number)
 		if count >= maxPieces then
 			break
 		end
-		if item:IsA("BasePart") and item.Transparency < 1 then
+		if item:IsA("BasePart") and item.Transparency < 1 and item:GetAttribute("NoShatter") ~= true then
 			count += 1
 			local piece = item:Clone()
 			for _, child in piece:GetChildren() do

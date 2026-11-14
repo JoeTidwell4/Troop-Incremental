@@ -12,6 +12,8 @@ local Creatures = script.Parent:WaitForChild("Creatures")
 local Beasts = require(Creatures:WaitForChild("Beasts"))
 local Spirits = require(Creatures:WaitForChild("Spirits"))
 local Bosses = require(Creatures:WaitForChild("Bosses"))
+local Common = require(Creatures:WaitForChild("Common"))
+local Details = require(Creatures:WaitForChild("Details"))
 
 local EnemyModels = {}
 
@@ -19,11 +21,7 @@ type Builder = (model: Model, at: CFrame, color: Color3) -> number -- returns th
 
 local EYE_YELLOW = Color3.fromRGB(255, 230, 80)
 
-local function eyes(model: Model, at: CFrame, y: number, spacing: number, z: number, size: number, color: Color3)
-	for side = -1, 1, 2 do
-		Parts.ball(size, color, at * CFrame.new(side * spacing, y, z), model, { material = Enum.Material.Neon })
-	end
-end
+local eyes = Common.eyes
 
 local function goblin(model: Model, at: CFrame, color: Color3): number
 	local body = { name = "Body" }
@@ -189,13 +187,15 @@ end
 
 local function crown(model: Model, at: CFrame, height: number)
 	local gold = Color3.fromRGB(255, 200, 60)
+	local metal = { material = Enum.Material.Metal }
 	local top = at * CFrame.new(0, height + 0.3, 0)
-	Parts.cylinder(0.5, 1.8, gold, top, model, { material = Enum.Material.Neon })
+	Parts.cylinder(0.5, 1.8, gold, top, model, metal)
+	Parts.cylinder(0.14, 1.9, Color3.fromRGB(200, 140, 30), top * CFrame.new(0, -0.2, 0), model, metal) -- rim
 	for i = 0, 4 do
 		local angle = i / 5 * math.pi * 2
-		Parts.wedge(Vector3.new(0.3, 0.7, 0.4), gold, top * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0.55, -0.75), model, {
-			material = Enum.Material.Neon,
-		})
+		local point = top * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0.55, -0.75)
+		Parts.wedge(Vector3.new(0.3, 0.7, 0.4), gold, point, model, metal)
+		Parts.ball(0.22, if i % 2 == 0 then Color3.fromRGB(255, 60, 80) else Color3.fromRGB(80, 160, 255), point * CFrame.new(0, -0.15, -0.1), model, { material = Enum.Material.Neon }) -- jewels
 	end
 end
 
@@ -236,9 +236,12 @@ function EnemyModels.build(kind: string, color: Color3, scale: number, withCrown
 	model.PrimaryPart = root
 	local builder = BUILDERS[kind] or goblin
 	local height = builder(model, at, color)
+	Details.add(kind, model, at, color)
 	if withCrown then
 		crown(model, at, height)
 	end
+	-- Bosses and raid bosses are built at 2x+; minions and background creatures smaller.
+	Details.finish(model, at, color, height, EnemyModels.floats(kind), scale >= 1.9)
 	model:ScaleTo(scale)
 	model:PivotTo(home)
 	model.Parent = parent
