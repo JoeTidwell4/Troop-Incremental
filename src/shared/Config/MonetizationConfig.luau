@@ -24,6 +24,7 @@ local MonetizationConfig = {
 	-- pass's effect in this game only; it doesn't show as owned on their Roblox profile.
 	-- Example: [123456789] = { "DoubleGold", "AutoClicker" },
 	FREE_PASSES = {
+		[5116676494] = { "DoubleGold", "AutoClicker" },
 	} :: { [number]: { string } },
 
 	PASS_ORDER = { "DoubleGold", "AutoClicker", "AutoAbilities", "GoldenSword" } :: { string },
