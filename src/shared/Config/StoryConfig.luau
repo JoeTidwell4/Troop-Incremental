@@ -59,6 +59,21 @@ local StoryConfig = {
 		King = { name = "The Hollow King", color = Color3.fromRGB(190, 120, 255) },
 		Grimbark = { name = "Old Grimbark", color = Color3.fromRGB(150, 220, 90) },
 		Tyrant = { name = "The Sand Tyrant", color = Color3.fromRGB(240, 190, 100) },
+		Brannoc = { name = "Brannoc Ironhide", color = Color3.fromRGB(170, 180, 200) },
+		Morwen = { name = "Morwen the Arcane", color = Color3.fromRGB(190, 140, 255) },
+		Rook = { name = "Old Rook", color = Color3.fromRGB(210, 160, 90) },
+		Garrick = { name = "Garrick Stormrider", color = Color3.fromRGB(230, 120, 80) },
+		Seren = { name = "Seren Goldhand", color = Color3.fromRGB(255, 215, 90) },
+		Thessa = { name = "Thessa", color = Color3.fromRGB(255, 120, 170) },
+		Varkas = { name = "Varkas the Conqueror", color = Color3.fromRGB(220, 70, 60) },
+		Marshal = { name = "The Eternal Marshal", color = Color3.fromRGB(255, 90, 120) },
+		Wyrm = { name = "The Frost Wyrm", color = Color3.fromRGB(150, 210, 255) },
+		Hag = { name = "The Bog Hag", color = Color3.fromRGB(160, 220, 90) },
+		Titan = { name = "The Magma Colossus", color = Color3.fromRGB(255, 130, 50) },
+		Idol = { name = "The Jade Idol", color = Color3.fromRGB(110, 230, 160) },
+		Prism = { name = "The Prism Queen", color = Color3.fromRGB(230, 140, 255) },
+		Kraken = { name = "The Deep Kraken", color = Color3.fromRGB(200, 90, 150) },
+		Griffin = { name = "The Stormcrown Griffin", color = Color3.fromRGB(130, 170, 255) },
 	} :: { [string]: { name: string, color: Color3 } },
 
 	CHAPTERS = {} :: { Chapter },
@@ -246,7 +261,516 @@ scene("Outro_2", 2, "Outro", {
 	},
 })
 
--- Chapters whose scenes aren't written yet still clear (bonus + reward); they simply have
--- no cutscene (S2 adds them).
+---------------------------------------------------------------- Chapter 3: The Frozen Pass
+
+scene("Arrive_3", 3, "Arrive", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Brannoc", general = "Brannoc", at = CENTER + Vector3.new(0, 0, 6), face = TOWARD_CAMERA },
+			{ move = "Brannoc", to = CENTER, time = 1.4 },
+			{ spawn = "Aldric", general = "Aldric", at = LEFT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Brannoc", text = "Brannoc Ironhide, shield of the northern watch. You're the commander they're singing about?" },
+			{ who = "Aldric", text = "The very same. What's waiting for us up the pass?" },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { anim = "Brannoc", name = "shake" } },
+		lines = {
+			{ who = "Brannoc", text = "The beasts up here are quick. Too quick for heavy knights to pin down." },
+			{ who = "Brannoc", text = "And the Wyrm... when it's wounded, it goes wild. Finish it fast once it starts to fall." },
+		},
+	},
+})
+
+scene("Boss_3", 3, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "roar", at = "enemy" } },
+		lines = {
+			{ who = "Wyrm", text = "COLD... so cold... the King's voice freezes my heart..." },
+			{ who = "Brannoc", text = "Hold the line! When it's nearly down it will rage, so hit it with everything!" },
+		},
+	},
+})
+
+scene("Outro_3", 3, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Wyrm", enemy = "FrostWyrm", at = CENTER + Vector3.new(0, 0, 4), scale = 1, color = Color3.fromRGB(170, 215, 255) },
+			{ effect = "sparks", at = "Wyrm" },
+		},
+		lines = {
+			{ who = "Wyrm", text = "The ice in my heart has melted. I remember my oath to these mountains." },
+			{ who = "Wyrm", text = "Beware the swamp below. The witch there sold herself to him willingly." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Wyrm", effect = "sparks" },
+			{ spawn = "Brannoc", general = "Brannoc", at = LEFT, face = TOWARD_CAMERA },
+			{ anim = "Brannoc", name = "bow" },
+		},
+		lines = {
+			{ who = "Brannoc", text = "My shield is yours, Commander. Lead on." },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 4: Witch of the Mire
+
+scene("Arrive_4", 4, "Arrive", {
+	{
+		cam = "wide",
+		actions = {
+			{ effect = "portal", at = CENTER },
+			{ spawn = "Morwen", general = "Morwen", at = CENTER, face = TOWARD_CAMERA },
+			{ anim = "Morwen", name = "rise" },
+		},
+		lines = {
+			{ who = "Morwen", text = "Morwen of the Arcane Circle. The swamp stinks of dark magic, Commander. His magic." },
+			{ who = "Morwen", text = "The creatures here come in swarms. Your swordsmen will be buried under them." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { spawn = "Lyra", general = "Lyra", at = RIGHT, face = TOWARD_CAMERA } },
+		lines = {
+			{ who = "Lyra", text = "And the Hag calls her pets out of the mud once she's hurt. Kill the little ones fast." },
+		},
+	},
+})
+
+scene("Boss_4", 4, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "portal", at = "enemy" } },
+		lines = {
+			{ who = "Hag", text = "Hee hee hee! The King gave me POWER, child. What did he give you? A tin sword?" },
+			{ who = "Morwen", text = "Her minions shield her. Cut them down, then the witch is yours!" },
+		},
+	},
+})
+
+scene("Outro_4", 4, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Hag", enemy = "BogHag", at = CENTER + Vector3.new(0, 0, 4), scale = 0.9, color = Color3.fromRGB(90, 120, 70) },
+			{ anim = "Hag", name = "shake" },
+		},
+		lines = {
+			{ who = "Hag", text = "No... no! He promised I'd never grow old... he LIED..." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Hag", effect = "smoke" },
+			{ spawn = "Morwen", general = "Morwen", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = RIGHT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Morwen", text = "Gone back into the mud. She chose her master." },
+			{ who = "Aldric", text = "Another shard of his crown. Four lands free. Next, the fire peaks." },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 5: Heart of Fire
+
+scene("Arrive_5", 5, "Arrive", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Rook", general = "Rook", at = CENTER + Vector3.new(0, 0, 5), face = TOWARD_CAMERA },
+			{ move = "Rook", to = CENTER, time = 1.6 },
+			{ effect = "dust", at = CENTER + Vector3.new(-5, 0, 3) },
+		},
+		lines = {
+			{ who = "Rook", text = "Hah! Old Rook, engineer. I build the things that knock down walls." },
+			{ who = "Rook", text = "Arrows just bounce off these lava beasts. You want rocks. Big rocks." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { spawn = "Brannoc", general = "Brannoc", at = LEFT, face = TOWARD_CAMERA } },
+		lines = {
+			{ who = "Brannoc", text = "The Colossus raises a barrier of fire. While it's up, only your own blade gets through." },
+			{ who = "Brannoc", text = "Keep clicking, Commander. Your strikes are what break it." },
+		},
+	},
+})
+
+scene("Boss_5", 5, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "shockwave", at = "enemy" }, { effect = "roar", at = "enemy" } },
+		lines = {
+			{ who = "Titan", text = "BURN. EVERYTHING. BURNS." },
+			{ who = "Rook", text = "Big fella. Good. Big things fall loud!" },
+		},
+	},
+})
+
+scene("Outro_5", 5, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Titan", enemy = "MagmaTitan", at = CENTER + Vector3.new(0, 0, 5), scale = 0.9, color = Color3.fromRGB(90, 80, 75) },
+			{ effect = "dust", at = "Titan" },
+		},
+		lines = {
+			{ who = "Titan", text = "The fire... is calm now. I can hear the mountain again." },
+			{ who = "Titan", text = "He waits in the Shadow Keep. Go. End him." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Titan", effect = "dust" },
+			{ spawn = "Isolde", general = "Isolde", at = CENTER, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Rook", general = "Rook", at = RIGHT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Isolde", text = "Five guardians freed, and five shards of his crown. He is weaker than he has been in an age." },
+			{ who = "Isolde", text = "To the Shadow Keep, Commander. Bring him down." },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 6: The Hollow Throne
+
+scene("Arrive_6", 6, "Arrive", {
+	{
+		cam = "sky",
+		lines = {
+			{ who = "Narrator", text = "The Shadow Keep. No bird sings here. No wind blows. Only the throne, and the one who waits on it." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Garrick", general = "Garrick", at = CENTER + Vector3.new(0, 0, 7), face = TOWARD_CAMERA },
+			{ move = "Garrick", to = CENTER, time = 0.9 },
+			{ effect = "dust", at = CENTER },
+		},
+		lines = {
+			{ who = "Garrick", text = "Garrick Stormrider, and the cavalry of the east! We rode day and night to join you." },
+			{ who = "Garrick", text = "His shadow-knights are fast, too fast for heavy knights. Let my riders run them down." },
+		},
+	},
+})
+
+scene("Boss_6", 6, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "roar", at = "enemy" }, { effect = "portal", at = "enemy" } },
+		lines = {
+			{ who = "King", text = "So. The little commander climbs all the way to my throne." },
+			{ who = "King", text = "You freed five of my pets. Let us see you free YOURSELF." },
+			{ who = "Isolde", text = "He shields, he summons, he rages. Everything you have learned, Commander. Now!" },
+		},
+	},
+})
+
+scene("Outro_6", 6, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "King", enemy = "HollowKing", at = CENTER + Vector3.new(0, 0, 4), scale = 1.2, color = HOLLOW, ghost = true },
+			{ anim = "King", name = "shake" },
+			{ effect = "smoke", at = "King" },
+		},
+		lines = {
+			{ who = "King", text = "Ha... HA HA HA. Did you think THIS was me? A shadow. A puppet. A drop of my power." },
+			{ who = "King", text = "My true form waits above the clouds, in the Sky Citadel. Come and die there, Commander." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "King", effect = "portal" },
+			{ spawn = "Isolde", general = "Isolde", at = CENTER, face = TOWARD_CAMERA },
+			{ spawn = "Garrick", general = "Garrick", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = RIGHT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Aldric", text = "He's gone. And the lands beyond are still his." },
+			{ who = "Isolde", text = "Then we free them too, one by one, until his citadel stands alone in the sky." },
+			{ who = "Garrick", text = "My riders are ready. Where to?" },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 7: Ruins of Jade
+
+scene("Arrive_7", 7, "Arrive", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Seren", general = "Seren", at = CENTER + Vector3.new(0, 0, 5), face = TOWARD_CAMERA },
+			{ move = "Seren", to = CENTER, time = 1.2 },
+			{ effect = "sparks", at = CENTER + Vector3.new(0, 2, 0) },
+		},
+		lines = {
+			{ who = "Seren", text = "Seren Goldhand. My Golden Fleet funds your war now, Commander. Consider it an investment." },
+			{ who = "Seren", text = "These ruins swallow anything with wheels. Your siege engines will sink in the vines." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { spawn = "Morwen", general = "Morwen", at = LEFT, face = TOWARD_CAMERA } },
+		lines = {
+			{ who = "Morwen", text = "The Idol both summons and shields. Watch for both." },
+		},
+	},
+})
+
+scene("Boss_7", 7, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "shockwave", at = "enemy" } },
+		lines = {
+			{ who = "Idol", text = "I. WAS. WORSHIPPED. Now I. OBEY. Kneel, or be crushed." },
+		},
+	},
+})
+
+scene("Outro_7", 7, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Idol", enemy = "JadeIdol", at = CENTER + Vector3.new(0, 0, 5), scale = 0.8, color = Color3.fromRGB(80, 200, 130) },
+			{ effect = "sparks", at = "Idol" },
+		},
+		lines = {
+			{ who = "Idol", text = "The chains of his voice are broken. The jungle will remember you, Commander." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Idol", effect = "sparks" },
+			{ spawn = "Seren", general = "Seren", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Lyra", general = "Lyra", at = RIGHT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Lyra", text = "There's a cave under the ruins. And it's... glowing." },
+			{ who = "Seren", text = "Crystal. Priceless. And, I suspect, very angry." },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 8: The Prism Queen
+
+scene("Arrive_8", 8, "Arrive", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Thessa", general = "Thessa", at = CENTER + Vector3.new(0, 0, 4), face = TOWARD_CAMERA },
+			{ anim = "Thessa", name = "hop" },
+		},
+		lines = {
+			{ who = "Thessa", text = "Thessa, bladedancer. I go where the fighting is thickest, and I heard it was here." },
+			{ who = "Thessa", text = "The crystals reflect spells right back. Your mages will fight half-blind in these caves." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { spawn = "Morwen", general = "Morwen", at = LEFT, face = TOWARD_CAMERA }, { anim = "Morwen", name = "shake" } },
+		lines = {
+			{ who = "Morwen", text = "Hmph. Then the steel does the work this time." },
+		},
+	},
+})
+
+scene("Boss_8", 8, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "sparks", at = "enemy" } },
+		lines = {
+			{ who = "Prism", text = "Look at you, so dull. So ordinary. I will make you SHINE... forever, in crystal." },
+			{ who = "Thessa", text = "She hides behind her barriers, then rages when cornered. Strike between the two!" },
+		},
+	},
+})
+
+scene("Outro_8", 8, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Prism", enemy = "PrismQueen", at = CENTER + Vector3.new(0, 0, 5), scale = 0.8, color = Color3.fromRGB(200, 170, 255) },
+			{ effect = "sparks", at = "Prism" },
+		},
+		lines = {
+			{ who = "Prism", text = "My children... are free. Forgive the queen who forgot them." },
+			{ who = "Prism", text = "The sea beyond is darkest of all. The Kraken was the first he took." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Prism", effect = "sparks" },
+			{ spawn = "Thessa", general = "Thessa", at = RIGHT, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = LEFT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Aldric", text = "Eight shards. He must feel every one of them leave him." },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 9: Beneath the Waves
+
+scene("Arrive_9", 9, "Arrive", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Varkas", general = "Varkas", at = CENTER + Vector3.new(0, 0, 6), face = TOWARD_CAMERA },
+			{ move = "Varkas", to = CENTER, time = 1.6 },
+		},
+		lines = {
+			{ who = "Varkas", text = "Varkas. I conquered half the known world before your queen was born, Commander." },
+			{ who = "Varkas", text = "I do not kneel. But I will fight beside anyone who fights HIM." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { spawn = "Garrick", general = "Garrick", at = LEFT, face = TOWARD_CAMERA }, { anim = "Garrick", name = "shake" } },
+		lines = {
+			{ who = "Garrick", text = "Horses on wet rocks... my riders will be slipping all over this reef." },
+			{ who = "Varkas", text = "Then they walk. The Kraken calls its spawn and rages when bloodied. We crush both." },
+		},
+	},
+})
+
+scene("Boss_9", 9, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "shockwave", at = "enemy" }, { effect = "roar", at = "enemy" } },
+		lines = {
+			{ who = "Kraken", text = "The deep remembers everything... it remembers how you all DROWN." },
+		},
+	},
+})
+
+scene("Outro_9", 9, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Kraken", enemy = "Kraken", at = CENTER + Vector3.new(0, 0, 6), scale = 0.7, color = Color3.fromRGB(110, 150, 190) },
+			{ effect = "sparks", at = "Kraken" },
+		},
+		lines = {
+			{ who = "Kraken", text = "Light... I see light again. The deep is quiet." },
+			{ who = "Kraken", text = "Only his citadel remains. It floats above the storm. You will need wings, or courage." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Kraken", effect = "sparks" },
+			{ spawn = "Isolde", general = "Isolde", at = CENTER, face = TOWARD_CAMERA },
+			{ spawn = "Varkas", general = "Varkas", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = RIGHT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Isolde", text = "Nine shards. Nine guardians home. One citadel left." },
+			{ who = "Varkas", text = "Then we go up." },
+		},
+	},
+})
+
+---------------------------------------------------------------- Chapter 10: Storm over the Citadel
+
+scene("Arrive_10", 10, "Arrive", {
+	{
+		cam = "sky",
+		lines = {
+			{ who = "Narrator", text = "Above the storm, the Sky Citadel. The last place in Valdren still bound to the Hollow King." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ effect = "portal", at = CENTER },
+			{ spawn = "Marshal", general = "Marshal", at = CENTER, face = TOWARD_CAMERA },
+			{ anim = "Marshal", name = "rise" },
+			{ spawn = "Aldric", general = "Aldric", at = LEFT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Marshal", text = "I am the Eternal Marshal. I led the first army of Valdren, a thousand years ago." },
+			{ who = "Marshal", text = "I sealed him away once. I could not finish it. Perhaps you can." },
+			{ who = "Aldric", text = "A legend... standing with us." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { anim = "Marshal", name = "bow" } },
+		lines = {
+			{ who = "Marshal", text = "The winds up here scatter arrows. And his Griffin knows every trick he ever taught. Shield, swarm and rage." },
+		},
+	},
+})
+
+scene("Boss_10", 10, "Boss", {
+	{
+		cam = "enemy",
+		actions = { { effect = "roar", at = "enemy" }, { effect = "shockwave", at = "enemy" } },
+		lines = {
+			{ who = "Griffin", text = "SKREEEE! None pass the storm! None reach my master!" },
+			{ who = "Marshal", text = "Bring it down, Commander, and the citadel's gate falls with it!" },
+		},
+	},
+})
+
+scene("Outro_10", 10, "Outro", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Griffin", enemy = "Griffin", at = CENTER + Vector3.new(0, 0, 6), scale = 0.8, color = Color3.fromRGB(200, 210, 240) },
+			{ effect = "sparks", at = "Griffin" },
+		},
+		lines = {
+			{ who = "Griffin", text = "The storm in my mind... has passed. I am sorry, little commander." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "Griffin", effect = "sparks" },
+			{ effect = "portal", at = CENTER + Vector3.new(0, 0, 3) },
+			{ spawn = "King", enemy = "HollowKing", at = CENTER + Vector3.new(0, 0, 4), scale = 1.6, color = HOLLOW },
+			{ effect = "roar", at = "King" },
+		},
+		lines = {
+			{ who = "King", text = "ENOUGH." },
+			{ who = "King", text = "Ten shards. Ten guardians. You have taken everything from me, Commander." },
+			{ who = "King", text = "Then I will take everything from YOU. Come to the top of my citadel. We end this." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ remove = "King", effect = "smoke" },
+			{ spawn = "Isolde", general = "Isolde", at = CENTER, face = TOWARD_CAMERA },
+			{ spawn = "Marshal", general = "Marshal", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = RIGHT, face = TOWARD_CAMERA },
+		},
+		lines = {
+			{ who = "Isolde", text = "This is it, Commander. Everything Valdren has is behind you." },
+			{ who = "Commander", text = "Then let's finish it." },
+		},
+	},
+})
+
+-- The final battle against the Hollow King after Outro_10, and the ending, come with S3.
 
 return StoryConfig
