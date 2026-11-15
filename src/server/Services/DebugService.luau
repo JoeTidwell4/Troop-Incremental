@@ -169,7 +169,24 @@ local ACTIONS: { [string]: (player: Player, data: PlayerData, arg: number?) -> R
 		data.story.seen = {}
 		return done("Every story scene will play again (the one for where you are plays right away).")
 	end,
+	StoryFinal = function(_player, data)
+		-- Every chapter cleared (no rewards) and its scenes watched; the final battle's
+		-- intro plays next, then the fight.
+		for number = 1, 10 do
+			data.story.cleared[tostring(number)] = true
+			for _, kind in { "Arrive", "Boss", "Outro" } do
+				data.story.seen[`{kind}_{number}`] = true
+			end
+		end
+		data.story.seen.Final_Intro = nil
+		data.story.seen.Ending = nil
+		data.story.finalWon = false
+		data.story.finalFails = 0
+		return done("All chapters cleared: the final battle's intro plays in a moment, then the fight.")
+	end,
 	StoryReset = function(_player, data)
+		data.story.finalWon = false
+		data.story.finalFails = 0
 		data.story.seen = {}
 		data.story.cleared = {}
 		return done("Story reset: scenes and chapters (the bonus is gone until you beat the bosses again).")

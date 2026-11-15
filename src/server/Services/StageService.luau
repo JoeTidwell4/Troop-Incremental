@@ -37,6 +37,7 @@ local StageConfig = require(Config:WaitForChild("StageConfig"))
 local CombatConfig = require(Config:WaitForChild("CombatConfig"))
 local BossConfig = require(Config:WaitForChild("BossConfig"))
 local TowerConfig = require(Config:WaitForChild("TowerConfig"))
+local StoryConfig = require(Shared:WaitForChild("Config"):WaitForChild("StoryConfig"))
 local Signal = require(Shared:WaitForChild("Util"):WaitForChild("Signal"))
 local RateLimiter = require(Server.Util.RateLimiter)
 local Validate = require(Server.Util.Validate)
@@ -73,6 +74,7 @@ export type Encounter = {
 	raidBoss: string, -- raids: which RaidConfig.BOSSES boss ("" otherwise)
 	golden: boolean, -- normal stages: the current enemy is a golden one (StageConfig.GOLDEN_*)
 	tower: number, -- Tower fights: the floor (0 otherwise)
+	final: boolean?, -- the story's final battle (StoryConfig.FINAL): a one-off boss, no stage
 }
 
 local encounters: { [Player]: Encounter } = {}
@@ -95,6 +97,9 @@ local StageService = {
 	-- Fires when a Tower fight ends: (player, floor, won, reason "" | "OutOfTime" |
 	-- "ArmyDefeated" | "Left").
 	TowerFinished = Signal.new() :: Signal.Signal<Player, number, boolean, string>,
+	-- Fires when the story's final battle ends: (player, won, reason "" | "OutOfTime" |
+	-- "ArmyDefeated" | "Left").
+	FinalFinished = Signal.new() :: Signal.Signal<Player, boolean, string>,
 }
 
 local function now(): number
@@ -243,7 +248,7 @@ end
 local function setEncounter(player: Player, data: PlayerData, encounter: Encounter)
 	encounters[player] = encounter
 	CombatService.setFightContext(player, data.stage, encounter.kind ~= "Normal", encounter.tower)
-	if encounter.kind == "Boss" and encounter.tower == 0 then
+	if encounter.kind == "Boss" and encounter.tower == 0 and not encounter.final then
 		StageService.BossStarted:Fire(player, data.stage)
 	end
 end
@@ -275,6 +280,56 @@ local function finishTower(player: Player, data: PlayerData, won: boolean, reaso
 	local floor = encounter.tower
 	setEncounter(player, data, newEncounter(data.stage, data))
 	StageService.TowerFinished:Fire(player, floor, won, reason)
+end
+
+-- Ends the final battle (if it's on): back to the normal fight, then reports the result.
+local function finishFinal(player: Player, data: PlayerData, won: boolean, reason: string)
+	local encounter = encounters[player]
+	if encounter == nil or not encounter.final then
+		return
+	end
+	setEncounter(player, data, newEncounter(data.stage, data))
+	StageService.FinalFinished:Fire(player, won, reason)
+end
+
+-- Starts the story's final battle (StoryService checks who may). Only from a normal stage.
+-- `weaken` = share of HP taken off for earlier lost attempts.
+function StageService.startFinal(player: Player, weaken: number): boolean
+	local encounter = encounters[player]
+	local data = DataService.get(player)
+	if encounter == nil or data == nil or encounter.kind ~= "Normal" then
+		return false
+	end
+	local final = StoryConfig.FINAL
+	local hp = BigNum.round(BigNum.mulNumber(Formulas.bossHp(final.BOSS_STAGE), final.HP_MULTIPLIER * (1 - weaken)))
+	local ranks, generals, relics = Formulas.fightBuild(data.challenge.active, data.skills.ranks, data.generals, data.relics)
+	local seconds = final.TIME_LIMIT + Formulas.extras(ranks, generals, relics).bossTime + Formulas.challengeBonuses(data.challenge.tiers).bossTime
+	local introUntil = now() + BossConfig.INTRO_SECONDS
+	setEncounter(player, data, {
+		moves = { Enrage = true, Shield = true, Summon = true },
+		enraged = false,
+		shieldUntil = 0,
+		nextShieldAt = introUntil + BossConfig.SHIELD_EVERY,
+		introUntil = introUntil,
+		weakened = weaken,
+		raidBoss = "",
+		minionHp = BigNum.ZERO,
+		minionMaxHp = BigNum.ZERO,
+		summoned = false,
+		golden = false,
+		tower = 0,
+		final = true,
+		kind = "Boss",
+		enemyHp = hp,
+		enemyMaxHp = hp,
+		goldPerKill = BigNum.ZERO,
+		bossEndsAt = introUntil + seconds,
+		bossDps = BigNum.mulNumber(Formulas.bossDps(final.BOSS_STAGE), final.DPS_MULTIPLIER),
+		armyDamageTaken = BigNum.ZERO,
+		raidDamage = BigNum.ZERO,
+	})
+	DataService.markChanged(player)
+	return true
 end
 
 -- Starts the fight against Tower floor `floor`. Only from a normal stage.
@@ -376,6 +431,7 @@ function StageService.restart(player: Player)
 	end
 	finishRaid(player, data) -- an Ascend mid-raid still counts the damage dealt
 	finishTower(player, data, false, "Left") -- a Tower fight is simply abandoned
+	finishFinal(player, data, false, "Left")
 	CombatService.refreshArmy(player)
 	setEncounter(player, data, newEncounter(data.stage, data))
 	DataService.markChanged(player)
@@ -385,6 +441,10 @@ local function failBoss(player: Player, data: PlayerData, reason: "OutOfTime" | 
 	local current = encounters[player]
 	if current ~= nil and current.tower > 0 then
 		finishTower(player, data, false, reason) -- no penalty: just back to the run
+		return
+	end
+	if current ~= nil and current.final then
+		finishFinal(player, data, false, reason) -- no penalty: retry from ADVENTURE > Story
 		return
 	end
 	local bossStage = data.stage
@@ -470,6 +530,13 @@ local function applyDamage(player: Player, data: PlayerData, damage: BigNum): bo
 		return true
 	end
 
+	if encounter.final then
+		-- The Hollow King falls: no gold or stage. (The kill is counted so the client plays
+		-- the boss's death, not a retreat.)
+		data.stats.totalKills += 1
+		finishFinal(player, data, true, "")
+		return true
+	end
 	if encounter.tower > 0 then
 		-- A Tower floor falls: no gold or stage progress. (The kill is counted so the
 		-- client plays the boss's death, not a retreat.)

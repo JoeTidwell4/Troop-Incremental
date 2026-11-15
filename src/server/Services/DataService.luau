@@ -474,6 +474,8 @@ local function sanitize(data: PlayerData)
 		story.seen = seen
 		story.cleared = cleared
 		story.initialized = story.initialized == true
+		story.finalWon = story.finalWon == true
+		story.finalFails = wholeNumber(story.finalFails, 0, 0)
 	end
 	data.tower.best = wholeNumber(data.tower.best, 0, 0)
 	data.tower.tributeDay = wholeNumber(data.tower.tributeDay, -1, -1)

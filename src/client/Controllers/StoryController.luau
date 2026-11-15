@@ -3,6 +3,10 @@
 --   Arrive_<n>  in a normal fight in land n (1-10) that hasn't been watched
 --   Boss_<n>    when land n's boss (stage n x 10) appears, before the fight gets going
 --   Outro_<n>   once the server says chapter n is cleared (after the boss's death animation)
+--   Final_Intro after Outro_10 (until the Hollow King falls); when it ends the final battle
+--               starts (StoryRequest "Final"). Retries: ADVENTURE > Story (fightFinal).
+--   Ending      once the final battle is won
+-- During the final battle the King's TAUNTS show as subtitles at HP marks (no pause).
 -- Scenes queue up and play one at a time, never during the loading screen, a chest reveal,
 -- a raid or a Tower floor. Each tells the server "Begin" (which freezes the fight the first
 -- time) and "End" (unfreeze + remember it as watched).
@@ -14,6 +18,7 @@ local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Types = require(Shared:WaitForChild("Types"))
 local Areas = require(Shared:WaitForChild("Areas"))
+local BigNum = require(Shared:WaitForChild("BigNum"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local StoryConfig = require(Shared:WaitForChild("Config"):WaitForChild("StoryConfig"))
 local StateController = require(script.Parent.StateController)
@@ -29,6 +34,7 @@ local queued: { [string]: boolean } = {}
 local seenLocally: { [string]: boolean } = {}
 local readyAt = math.huge
 local request: RemoteFunction? = nil
+local nextTaunt = 1 -- the next StoryConfig.FINAL.TAUNTS line to show this fight
 
 local function seen(snapshot: Snapshot?, id: string): boolean
 	return seenLocally[id] == true or (snapshot ~= nil and snapshot.storySeen ~= nil and snapshot.storySeen[id] == true)
@@ -52,6 +58,21 @@ function StoryController.busy(): boolean
 	return CutsceneUI.isPlaying() or #queue > 0
 end
 
+-- Starts the final battle right now (retries from the Story tab). Returns the result.
+function StoryController.fightFinal(): Types.StoryResult
+	local remote = request
+	if remote == nil then
+		return { ok = false, reason = "NotReady" }
+	end
+	local ok, result = pcall(function()
+		return remote:InvokeServer("Final", "Final_Intro")
+	end)
+	if ok and typeof(result) == "table" then
+		return result :: Types.StoryResult
+	end
+	return { ok = false, reason = "Failed" }
+end
+
 -- Replays a scene (no freeze, nothing saved). For the Story tab.
 function StoryController.replay(id: string)
 	if StoryConfig.SCENES[id] ~= nil and not CutsceneUI.isPlaying() then
@@ -73,6 +94,25 @@ local function check(snapshot: Snapshot)
 		elseif snapshot.encounter == "Boss" and snapshot.stage == land * 10 and not seen(snapshot, `Boss_{land}`) then
 			enqueue(`Boss_{land}`, true, 0.8) -- let the boss land first
 		end
+	end
+	-- The final battle: the intro after chapter 10's outro, the ending after the win.
+	local cleared = snapshot.storyCleared ~= nil and snapshot.storyCleared["10"] == true
+	if cleared and not snapshot.storyFinalWon and seen(snapshot, "Outro_10") and not seen(snapshot, "Final_Intro") then
+		enqueue("Final_Intro", false, 1)
+	end
+	if snapshot.storyFinalWon and not seen(snapshot, "Ending") then
+		enqueue("Ending", true, 3.5) -- after his death animation
+	end
+	-- Taunts during the final battle.
+	if snapshot.finalBattle and snapshot.encounter == "Boss" then
+		local fraction = BigNum.toNumber(BigNum.div(snapshot.enemyHp, snapshot.enemyMaxHp))
+		local taunt = StoryConfig.FINAL.TAUNTS[nextTaunt]
+		if taunt ~= nil and fraction <= taunt.at and workspace:GetServerTimeNow() >= snapshot.bossIntroUntil then
+			nextTaunt += 1
+			CutsceneUI.subtitle(taunt.who, taunt.text)
+		end
+	else
+		nextTaunt = 1
 	end
 	for _, chapter in StoryConfig.CHAPTERS do
 		local id = `Outro_{chapter.number}`
@@ -98,7 +138,7 @@ local function playNext()
 	if not entry.replay and scene.kind == "Boss" and (snapshot == nil or snapshot.encounter ~= "Boss") then
 		return
 	end
-	if not entry.replay and scene.kind == "Arrive" and (snapshot == nil or snapshot.encounter ~= "Normal") then
+	if not entry.replay and (scene.kind == "Arrive" or scene.kind == "Final") and (snapshot == nil or snapshot.encounter ~= "Normal") then
 		queued[entry.id] = nil
 		return -- try again on a later snapshot
 	end
@@ -118,6 +158,10 @@ local function playNext()
 					pcall(function()
 						remote:InvokeServer("End", entry.id)
 					end)
+					-- The final battle starts as soon as its intro is over.
+					if scene.kind == "Final" then
+						StoryController.fightFinal()
+					end
 				end)
 			end
 		end

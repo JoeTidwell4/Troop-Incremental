@@ -137,6 +137,23 @@ local function onNotice(notice: Notice)
 			`+{math.floor(StoryConfig.BONUS_PER_CHAPTER * 100 + 0.5)}% damage forever, Recruit Scrolls, Honor, Relic Dust and gold`,
 			Theme.Gold
 		)
+	elseif notice.kind == "StoryFinal" then
+		if notice.won then
+			AudioController.play("Reward")
+			NoticeUI.show(
+				"THE HOLLOW KING HAS FALLEN!",
+				if notice.firstClear
+					then `+{math.floor(StoryConfig.FINAL.BONUS * 100 + 0.5)}% damage forever, {StoryConfig.FINAL.REWARD.scrolls} Recruit Scrolls, {StoryConfig.FINAL.REWARD.heroChests} Hero Chests, Honor, Dust, the Hollow Crown and the Banner of Valdren!`
+					else "Victory again. Valdren stays free.",
+				StoryConfig.HOLLOW_COLOR
+			)
+		else
+			NoticeUI.show(
+				"THE HOLLOW KING STANDS",
+				`{if notice.reason == "ArmyDefeated" then "Your army fell." else "Out of time."} He's {math.floor(StoryConfig.FINAL.WEAKEN_PER_FAIL * 100 + 0.5)}% weaker for your next try. Retry from ADVENTURE > Story.`,
+				Theme.HpFill
+			)
+		end
 	elseif notice.kind == "StoryCaughtUp" then
 		local count = notice.chapter or 0
 		NoticeUI.show(

@@ -510,6 +510,9 @@ export type Snapshot = {
 	towerBest: number, -- best Tower floor cleared
 	storySeen: { [string]: boolean }, -- story scene ids already watched
 	storyCleared: { [string]: boolean }, -- chapter number (as text) -> cleared
+	storyFinalWon: boolean, -- the final battle is won
+	storyFinalWeaken: number, -- 0..WEAKEN_MAX: HP taken off the final boss for lost attempts
+	finalBattle: boolean, -- the current fight is the final battle
 	towerTributeReady: boolean, -- today's Tower Tribute can be claimed
 	skillRanks: { [string]: number },
 	respecReady: boolean, -- the free daily respec is available
@@ -544,13 +547,15 @@ export type StoryState = {
 	seen: { [string]: boolean }, -- scene id -> watched
 	cleared: { [string]: boolean }, -- chapter number as text ("1".."10") -> cleared
 	initialized: boolean, -- caught up once (existing players get earlier chapters cleared)
+	finalWon: boolean, -- the Hollow King's true form is beaten (StoryConfig.FINAL)
+	finalFails: number, -- lost attempts against him (each weakens him)
 }
 
 -- Answer to StoryRequest.
 export type StoryResult = { ok: boolean, reason: string? }
 
 export type Notice = {
-	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived" | "GroupWelcome" | "StoryChapter" | "StoryCaughtUp",
+	kind: "BossDefeated" | "BossFailed" | "OfflineEarnings" | "RaidResult" | "RaidRewards" | "Purchase" | "ClanWarRewards" | "CommanderItem" | "ClanJoined" | "Golden" | "LevelUp" | "Relic" | "ChallengeTier" | "ChallengeEnded" | "TowerFloor" | "TowerFailed" | "TowerTribute" | "MerchantArrived" | "GroupWelcome" | "StoryChapter" | "StoryCaughtUp" | "StoryFinal",
 	stage: number,
 	reason: ("OutOfTime" | "ArmyDefeated")?,
 	firstClear: boolean?, -- true the first time this boss is beaten (grants a free pack)
@@ -574,6 +579,7 @@ export type Notice = {
 	heroChests: number?,
 	-- LevelUp only: the new Commander Level (stage = 0).
 	level: number?,
+	won: boolean?, -- StoryFinal: true = the Hollow King fell
 	chapter: number?, -- StoryChapter: the chapter cleared; StoryCaughtUp: how many were marked cleared
 	-- Relic only: what dropped, and whether it went straight to Dust (inventory full).
 	relic: RelicItem?,

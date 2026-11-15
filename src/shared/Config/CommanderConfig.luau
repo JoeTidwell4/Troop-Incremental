@@ -89,6 +89,9 @@ local CommanderConfig = {
 		"StarweaveCloak",
 		"MoonsilverSaber",
 		"LanternPack",
+		-- Story: beat the Hollow King
+		"HollowCrown",
+		"ValdrenBanner",
 	} :: { string },
 
 	ITEMS = {
@@ -142,6 +145,8 @@ local CommanderConfig = {
 		WandererHood = { id = "WandererHood", slot = "Helmet", displayName = "Wanderer's Hood", rarity = 5, style = "Cap", color = Color3.fromRGB(70, 40, 100), unlock = { kind = "merchant" } },
 		StarweaveCloak = { id = "StarweaveCloak", slot = "Cape", displayName = "Starweave Cloak", rarity = 5, style = "Phoenix", color = Color3.fromRGB(40, 50, 120), unlock = { kind = "merchant" } },
 		MoonsilverSaber = { id = "MoonsilverSaber", slot = "Weapon", displayName = "Moonsilver Saber", rarity = 5, style = "Glow", color = Color3.fromRGB(200, 220, 255), unlock = { kind = "merchant" } },
+		HollowCrown = { id = "HollowCrown", slot = "Helmet", displayName = "The Hollow Crown", rarity = 5, style = "Crown", color = Color3.fromRGB(110, 60, 170), unlock = { kind = "story" } },
+		ValdrenBanner = { id = "ValdrenBanner", slot = "Cape", displayName = "Banner of Valdren", rarity = 5, style = "Mantle", color = Color3.fromRGB(40, 70, 160), unlock = { kind = "story" } },
 		LanternPack = { id = "LanternPack", slot = "Back", displayName = "Lantern Pack", rarity = 5, style = "Quiver", color = Color3.fromRGB(255, 190, 90), unlock = { kind = "merchant" } },
 		ClanStandard = { id = "ClanStandard", slot = "Back", displayName = "Clan Standard", rarity = 4, multiplier = 1.2, style = "Banner", color = Color3.fromRGB(40, 70, 130), unlock = { kind = "clanShop" } },
 	} :: { [string]: Types.CommanderItemDef },

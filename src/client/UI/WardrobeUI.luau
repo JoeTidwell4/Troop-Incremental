@@ -61,6 +61,8 @@ local function howToGet(def: ItemDef): string
 		return "Buy in the clan shop"
 	elseif unlock.kind == "group" then
 		return "Join the game's group (SETTINGS > Join our group)"
+	elseif unlock.kind == "story" then
+		return "Defeat the Hollow King in the story (looks only)"
 	elseif unlock.kind == "merchant" then
 		return "Sold by the Mystery Merchant (looks only)"
 	elseif unlock.kind == "chest" then

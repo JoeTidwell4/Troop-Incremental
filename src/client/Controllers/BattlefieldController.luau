@@ -26,6 +26,7 @@ local TroopConfig = require(Config:WaitForChild("TroopConfig"))
 local VisualConfig = require(Config:WaitForChild("VisualConfig"))
 local RaidConfig = require(Config:WaitForChild("RaidConfig"))
 local TowerConfig = require(Config:WaitForChild("TowerConfig"))
+local StoryConfig = require(Config:WaitForChild("StoryConfig"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local Environment = require(Visuals:WaitForChild("Environment"))
 local Ambient = require(Visuals:WaitForChild("Ambient"))
@@ -567,6 +568,9 @@ local function onStateChanged(snapshot: Snapshot, previous: Snapshot?)
 	if snapshot.encounter == "Raid" then
 		local raidBoss = Formulas.raidBossById(snapshot.raidBossId)
 		setEnemy(raidBoss.kind, raidBoss.color, RAID_SCALE, false, "Raid")
+	elseif isBoss and snapshot.finalBattle then
+		-- The story's final battle: the Hollow King's true form, huge and crowned.
+		setEnemy("HollowKing", StoryConfig.HOLLOW_COLOR, StoryConfig.FINAL.SCALE, true, "Boss")
 	elseif isBoss and snapshot.towerFloor > 0 then
 		-- A Tower floor: the biome bosses take turns, in the Tower's colors (Guardians
 		-- gold and crowned). (Between two floors the normal fight shows for a moment, so

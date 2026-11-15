@@ -10,6 +10,10 @@
 --   * A chapter clears on the first win against its land's boss (stage 10, 20, ... 100):
 --     +BONUS_PER_CHAPTER damage forever (ModifierService) and REWARD once (Notice
 --     "StoryChapter").
+--   * StoryRequest("Final"): start the Hollow King's true form (StoryConfig.FINAL) once
+--     chapter 10 is cleared; retry any time from a normal fight. Each lost attempt weakens
+--     him. First win: +FINAL.BONUS damage forever, REWARD, Dust and the story cosmetics
+--     (Notice "StoryFinal" {won}).
 --   * Existing players: on their first load with story mode, chapters they're already past
 --     are cleared (bonus + rewards) and those scenes marked watched (Notice "StoryCaughtUp").
 
@@ -30,6 +34,7 @@ local SyncService = require(Services.SyncService)
 local ModifierService = require(Services.ModifierService)
 local StageService = require(Services.StageService)
 local DailyService = require(Services.DailyService)
+local CommanderService = require(Services.CommanderService)
 
 type PlayerData = Types.PlayerData
 type Result = Types.StoryResult
@@ -103,7 +108,56 @@ local function onBossDefeated(player: Player, bossStage: number)
 	end
 end
 
-local ACTIONS = { Begin = true, End = true }
+local ACTIONS = { Begin = true, End = true, Final = true }
+
+local function finalWeaken(data: PlayerData): number
+	return math.min(data.story.finalFails * StoryConfig.FINAL.WEAKEN_PER_FAIL, StoryConfig.FINAL.WEAKEN_MAX)
+end
+
+local function startFinal(player: Player, data: PlayerData): Result
+	if not data.story.cleared["10"] then
+		return { ok = false, reason = "Locked" }
+	end
+	if data.challenge.active ~= "" then
+		return { ok = false, reason = "InChallenge" }
+	end
+	local encounter = StageService.getEncounter(player)
+	if encounter == nil or encounter.kind ~= "Normal" then
+		return { ok = false, reason = "Busy" }
+	end
+	StageService.resume(player)
+	if not StageService.startFinal(player, finalWeaken(data)) then
+		return { ok = false, reason = "Busy" }
+	end
+	return { ok = true }
+end
+
+local function onFinalFinished(player: Player, won: boolean, reason: string)
+	local data = DataService.get(player)
+	if data == nil then
+		return
+	end
+	if won then
+		local first = not data.story.finalWon
+		data.story.finalWon = true
+		data.story.finalFails = 0
+		if first then
+			local final = StoryConfig.FINAL
+			DailyService.grant(player, data, final.REWARD, "Story")
+			data.relics.dust += final.REWARD_DUST
+			for _, itemId in final.COSMETICS do
+				CommanderService.grant(player, itemId)
+			end
+		end
+		notify(player, { kind = "StoryFinal", stage = 0, won = true, firstClear = first })
+	elseif reason ~= "Left" then
+		if not data.story.finalWon then
+			data.story.finalFails += 1
+		end
+		notify(player, { kind = "StoryFinal", stage = 0, won = false, reason = reason :: any })
+	end
+	DataService.markChanged(player)
+end
 
 type Request = { action: string, sceneId: string }
 
@@ -112,6 +166,9 @@ local function handle(player: Player, request: Request): Result
 	local data = DataService.get(player)
 	if data == nil then
 		return { ok = false, reason = "NotLoaded" }
+	end
+	if action == "Final" then
+		return startFinal(player, data)
 	end
 	if action == "Begin" then
 		local mine = froze[player]
@@ -152,23 +209,29 @@ function StoryService.start()
 	StageService.BossDefeated:Connect(function(player: Player, bossStage: number)
 		onBossDefeated(player, bossStage)
 	end)
+	StageService.FinalFinished:Connect(onFinalFinished)
 
 	ModifierService.register(function(player: Player): ModifierService.PartialModifiers?
 		local data = DataService.get(player)
 		if data == nil then
 			return nil
 		end
-		local count = clearedCount(data)
-		if count == 0 then
+		local bonus = clearedCount(data) * StoryConfig.BONUS_PER_CHAPTER
+		if data.story.finalWon then
+			bonus += StoryConfig.FINAL.BONUS
+		end
+		if bonus <= 0 then
 			return nil
 		end
-		return { damage = 1 + count * StoryConfig.BONUS_PER_CHAPTER }
+		return { damage = 1 + bonus }
 	end)
 
 	SyncService.addSnapshotFields(function(_player: Player, data: PlayerData): { [string]: any }
 		return {
 			storySeen = data.story.seen,
 			storyCleared = data.story.cleared,
+			storyFinalWon = data.story.finalWon,
+			storyFinalWeaken = finalWeaken(data),
 		}
 	end)
 

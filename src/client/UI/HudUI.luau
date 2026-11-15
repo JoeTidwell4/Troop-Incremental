@@ -28,6 +28,7 @@ local ClanController = require(Client.Controllers.ClanController)
 local Spotlight = require(script.Parent.Spotlight)
 local RaidConfig = require(Shared:WaitForChild("Config"):WaitForChild("RaidConfig"))
 local TowerConfig = require(Shared:WaitForChild("Config"):WaitForChild("TowerConfig"))
+local StoryConfig = require(Shared:WaitForChild("Config"):WaitForChild("StoryConfig"))
 local TowerController = require(Client.Controllers.TowerController)
 
 type Snapshot = Types.Snapshot
@@ -410,7 +411,12 @@ function HudUI.start()
 			armyBack.Visible = false
 			stagePanel.Size = UDim2.new(0, 300, 0, PANEL_HEIGHT_NORMAL)
 		elseif snapshot.encounter == "Boss" then
-			if snapshot.towerFloor > 0 then
+			if snapshot.finalBattle then
+				stageLabel.Text = "FINAL BATTLE: THE HOLLOW KING"
+				stageLabel.TextColor3 = StoryConfig.HOLLOW_COLOR
+				hpFill.BackgroundColor3 = StoryConfig.HOLLOW_COLOR
+				areaLabel.Text = "The top of the Sky Citadel"
+			elseif snapshot.towerFloor > 0 then
 				-- A Tower floor: its laws instead of the area line.
 				local info = Formulas.towerFloor(snapshot.towerFloor)
 				local color = if info.guardian then TowerConfig.GUARDIAN_COLOR else TowerConfig.COLOR

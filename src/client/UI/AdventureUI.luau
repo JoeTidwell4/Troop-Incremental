@@ -21,6 +21,7 @@ local Spotlight = require(script.Parent.Spotlight)
 local ChallengesTab = require(script.Parent.ChallengesTab)
 local TowerTab = require(script.Parent.TowerTab)
 local ExpeditionsTab = require(script.Parent.ExpeditionsTab)
+local StoryTab = require(script.Parent.StoryTab)
 local ExpeditionController = require(Client.Controllers.ExpeditionController)
 local StateController = require(Client.Controllers.StateController)
 
@@ -130,7 +131,7 @@ function AdventureUI.start()
 		Parent = window,
 	}) :: Frame
 
-	local tabs: { Tab } = { ChallengesTab.build(content), TowerTab.build(content), ExpeditionsTab.build(content) }
+	local tabs: { Tab } = { StoryTab.build(content), ChallengesTab.build(content), TowerTab.build(content), ExpeditionsTab.build(content) }
 	local activeTab = tabs[1]
 	local tabButtons: { [Tab]: TextButton } = {}
 
@@ -193,7 +194,7 @@ function AdventureUI.start()
 	StateController.Changed:Connect(function(snapshot: Snapshot)
 		dot.Visible = snapshot.towerTributeReady or ExpeditionController.readyCount(snapshot) > 0
 		-- A Tower fight just started: show the fight.
-		local inTower = snapshot.towerFloor > 0
+		local inTower = snapshot.towerFloor > 0 or snapshot.finalBattle
 		if inTower and not wasInTower then
 			overlay.Visible = false
 		end

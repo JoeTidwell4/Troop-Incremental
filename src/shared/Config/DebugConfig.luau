@@ -60,6 +60,7 @@ local DebugConfig = {
 			buttons = {
 				{ label = "Rewatch all scenes", action = "StoryScenes" },
 				{ label = "Reset story (chapters too)", action = "StoryReset" },
+				{ label = "Skip to the final battle", action = "StoryFinal" },
 			},
 		},
 		{

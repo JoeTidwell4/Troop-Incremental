@@ -81,6 +81,52 @@ local function cameraFor(spec: any, origin: Vector3): CFrame
 	return CFrame.lookAt(origin + Vector3.new(0, 5.5, -41), origin + Vector3.new(0, 3.2, -26))
 end
 
+-- A line shouted mid-fight (nothing pauses): a small box under the HUD for a few seconds.
+local subtitleGui: ScreenGui? = nil
+function CutsceneUI.subtitle(who: string, text: string)
+	local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+	if playerGui == nil then
+		return
+	end
+	if subtitleGui ~= nil then
+		subtitleGui:Destroy()
+	end
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "StorySubtitle"
+	gui.ResetOnSpawn = false
+	gui.DisplayOrder = 15
+	gui.Parent = playerGui
+	subtitleGui = gui
+	local cast = StoryConfig.CAST[who] or StoryConfig.CAST.Narrator
+	local box = Instance.new("TextLabel")
+	box.AnchorPoint = Vector2.new(0.5, 0.5)
+	box.Position = UDim2.fromScale(0.5, 0.47)
+	box.Size = UDim2.new(0.6, 0, 0, 44)
+	box.BackgroundColor3 = Color3.fromRGB(14, 12, 20)
+	box.BackgroundTransparency = 0.25
+	box.Font = Enum.Font.FredokaOne
+	box.TextSize = 20
+	box.TextWrapped = true
+	box.RichText = true
+	box.TextColor3 = Color3.fromRGB(240, 240, 245)
+	local hex = cast.color:ToHex()
+	box.Text = if cast.name ~= "" then `<font color="#{hex}">{cast.name}:</font> {text}` else text
+	box.Parent = gui
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = box
+	local limit = Instance.new("UISizeConstraint")
+	limit.MaxSize = Vector2.new(760, 80)
+	limit.Parent = box
+	task.delay(3.6, function()
+		if gui.Parent ~= nil then
+			TweenService:Create(box, TweenInfo.new(0.4), { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
+			task.wait(0.45)
+			gui:Destroy()
+		end
+	end)
+end
+
 function CutsceneUI.play(scene: Scene, onDone: () -> ())
 	if playing then
 		onDone()

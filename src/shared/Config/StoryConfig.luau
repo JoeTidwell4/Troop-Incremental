@@ -76,6 +76,30 @@ local StoryConfig = {
 		Griffin = { name = "The Stormcrown Griffin", color = Color3.fromRGB(130, 170, 255) },
 	} :: { [string]: { name: string, color: Color3 } },
 
+	-- The final battle (after Outro_10): the Hollow King's true form. A one-off fight (not a
+	-- stage), started from the Final_Intro scene or ADVENTURE > Story; retry any time.
+	FINAL = {
+		HP_MULTIPLIER = 2.5, -- x the stage-100 boss's HP
+		DPS_MULTIPLIER = 1.5, -- x the stage-100 boss's damage (still clamped like every boss)
+		BOSS_STAGE = 100,
+		TIME_LIMIT = 60, -- seconds (+ boss timer bonuses)
+		WEAKEN_PER_FAIL = 0.1, -- each lost attempt takes 10% off his HP...
+		WEAKEN_MAX = 0.5, -- ...up to 50%
+		SCALE = 2.6, -- model size (normal bosses are 2)
+		BONUS = 0.05, -- +5% damage forever once he falls
+		REWARD = { scrolls = 10, heroChests = 2, honorShare = 0.25, honor = 25, goldMinutes = 60 },
+		REWARD_DUST = 300,
+		COSMETICS = { "HollowCrown", "ValdrenBanner" }, -- looks only (CommanderConfig)
+		-- Shouted mid-fight (a subtitle, nothing pauses) when his HP drops below each mark.
+		TAUNTS = {
+			{ at = 0.99, who = "King", text = "KNEEL." },
+			{ at = 0.75, who = "King", text = "Ten shards... I need only ONE army to rebuild my crown. Yours." },
+			{ at = 0.5, who = "Isolde", text = "He's bleeding shadow! Keep pressing, Commander!" },
+			{ at = 0.25, who = "King", text = "NO! I am ETERNAL! I am the dark beneath every land!" },
+			{ at = 0.08, who = "Marshal", text = "Now! Finish what I could not!" },
+		},
+	},
+
 	CHAPTERS = {} :: { Chapter },
 	SCENES = {} :: { [string]: StoryScene },
 	HOLLOW_COLOR = HOLLOW,
@@ -771,6 +795,117 @@ scene("Outro_10", 10, "Outro", {
 	},
 })
 
--- The final battle against the Hollow King after Outro_10, and the ending, come with S3.
+---------------------------------------------------------------- The final battle and the ending
+
+scene("Final_Intro", 10, "Final", {
+	{
+		cam = "sky",
+		lines = {
+			{ who = "Narrator", text = "The top of the Sky Citadel. Above the storm, above the world, the Hollow King waits." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ effect = "portal", at = CENTER + Vector3.new(0, 0, 4) },
+			{ spawn = "King", enemy = "HollowKing", at = CENTER + Vector3.new(0, 0, 5), scale = 2, color = HOLLOW },
+			{ anim = "King", name = "rise" },
+			{ effect = "roar", at = "King" },
+		},
+		lines = {
+			{ who = "King", text = "So. The little commander finally stands before me. Not a shadow. Not a puppet. ME." },
+			{ who = "King", text = "A thousand years in the dark, I watched your kind. Tiny lives. Tiny kingdoms." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Isolde", general = "Isolde", at = LEFT + Vector3.new(0, 0, -3), face = Vector3.new(0, 0, 1) },
+			{ spawn = "Marshal", general = "Marshal", at = RIGHT + Vector3.new(0, 0, -3), face = Vector3.new(0, 0, 1) },
+			{ effect = "shockwave", at = "King" },
+		},
+		lines = {
+			{ who = "Marshal", text = "I sealed you once, Hollow King. This time there will be no seal. Only an end." },
+			{ who = "Isolde", text = "Every land you poisoned is free. Every guardian stands with us. You are alone." },
+		},
+	},
+	{
+		cam = "commander",
+		lines = {
+			{ who = "Commander", text = "For Valdren. CHARGE!" },
+		},
+	},
+	{
+		cam = "wide",
+		actions = { { anim = "King", name = "shake" }, { effect = "roar", at = "King" } },
+		lines = {
+			{ who = "King", text = "Then COME. And BREAK." },
+		},
+	},
+})
+
+scene("Ending", 10, "Ending", {
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "King", enemy = "HollowKing", at = CENTER + Vector3.new(0, 0, 5), scale = 1.6, color = HOLLOW, ghost = true },
+			{ anim = "King", name = "shake" },
+			{ effect = "smoke", at = "King" },
+		},
+		lines = {
+			{ who = "King", text = "Impossible... my crown... my CROWN..." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ anim = "King", name = "fall" },
+			{ effect = "sparks", at = "King" },
+			{ effect = "shockwave", at = "King" },
+		},
+		lines = {
+			{ who = "Narrator", text = "The crown shattered, and its shards flew home to the lands they were stolen from." },
+		},
+	},
+	{
+		cam = "sky",
+		actions = { { remove = "King", effect = "sparks" } },
+		lines = {
+			{ who = "Narrator", text = "In the forest, the dunes, the ice and the sea, the guardians woke from the dark and remembered their oaths." },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Isolde", general = "Isolde", at = CENTER, face = TOWARD_CAMERA },
+			{ spawn = "Aldric", general = "Aldric", at = LEFT, face = TOWARD_CAMERA },
+			{ spawn = "Lyra", general = "Lyra", at = RIGHT, face = TOWARD_CAMERA },
+			{ anim = "Isolde", name = "bow" },
+		},
+		lines = {
+			{ who = "Isolde", text = "Valdren is free. You did what no one has done in a thousand years, Commander." },
+			{ who = "Aldric", text = "Not bad for someone who started with one swordsman." },
+			{ who = "Lyra", text = "So... what now?" },
+		},
+	},
+	{
+		cam = "wide",
+		actions = {
+			{ spawn = "Marshal", general = "Marshal", at = CENTER + Vector3.new(0, 0, 5), face = TOWARD_CAMERA },
+			{ effect = "portal", at = CENTER + Vector3.new(0, 0, 5) },
+		},
+		lines = {
+			{ who = "Marshal", text = "Now? Beyond the sea, the old lands stir. Darker things than he slept there." },
+			{ who = "Marshal", text = "The army of Valdren will be needed again. Rest well, Commander. Then march on." },
+		},
+	},
+	{
+		cam = "sky",
+		lines = {
+			{ who = "Narrator", text = "THE HOLLOW KING: THE END. The war goes on beyond stage 100, and the legend of the Commander grows." },
+		},
+	},
+})
+
 
 return StoryConfig

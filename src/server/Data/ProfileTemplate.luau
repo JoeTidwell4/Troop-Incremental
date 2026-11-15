@@ -43,7 +43,7 @@ local template: Types.PlayerData = {
 	merchant = { nextAt = 0, leaveAt = 0, offers = {}, bought = {} }, -- MerchantConfig
 	expeditions = { day = -1, rerollDay = -1, rerolls = 0, nextId = 1, board = {}, active = {} }, -- ExpeditionConfig
 	tower = { best = 0, tributeDay = -1 }, -- Endless Tower (TowerConfig)
-	story = { seen = {}, cleared = {}, initialized = false }, -- story mode (StoryConfig): scene ids watched, chapters cleared ("1".."10")
+	story = { seen = {}, cleared = {}, initialized = false, finalWon = false, finalFails = 0 }, -- story mode (StoryConfig): scene ids watched, chapters cleared ("1".."10")
 	generals = { -- Generals roster (GeneralConfig; kept forever)
 		owned = {},
 		fielded = { "", "", "" },
