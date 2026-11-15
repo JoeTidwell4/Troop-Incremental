@@ -258,7 +258,7 @@ local LESSONS: { Lesson } = {
 		steps = {
 			{ text = "You freed your first guardian! Each of the ten lands is a chapter of the story: beat its boss for the first time to clear it." },
 			{ text = "Every cleared chapter gives +2% damage forever, plus Recruit Scrolls, Honor, Relic Dust and gold. Story scenes pause your fight while they play, so you never lose a boss to one." },
-			{ text = "Rewatch any scene in ADVENTURE > Story. After chapter 10, the Hollow King himself waits there for the final battle.", spotlight = "Menu:Adventure" },
+			{ text = "The STORY stand in your camp (the glowing book) is where the tale lives: rewatch any scene there, and after chapter 10 the Hollow King himself waits there for the final battle.", spotlight = "Menu:Story" },
 		},
 	},
 	{

@@ -359,6 +359,8 @@ local function update()
 	local inClan = clan ~= nil and clan.inClan
 	local snapshot = StateController.get()
 	local merchantHere = snapshot ~= nil and snapshot.merchant.leaveAt > workspace:GetServerTimeNow()
+	-- "!" over the Story stand while the final battle is waiting.
+	badges.Story = snapshot ~= nil and snapshot.storyCleared ~= nil and snapshot.storyCleared["10"] == true and not snapshot.storyFinalWon
 	for _, sign in signs do
 		if sign.def.hiddenInClan then
 			setHidden(sign, inClan)

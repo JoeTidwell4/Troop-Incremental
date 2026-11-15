@@ -219,7 +219,44 @@ local function merchant(model: Model, at: CFrame, color: Color3): number
 	return 6.2
 end
 
+-- The Chronicle (story mode): a stone lectern with a big glowing open book, the cover in
+-- the Hollow King's purple, and crown shards floating above it.
+local function chronicle(model: Model, at: CFrame, color: Color3): number
+	local stone = Color3.fromRGB(150, 145, 155)
+	Parts.cylinder(0.3, 4.2, Color3.fromRGB(110, 105, 120), at * CFrame.new(0, 0.15, 0), model, { material = Enum.Material.Slate, shadow = true }) -- base
+	Parts.cylinder(0.12, 4.4, color, at * CFrame.new(0, 0.32, 0), model, { material = Enum.Material.Neon, transparency = 0.4 }) -- rune ring
+	Parts.block(Vector3.new(1.1, 3, 1.1), stone, at * CFrame.new(0, 1.8, 0), model, { material = Enum.Material.Marble, shadow = true }) -- column
+	Parts.block(Vector3.new(1.5, 0.3, 1.5), stone, at * CFrame.new(0, 0.45, 0), model, { material = Enum.Material.Marble })
+	-- Reading desk tilted toward the viewer (front = local -Z).
+	local desk = at * CFrame.new(0, 3.5, 0) * CFrame.Angles(math.rad(25), 0, 0)
+	Parts.block(Vector3.new(3, 0.3, 2.1), Color3.fromRGB(95, 70, 50), desk, model, { material = Enum.Material.Wood, shadow = true })
+	-- The open book: purple cover, two cream pages in a shallow V, a gold ribbon.
+	Parts.block(Vector3.new(2.7, 0.12, 1.8), color, desk * CFrame.new(0, 0.2, 0), model, { material = Enum.Material.Fabric })
+	for side = -1, 1, 2 do
+		Parts.block(Vector3.new(1.25, 0.14, 1.65), Color3.fromRGB(250, 240, 215), desk * CFrame.new(side * 0.65, 0.3, 0) * CFrame.Angles(0, 0, side * math.rad(-6)), model)
+		for line = 0, 3 do
+			Parts.block(Vector3.new(0.9, 0.02, 0.06), Color3.fromRGB(120, 100, 140), desk * CFrame.new(side * 0.65, 0.38, -0.55 + line * 0.32) * CFrame.Angles(0, 0, side * math.rad(-6)), model) -- writing
+		end
+	end
+	Parts.block(Vector3.new(0.12, 0.05, 1.4), GOLD, desk * CFrame.new(0.1, 0.4, 0.5), model, { material = Enum.Material.Metal }) -- ribbon
+	local glow = Parts.ball(0.6, Color3.fromRGB(255, 240, 200), desk * CFrame.new(0, 0.6, 0), model, { material = Enum.Material.Neon, transparency = 0.5 })
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 220, 170)
+	light.Range = 9
+	light.Brightness = 1.2
+	light.Parent = glow
+	-- Floating shards of the Hollow Crown.
+	for i = 0, 2 do
+		local angle = (i - 1) * 0.7
+		Parts.wedge(Vector3.new(0.25, 0.8, 0.35), color, at * CFrame.new(math.sin(angle) * 1.1, 5.4 + (i % 2) * 0.4, math.cos(angle) * 0.2) * CFrame.Angles(0, angle, 0.3 * (i - 1)), model, {
+			material = Enum.Material.Neon,
+		})
+	end
+	return 6.2
+end
+
 local BUILDERS: { [string]: (Model, CFrame, Color3) -> number } = {
+	Chronicle = chronicle,
 	Wheel = wheel,
 	Merchant = merchant,
 	Cart = cart,

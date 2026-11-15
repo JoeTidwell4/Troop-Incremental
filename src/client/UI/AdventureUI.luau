@@ -167,6 +167,11 @@ function AdventureUI.start()
 		end)
 	end
 
+	-- The STORY stand in the camp (CampConfig) opens straight onto the Story tab.
+	Spotlight.registerOpener("Menu:Story", function()
+		AdventureUI.open("Story")
+	end)
+
 	openWindow = function(tabTitle: string?)
 		for _, tab in tabs do
 			if tab.title == tabTitle then
