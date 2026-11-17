@@ -258,6 +258,12 @@ function AdminUI.start()
 		end
 	end)
 
+	-- Phones: the button sits top-centre on its own low layer, so open windows cover it.
+	if Layout.compact then
+		local low = UIKit.create("ScreenGui", { Name = "AdminButton", ResetOnSpawn = false, DisplayOrder = 3 }) :: ScreenGui
+		toggle.Parent = low
+		low.Parent = player:WaitForChild("PlayerGui")
+	end
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 

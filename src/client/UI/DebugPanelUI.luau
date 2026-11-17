@@ -199,6 +199,12 @@ function DebugPanelUI.start()
 	if Layout.compact then
 		window.Size = UDim2.new(0, 300, 1, -50)
 	end
+	-- Phones: the button sits top-centre on its own low layer, so open windows cover it.
+	if Layout.compact then
+		local low = UIKit.create("ScreenGui", { Name = "TestButton", ResetOnSpawn = false, DisplayOrder = 3 }) :: ScreenGui
+		toggle.Parent = low
+		low.Parent = playerGui
+	end
 	gui.Parent = playerGui
 	print("[DebugPanel] TEST button is in the top-left corner (Studio only).")
 end

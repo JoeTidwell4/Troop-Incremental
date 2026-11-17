@@ -66,8 +66,9 @@ function MenuUI.start()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.5, 0),
-		Size = UDim2.fromOffset(300, 60),
-		AutomaticSize = Enum.AutomaticSize.Y,
+		-- Phones: too short for one long list, so two columns in a window that fits the screen.
+		Size = if Layout.compact then UDim2.new(0, 440, 1, -24) else UDim2.fromOffset(300, 60),
+		AutomaticSize = if Layout.compact then Enum.AutomaticSize.None else Enum.AutomaticSize.Y,
 		Parent = overlay,
 	}, { UIKit.corner(14), UIKit.padding(14) }) :: Frame
 	UIKit.windowTitle({ Text = "CAMP", Size = UDim2.new(1, -50, 0, 28), Parent = window })
@@ -80,13 +81,33 @@ function MenuUI.start()
 		Size = UDim2.fromOffset(Layout.CLOSE_SIZE, Layout.CLOSE_SIZE),
 		Parent = window,
 	})
-	local list = UIKit.create("Frame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 0, 0, 40),
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		Parent = window,
-	}, { UIKit.create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) }) :: Frame
+	local list: GuiObject
+	if Layout.compact then
+		list = UIKit.create("ScrollingFrame", {
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 0, 0, 44),
+			Size = UDim2.new(1, 0, 1, -44),
+			CanvasSize = UDim2.new(),
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ScrollBarThickness = 5,
+			Parent = window,
+		}, {
+			UIKit.create("UIGridLayout", {
+				CellSize = UDim2.new(0.5, -5, 0, ROW),
+				CellPadding = UDim2.fromOffset(6, 6),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+			}),
+		}) :: ScrollingFrame
+	else
+		list = UIKit.create("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.new(0, 0, 0, 40),
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Parent = window,
+		}, { UIKit.create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) }) :: Frame
+	end
 
 	local function fill()
 		for _, child in list:GetChildren() do
