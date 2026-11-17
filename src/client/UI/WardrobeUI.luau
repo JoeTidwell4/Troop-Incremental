@@ -89,17 +89,6 @@ function WardrobeUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	local menuPosition, menuSize = Layout.menuSlot("Wardrobe")
-	local menuButton = UIKit.button({
-		Name = "WardrobeButton",
-		Text = "WARDROBE",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		BackgroundColor3 = Color3.fromRGB(60, 140, 130),
-		Position = menuPosition,
-		Size = menuSize,
-		Parent = gui,
-	})
-
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -123,11 +112,8 @@ function WardrobeUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(600, 420) }),
 	}) :: Frame
-	UIKit.label({
-		Text = "Wardrobe",
-		Font = Theme.FontBold,
-		TextSize = 22,
-		TextColor3 = Theme.Gold,
+	UIKit.windowTitle({
+		Text = "WARDROBE",
 		Size = UDim2.new(1, -50, 0, 26),
 		Parent = window,
 	})
@@ -399,10 +385,6 @@ function WardrobeUI.start()
 		end
 		UIKit.openModal(overlay, window)
 	end
-	menuButton.Activated:Connect(function()
-		WardrobeUI.open(nil)
-	end)
-	Spotlight.register("Menu:Wardrobe", menuButton)
 	Spotlight.registerOpener("Menu:Wardrobe", function()
 		WardrobeUI.open(nil)
 	end)

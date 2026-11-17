@@ -76,10 +76,8 @@ function ForgeUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(520, 420) }),
 	}) :: Frame
-	UIKit.label({
-		Text = "Epic Forge",
-		Font = Theme.FontBold,
-		TextSize = 22,
+	UIKit.windowTitle({
+		Text = "EPIC FORGE",
 		TextColor3 = GearInfo.rarity(PackConfig.FORGE_RARITY).color,
 		Size = UDim2.new(1, -50, 0, 26),
 		Parent = window,

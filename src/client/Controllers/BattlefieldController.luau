@@ -400,6 +400,11 @@ function BattlefieldController.focusCamera(target: CFrame?, seconds: number?)
 end
 
 -- 0 = normal view, 1 = fully at a camp sign (in between while gliding).
+-- A small camera kick (crits and other hits that should be felt).
+function BattlefieldController.kick(strength: number)
+	shake = math.max(shake, strength)
+end
+
 function BattlefieldController.cameraFocus(): number
 	return focusAmount
 end

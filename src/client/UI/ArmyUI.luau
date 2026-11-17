@@ -22,6 +22,7 @@ local SkillsTab = require(script.Parent.SkillsTab)
 local GeneralsTab = require(script.Parent.GeneralsTab)
 local RelicsTab = require(script.Parent.RelicsTab)
 local StateController = require(Client.Controllers.StateController)
+local CampController = require(Client.Controllers.CampController)
 local AbilityController = require(Client.Controllers.AbilityController)
 
 type Snapshot = Types.Snapshot
@@ -224,30 +225,6 @@ function ArmyUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	local menuPosition, menuSize = Layout.menuSlot("Army")
-	local menuButton = UIKit.button({
-		Name = "ArmyButton",
-		Text = "ARMY",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		BackgroundColor3 = Color3.fromRGB(70, 110, 200),
-		Position = menuPosition,
-		Size = menuSize,
-		Parent = gui,
-	})
-	Spotlight.register("Menu:Army", menuButton)
-	-- Red dot: unspent skill points.
-	local dot = UIKit.create("Frame", {
-		Name = "Dot",
-		BackgroundColor3 = Color3.fromRGB(230, 60, 60),
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -4, 0, 4),
-		Size = UDim2.fromOffset(14, 14),
-		Visible = false,
-		ZIndex = 5,
-		Parent = menuButton,
-	}, { UIKit.corner(7) }) :: Frame
-
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -271,7 +248,7 @@ function ArmyUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(680, 500) }),
 	}) :: Frame
-	UIKit.label({ Text = "ARMY", Font = Theme.FontBold, TextSize = 24, TextColor3 = Theme.Gold, Size = UDim2.new(1, -50, 0, 28), Parent = window })
+	UIKit.windowTitle({ Text = "ARMY", Size = UDim2.new(1, -50, 0, 28), Parent = window })
 	local closeButton = UIKit.button({
 		Text = "X",
 		TextSize = 16,
@@ -333,9 +310,6 @@ function ArmyUI.start()
 		UIKit.openModal(overlay, window)
 		render()
 	end
-	menuButton.Activated:Connect(function()
-		ArmyUI.open()
-	end)
 	Spotlight.registerOpener("Menu:Army", function()
 		ArmyUI.open()
 	end)
@@ -344,8 +318,8 @@ function ArmyUI.start()
 	end)
 	StateController.Changed:Connect(function(snapshot: Snapshot)
 		-- Red dot: skill points to spend, or Recruit Scrolls once Generals are unlocked.
-		dot.Visible = SkillsTab.unspentPoints(snapshot) > 0
-			or (snapshot.bestStage >= GeneralConfig.UNLOCK_STAGE and snapshot.generals.scrolls > 0)
+		CampController.setBadge("Army", SkillsTab.unspentPoints(snapshot) > 0
+			or (snapshot.bestStage >= GeneralConfig.UNLOCK_STAGE and snapshot.generals.scrolls > 0))
 		render()
 	end)
 

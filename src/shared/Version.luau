@@ -1,4 +1,4 @@
 --!strict
 -- Build identifier shown in Output on boot so you can tell Rojo synced the latest code.
 
-return "0.46.0-polish-pass"
+return "0.47.0-polish-2"

@@ -177,6 +177,22 @@ function UIKit.label(props: { [string]: any }): TextLabel
 	return UIKit.create("TextLabel", defaults) :: TextLabel
 end
 
+-- The title at the top of a window: same font, size, color and outline everywhere.
+-- Pass TextColor3 for windows with their own color (Store green, Legacy crown, ...).
+function UIKit.windowTitle(props: { [string]: any }): TextLabel
+	local defaults: { [string]: any } = {
+		Font = UIKit.Theme.FontBold,
+		TextSize = 24,
+		TextColor3 = UIKit.Theme.Gold,
+		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextStrokeTransparency = 0.55,
+	}
+	for key, value in props do
+		defaults[key] = value
+	end
+	return UIKit.label(defaults)
+end
+
 function UIKit.button(props: { [string]: any }): TextButton
 	local defaults: { [string]: any } = {
 		BackgroundColor3 = UIKit.Theme.Accent,

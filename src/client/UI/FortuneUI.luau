@@ -88,7 +88,7 @@ function FortuneUI.start()
 		Size = Layout.windowSize(0.6, 0.9),
 		Parent = overlay,
 	}, { UIKit.corner(14), UIKit.padding(14), UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(560, 520) }) }) :: TextButton
-	UIKit.label({ Text = "Fortune Wheel", Font = Theme.FontBold, TextSize = 22, TextColor3 = Theme.Gold, Size = UDim2.new(1, -50, 0, 28), Parent = window })
+	UIKit.windowTitle({ Text = "FORTUNE WHEEL", Size = UDim2.new(1, -50, 0, 28), Parent = window })
 	local spinsLabel = UIKit.label({ Text = "", TextSize = 13, TextColor3 = Theme.Muted, Position = UDim2.new(0, 0, 0, 28), Size = UDim2.new(1, -50, 0, 16), Parent = window })
 	local closeButton = UIKit.button({
 		Text = "X",

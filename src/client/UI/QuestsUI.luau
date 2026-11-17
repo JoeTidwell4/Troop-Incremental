@@ -25,6 +25,7 @@ local Layout = require(script.Parent.Layout)
 local ProgressController = require(Client.Controllers.ProgressController)
 local AudioController = require(Client.Controllers.AudioController)
 local StateController = require(Client.Controllers.StateController)
+local CampController = require(Client.Controllers.CampController)
 local Cinematic = require(Client.Controllers.Cinematic)
 
 type ProgressView = Types.ProgressView
@@ -107,26 +108,6 @@ function QuestsUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	local questsPosition, questsSize = Layout.menuSlot("Quests")
-	local questsButton = UIKit.button({
-		Name = "QuestsButton",
-		Text = "QUESTS",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		BackgroundColor3 = Color3.fromRGB(150, 90, 220),
-		Position = questsPosition,
-		Size = questsSize,
-		Parent = gui,
-	})
-	local dot = UIKit.create("Frame", {
-		Name = "Dot",
-		BackgroundColor3 = Color3.fromRGB(235, 60, 60),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -4, 0, 4),
-		Size = UDim2.fromOffset(14, 14),
-		Visible = false,
-		Parent = questsButton,
-	}, { UIKit.corner(7), UIKit.create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) }) :: Frame
-
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -150,7 +131,7 @@ function QuestsUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(620, 420) }),
 	}) :: Frame
-	UIKit.label({ Text = "Quests", Font = Theme.FontBold, TextSize = 22, Size = UDim2.new(0, 120, 0, 26), Parent = window })
+	UIKit.windowTitle({ Text = "QUESTS", Size = UDim2.new(0, 120, 0, 26), Parent = window })
 	local statusLabel = UIKit.label({
 		Text = "",
 		TextColor3 = Theme.HpFill,
@@ -395,7 +376,7 @@ function QuestsUI.start()
 			button.BackgroundColor3 = if frame == activePage then Theme.Accent else Theme.PanelLight
 		end
 		local view = ProgressController.get()
-		dot.Visible = ProgressController.hasClaimable()
+		CampController.setBadge("Quests", ProgressController.hasClaimable())
 		if view == nil then
 			return
 		end
@@ -494,8 +475,6 @@ function QuestsUI.start()
 		UIKit.openModal(overlay, window)
 		render()
 	end
-	questsButton.Activated:Connect(openQuests)
-	Spotlight.register("Menu:Quests", questsButton)
 	Spotlight.registerOpener("Menu:Quests", openQuests)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false

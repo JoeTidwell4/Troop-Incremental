@@ -5,6 +5,7 @@
 -- Scrolls, since there are more troop types than fit in the shop at once.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -152,6 +153,14 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 		Spotlight.register(`Buy:{troopId}`, button)
 	end
 
+	-- Bought some: the count pops and the row glows green for a moment.
+	local lastCount: { [string]: number } = {}
+	local function celebrate(row: any)
+		UIKit.bump(row.owned, 0.3)
+		row.frame.BackgroundColor3 = Color3.fromRGB(70, 130, 80)
+		TweenService:Create(row.frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Theme.PanelLight }):Play()
+	end
+
 	local function render(snapshot: Snapshot)
 		-- DPS is shown for the current fight: faction, area trait, and boss/normal jobs.
 		-- Challenge rules change the numbers too (no Generals / no gear / one troop type).
@@ -185,6 +194,10 @@ function TroopTab.build(parent: Instance, context: ShopTypes.Context): ShopTypes
 			row.frame.BackgroundTransparency = 0
 			local count = snapshot.troops[troopId] or 0
 			row.owned.Text = `Owned: {count}`
+			if lastCount[troopId] ~= nil and count > lastCount[troopId] then
+				celebrate(row)
+			end
+			lastCount[troopId] = count
 			local dps = format(Formulas.troopDps(troopId, count, gear, fightBonus))
 			local hp = format(Formulas.troopHp(troopId, count, gear, factionBonus))
 			local nextMilestone = Formulas.nextMilestone(count)

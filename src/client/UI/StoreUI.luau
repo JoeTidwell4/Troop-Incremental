@@ -35,18 +35,6 @@ function StoreUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- Left column, first menu row (Sound | Store).
-	local storePosition, storeSize = Layout.menuSlot("Store")
-	local storeButton = UIKit.button({
-		Name = "StoreButton",
-		Text = "STORE",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		BackgroundColor3 = ROBUX_GREEN,
-		Position = storePosition,
-		Size = storeSize,
-		Parent = gui,
-	})
-
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -70,10 +58,8 @@ function StoreUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(520, 400) }),
 	}) :: Frame
-	UIKit.label({
-		Text = "Store",
-		Font = Theme.FontBold,
-		TextSize = 22,
+	UIKit.windowTitle({
+		Text = "STORE",
 		TextColor3 = ROBUX_GREEN,
 		Size = UDim2.new(1, -40, 0, 26),
 		Parent = window,
@@ -258,8 +244,6 @@ function StoreUI.start()
 		UIKit.openModal(overlay, window)
 		refreshAll()
 	end
-	storeButton.Activated:Connect(openStore)
-	Spotlight.register("Menu:Store", storeButton)
 	Spotlight.registerOpener("Menu:Store", openStore)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false

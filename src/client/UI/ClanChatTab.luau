@@ -95,6 +95,15 @@ function ClanChatTab.build(parent: Instance, _context: ClanTypes.Context): ClanT
 			row:Destroy()
 		end
 		rows = {}
+		if #ClanController.getChat() == 0 then
+			table.insert(rows, UIKit.label({
+				Text = "No messages yet. Say hi to your clan!",
+				TextColor3 = Theme.Muted,
+				TextSize = 13,
+				Size = UDim2.new(1, -8, 0, 20),
+				Parent = list,
+			}))
+		end
 		for order, message in ClanController.getChat() do
 			if muted[message.userId] then
 				continue

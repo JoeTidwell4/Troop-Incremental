@@ -295,7 +295,7 @@ function RelicsTab.build(parent: Instance): { title: string, frame: Frame, rende
 	end)
 
 	---------------------------------------------------------------- render
-	local rowButtons: { TextButton } = {}
+	local rowButtons: { GuiObject } = {}
 	local lastSnapshot: Snapshot? = nil
 
 	local function renderDetail(relics: RelicsData)
@@ -388,6 +388,18 @@ function RelicsTab.build(parent: Instance): { title: string, frame: Frame, rende
 			button:Destroy()
 		end
 		rowButtons = {}
+		if next(relics.items) == nil then
+			local empty = UIKit.label({
+				Text = `No relics yet. Every boss win has a {math.floor(RelicConfig.DROP_CHANCE * 100 + 0.5)}% chance to drop one, raids and the Tower drop them too.`,
+				TextColor3 = Theme.Muted,
+				TextSize = 12,
+				TextWrapped = true,
+				TextTruncate = Enum.TextTruncate.None,
+				Size = UDim2.new(1, 0, 0, 44),
+				Parent = list,
+			})
+			table.insert(rowButtons, empty)
+		end
 		for order, item in sorted(relics) do
 			local equipped = relics.equipped[item.slot] == item.id
 			local setDef = RelicConfig.SETS[item.set]

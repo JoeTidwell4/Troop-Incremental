@@ -381,7 +381,13 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - Tower: snapshot `towerClimbing` (TowerService); the HUD stage button says STOP CLIMBING in the gap between floors (Leave works there too).
 - UI look (`UIKit`): warmer "war camp" Theme (new `Edge` muted gold), body font `BuilderSansMedium` (was GothamMedium; FredokaOne stays for buttons / numbers), panels with a 3-stop gradient + gold edge + 12 px corners, buttons with a bevel gradient, darker edge, text outline, gold edge on hover. Damage numbers FredokaOne; cutscene + loading text Builder Sans.
 - `marketing/sounds_needed.md`: the 12 sound slots that matter most + how to grab free Roblox-made sounds from the Toolbox.
-- Not done (honest): the hidden old menu buttons still exist (harmless; removing them touches every window module), phone layout only checked on paper.
+- Not done (honest): phone layout only checked on paper (round 2 below asks the owner for emulator screenshots).
+
+### Polish round 2 (owner: cleanup + game feel + window consistency + phone)
+- Old hidden menu buttons removed (Army, Adventure, Quests, Wardrobe, Clan, Store, Top, War). Windows set their camp "!" with `CampController.setBadge(key, on)` (Army: skill points / scrolls, Adventure: Tribute / team back, Quests: claimable); CampController no longer reads a "Dot". `Layout.menuSlot` only knows Menu + Settings.
+- `UI/JuiceUI`: `JuiceUI.flash(color, strength?, seconds?)` (boss kill, level up, chapter clear, Ascend), new-land title card (AREA n / name / trait; skipped while `StoryController.busy()` or a cutscene plays, only when the area number goes up without an Ascend, not in raid / Tower / final), "<TROOP> DAMAGE x2!" on every milestone (the new-armor text now waits 0.5 s behind it).
+- Damage numbers pop in (UIScale Back) and drift sideways; size >= 28 (crits, golden, milestones) start tilted and straighten. Crits also `BattlefieldController.kick(0.3)` (small camera shake). Gold counter rolls up in log space over 0.35 s (spending snaps down). TroopTab: count bumps + row flashes green on a buy.
+- `UIKit.windowTitle(props)`: every window title is FredokaOne 24, uppercase, gold (or the window's own color), black outline. Empty states: Relics inventory, clan chat.
 
 ### Balance pass after Phase 13
 - `tools/balance_v3.py` (on top of balance_v2's fight/economy model): Phase 13 systems grow from what feeds them run by run (skills from boss + Ascend XP, Generals from scrolls with real odds, relics from 35% boss drops with odds + pity and Dust levels, Tower depth from the bosses beaten, commander gear by unlock, crits + golden enemies, clan). `python tools/balance_v3.py [hours] [idle] [off]`, `sweep` (on vs off at several horizons), `each` (6 h with one system off). Approximate on purpose (optimal player).

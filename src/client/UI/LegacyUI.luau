@@ -101,10 +101,8 @@ function LegacyUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(720, 460) }),
 	}) :: Frame
-	UIKit.label({
+	UIKit.windowTitle({
 		Text = "LEGACY",
-		Font = Theme.FontBold,
-		TextSize = 24,
 		TextColor3 = CROWN_COLOR,
 		Size = UDim2.new(1, -50, 0, 28),
 		Parent = window,

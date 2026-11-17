@@ -70,7 +70,7 @@ function MenuUI.start()
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = overlay,
 	}, { UIKit.corner(14), UIKit.padding(14) }) :: Frame
-	UIKit.label({ Text = "Camp", Font = Theme.FontBold, TextSize = 22, TextColor3 = Theme.Gold, Size = UDim2.new(1, -50, 0, 28), Parent = window })
+	UIKit.windowTitle({ Text = "CAMP", Size = UDim2.new(1, -50, 0, 28), Parent = window })
 	local closeButton = UIKit.button({
 		Text = "X",
 		TextSize = 16,

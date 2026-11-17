@@ -32,18 +32,6 @@ function LeaderboardUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- Left column, menu row (War | Clan | Top).
-	local topPosition, topSize = Layout.menuSlot("Top")
-	local topButton = UIKit.button({
-		Name = "TopButton",
-		Text = "TOP",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		BackgroundColor3 = Theme.Gold,
-		TextColor3 = Theme.Panel,
-		Position = topPosition,
-		Size = topSize,
-		Parent = gui,
-	})
 
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
@@ -68,11 +56,8 @@ function LeaderboardUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(740, 330) }),
 	}) :: Frame
-	UIKit.label({
-		Text = "Top Commanders",
-		Font = Theme.FontBold,
-		TextSize = 22,
-		TextColor3 = Theme.Gold,
+	UIKit.windowTitle({
+		Text = "TOP COMMANDERS",
 		Size = UDim2.new(1, -40, 0, 26),
 		Parent = window,
 	})
@@ -139,10 +124,6 @@ function LeaderboardUI.start()
 		fill(towerLabels, boards.tower or {}, "Floor ")
 	end)
 
-	topButton.Activated:Connect(function()
-		UIKit.openModal(overlay, window)
-	end)
-	Spotlight.register("Menu:Top", topButton)
 	Spotlight.registerOpener("Menu:Top", function()
 		UIKit.openModal(overlay, window)
 	end)

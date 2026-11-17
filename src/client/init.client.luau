@@ -58,6 +58,7 @@ local AdventureUI = require(UI.AdventureUI)
 local TutorialUI = require(UI.TutorialUI)
 local GuideUI = require(UI.GuideUI)
 local DebugPanelUI = require(UI.DebugPanelUI)
+local JuiceUI = require(UI.JuiceUI)
 
 ShopController.start()
 InputController.start()
@@ -102,6 +103,7 @@ GuideUI.start()
 TutorialUI.start() -- after every window so its openers are registered
 CampController.start() -- after every window: the camp signs take over their menu buttons
 StoryController.start() -- story cutscenes (after the battlefield and the camp exist)
+JuiceUI.start() -- flashes, new-land title cards, milestone pops
 MenuUI.start() -- MENU: list of every camp sign (fallback)
 FortuneUI.start() -- Fortune Wheel window (camp)
 MerchantUI.start() -- Mystery Merchant window (camp)

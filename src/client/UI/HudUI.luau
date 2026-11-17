@@ -6,6 +6,7 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Client = script.Parent.Parent
@@ -366,8 +367,42 @@ function HudUI.start()
 		end
 	end
 
+	-- Gold rolls up to its new value (in log space, so 1K -> 1M rolls as smoothly as 1K -> 2K).
+	-- Spending snaps straight down: you should see exactly what a purchase cost.
+	local GOLD_ROLL_SECONDS = 0.35
+	local goldShown: BigNum.BigNum? = nil
+	local goldFrom: BigNum.BigNum? = nil
+	local goldTo: BigNum.BigNum? = nil
+	local goldRollAt = 0
+	local function setGold(gold: BigNum.BigNum)
+		local shown = goldShown
+		if shown == nil or BigNum.isZero(shown) or not BigNum.gt(gold, shown) then
+			goldShown, goldFrom, goldTo = gold, nil, nil
+			goldLabel.Text = format(gold)
+			return
+		end
+		goldFrom, goldTo, goldRollAt = shown, gold, os.clock()
+	end
+	RunService.RenderStepped:Connect(function()
+		local from, to = goldFrom, goldTo
+		if from == nil or to == nil then
+			return
+		end
+		local t = (os.clock() - goldRollAt) / GOLD_ROLL_SECONDS
+		if t >= 1 then
+			goldShown, goldFrom, goldTo = to, nil, nil
+			goldLabel.Text = format(to)
+			return
+		end
+		local eased = 1 - (1 - t) * (1 - t)
+		local a, b = BigNum.log10(from), BigNum.log10(to)
+		local value = BigNum.fromLog10(a + (b - a) * eased)
+		goldShown = value
+		goldLabel.Text = format(value)
+	end)
+
 	local function render(snapshot: Snapshot)
-		goldLabel.Text = format(snapshot.gold)
+		setGold(snapshot.gold)
 		local goldBonus = if snapshot.goldMultiplier > 1
 			then ` <font color="#FFCD46">(x{snapshot.goldMultiplier})</font>`
 			else ""

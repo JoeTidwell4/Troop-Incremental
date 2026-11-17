@@ -87,11 +87,8 @@ function SettingsUI.start()
 		-- Shrinks to fit short (phone) screens; Layout.DESIGN_HEIGHT is the usable height.
 		UIKit.create("UIScale", { Scale = math.min(1, (Layout.DESIGN_HEIGHT - 16) / windowHeight) }),
 	}) :: Frame
-	UIKit.label({
-		Text = "Settings",
-		Font = Theme.FontBold,
-		TextSize = 22,
-		TextColor3 = Theme.Gold,
+	UIKit.windowTitle({
+		Text = "SETTINGS",
 		Size = UDim2.new(1, -50, 0, 28),
 		Parent = window,
 	})

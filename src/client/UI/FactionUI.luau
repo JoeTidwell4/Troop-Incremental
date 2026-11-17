@@ -73,18 +73,6 @@ function FactionUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- "WAR" button: left column, menu row (War | Clan | Top).
-	local warPosition, warSize = Layout.menuSlot("War")
-	local warButton = UIKit.button({
-		Name = "WarButton",
-		Text = "WAR",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		Position = warPosition,
-		Size = warSize,
-		BackgroundColor3 = Theme.HpFill,
-		Parent = gui,
-	})
-
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -110,10 +98,8 @@ function FactionUI.start()
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(600, 420) }),
 	}) :: Frame
 
-	local title = UIKit.label({
-		Text = "Faction War",
-		Font = Theme.FontBold,
-		TextSize = 22,
+	local title = UIKit.windowTitle({
+		Text = "FACTION WAR",
 		Size = UDim2.new(1, -40, 0, 26),
 		Parent = window,
 	})
@@ -393,7 +379,7 @@ function FactionUI.start()
 
 		picker.Visible = view == "Picker"
 		warView.Visible = view == "War"
-		title.Text = if view == "Picker" then "Choose your faction" else "Faction War"
+		title.Text = if view == "Picker" then "CHOOSE YOUR FACTION" else "FACTION WAR"
 
 		local secondsLeft = FactionController.warSecondsLeft()
 		timeLabel.Text = if war ~= nil then `This war ends in {duration(secondsLeft)}` else "Loading war..."
@@ -502,10 +488,6 @@ function FactionUI.start()
 		render()
 	end
 
-	warButton.Activated:Connect(function()
-		open("War")
-	end)
-	Spotlight.register("Menu:War", warButton)
 	Spotlight.registerOpener("Menu:War", function()
 		open("War")
 	end)
@@ -534,8 +516,6 @@ function FactionUI.start()
 			promptedThisSession = true
 			open("Picker")
 		end
-		local def = FactionConfig.FACTIONS[snapshot.faction]
-		warButton.BackgroundColor3 = if def ~= nil then def.color else Theme.HpFill
 		if overlay.Visible then
 			render()
 		end

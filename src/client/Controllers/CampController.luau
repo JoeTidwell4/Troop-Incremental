@@ -3,7 +3,7 @@
 --
 --   * Each sign is a part-built model (Visuals/CampProps) at the player's plot, turned to
 --     face the camera, with a floating name label and a "!" when its window has something
---     waiting (the old menu button's red "Dot").
+--     waiting (window modules call CampController.setBadge).
 --   * Clicking: every sign has an invisible on-screen button that follows the model's
 --     outline every frame. Because it's a real GUI button, a click on a sign never
 --     counts as an attack (InputController ignores clicks that hit UI) and taps on
@@ -14,8 +14,8 @@
 --   * A click bounces the sign, glides the camera to it (BattlefieldController.focusCamera),
 --     then opens the window (Spotlight.open). When the window closes, the camera glides
 --     back.
---   * The old menu button is hidden, and the sign's button takes over its Spotlight key,
---     so tutorials and tips point at the sign.
+--   * The sign's button holds its Spotlight key ("Menu:<Name>"), so tutorials and tips
+--     point at the sign.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
@@ -48,7 +48,6 @@ type Sign = {
 	label: TextLabel,
 	badge: TextLabel,
 	highlight: Highlight,
-	oldButton: GuiObject?,
 	bounceAt: number,
 	hidden: boolean, -- model parts made invisible (hiddenInClan / onlyWhenMerchant)
 	absent: boolean, -- onlyWhenMerchant and he's not here: no label, no click
@@ -59,7 +58,7 @@ local BOUNCE_SECONDS = 0.35
 local CampController = {}
 
 local signs: { Sign } = {}
-local badges: { [string]: boolean } = {} -- "!" for signs without an old menu button
+local badges: { [string]: boolean } = {} -- "!" per sign key (setBadge)
 local busy = false -- a glide / window is in progress
 local hovered: { [TextButton]: boolean } = {} -- hitboxes under the mouse (they respect UI on top)
 local highlighted: Sign? = nil
@@ -297,7 +296,6 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 			label = label,
 			badge = badge,
 			highlight = highlight,
-			oldButton = Spotlight.get(def.menu),
 			bounceAt = -math.huge,
 			hidden = false,
 			absent = false,
@@ -317,10 +315,6 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 			if part:IsA("BasePart") and part.Name ~= "LabelAnchor" then
 				part.CanQuery = true
 			end
-		end
-		-- The sign takes over the old button's spot in tutorials and tips.
-		if sign.oldButton ~= nil then
-			(sign.oldButton :: GuiObject).Visible = false
 		end
 		Spotlight.register(def.menu, hitbox)
 		table.insert(signs, sign)
@@ -385,8 +379,7 @@ local function update()
 			sign.model:PivotTo(sign.home)
 		end
 
-		local dot = if sign.oldButton ~= nil then (sign.oldButton :: GuiObject):FindFirstChild("Dot") else nil
-		sign.badge.Visible = (dot ~= nil and (dot :: GuiObject).Visible) or badges[sign.def.key] == true
+		sign.badge.Visible = badges[sign.def.key] == true
 		if sign.badge.Visible then
 			sign.badge.Position = UDim2.new(0.5, 0, 0, 22 - math.abs(math.sin(now * 3)) * 4)
 		end

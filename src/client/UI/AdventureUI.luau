@@ -24,6 +24,7 @@ local ExpeditionsTab = require(script.Parent.ExpeditionsTab)
 local StoryTab = require(script.Parent.StoryTab)
 local ExpeditionController = require(Client.Controllers.ExpeditionController)
 local StateController = require(Client.Controllers.StateController)
+local CampController = require(Client.Controllers.CampController)
 
 type Snapshot = Types.Snapshot
 type Tab = { title: string, frame: Frame, render: (snapshot: Snapshot) -> () }
@@ -49,30 +50,6 @@ function AdventureUI.start()
 		DisplayOrder = 15,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
-
-	local menuPosition, menuSize = Layout.menuSlot("Adventure")
-	local menuButton = UIKit.button({
-		Name = "AdventureButton",
-		Text = "ADVENTURE",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		BackgroundColor3 = Color3.fromRGB(200, 110, 50),
-		Position = menuPosition,
-		Size = menuSize,
-		Parent = gui,
-	})
-	Spotlight.register("Menu:Adventure", menuButton)
-	-- Red dot: the daily Tower Tribute is waiting.
-	local dot = UIKit.create("Frame", {
-		Name = "Dot",
-		BackgroundColor3 = Color3.fromRGB(230, 60, 60),
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -4, 0, 4),
-		Size = UDim2.fromOffset(14, 14),
-		Visible = false,
-		ZIndex = 5,
-		Parent = menuButton,
-	}, { UIKit.corner(7) }) :: Frame
 
 	-- In-challenge banner (in the Ascend button's spot).
 	local banner = UIKit.button({
@@ -114,7 +91,7 @@ function AdventureUI.start()
 		UIKit.padding(14),
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(680, 500) }),
 	}) :: Frame
-	UIKit.label({ Text = "ADVENTURE", Font = Theme.FontBold, TextSize = 24, TextColor3 = Theme.Gold, Size = UDim2.new(1, -50, 0, 28), Parent = window })
+	UIKit.windowTitle({ Text = "ADVENTURE", Size = UDim2.new(1, -50, 0, 28), Parent = window })
 	local closeButton = UIKit.button({
 		Text = "X",
 		TextSize = 16,
@@ -181,9 +158,6 @@ function AdventureUI.start()
 		UIKit.openModal(overlay, window)
 		render()
 	end
-	menuButton.Activated:Connect(function()
-		AdventureUI.open()
-	end)
 	banner.Activated:Connect(function()
 		AdventureUI.open("Challenges")
 	end)
@@ -197,7 +171,7 @@ function AdventureUI.start()
 	local wasActive = ""
 	local wasInTower = false
 	StateController.Changed:Connect(function(snapshot: Snapshot)
-		dot.Visible = snapshot.towerTributeReady or ExpeditionController.readyCount(snapshot) > 0
+		CampController.setBadge("Adventure", snapshot.towerTributeReady or ExpeditionController.readyCount(snapshot) > 0)
 		-- A Tower fight just started: show the fight.
 		local inTower = snapshot.towerFloor > 0 or snapshot.finalBattle
 		if inTower and not wasInTower then

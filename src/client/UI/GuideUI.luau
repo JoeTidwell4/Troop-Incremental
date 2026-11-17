@@ -62,7 +62,7 @@ function GuideUI.start()
 		Size = Layout.windowSize(0.6, 0.8),
 		Parent = overlay,
 	}, { UIKit.corner(14), UIKit.padding(14), UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(600, 500) }) }) :: Frame
-	UIKit.label({ Text = "Guide", Font = Theme.FontBold, TextSize = 22, TextColor3 = Theme.Gold, Size = UDim2.new(1, -50, 0, 28), Parent = window })
+	UIKit.windowTitle({ Text = "GUIDE", Size = UDim2.new(1, -50, 0, 28), Parent = window })
 	local subtitle = UIKit.label({
 		Text = "",
 		TextColor3 = Theme.Muted,

@@ -117,7 +117,7 @@ function MerchantUI.start()
 		Size = Layout.windowSize(0.7, 0.8),
 		Parent = overlay,
 	}, { UIKit.corner(14), UIKit.padding(14), UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(640, 420) }) }) :: Frame
-	UIKit.label({ Text = "Mystery Merchant", Font = Theme.FontBold, TextSize = 22, TextColor3 = COLOR, Size = UDim2.new(1, -50, 0, 28), Parent = window })
+	UIKit.windowTitle({ Text = "MYSTERY MERCHANT", TextColor3 = COLOR, Size = UDim2.new(1, -50, 0, 28), Parent = window })
 	local subtitle = UIKit.label({ Text = "", TextSize = 13, TextColor3 = Theme.Muted, Position = UDim2.new(0, 0, 0, 28), Size = UDim2.new(1, -50, 0, 16), Parent = window })
 	local closeButton = UIKit.button({
 		Text = "X",

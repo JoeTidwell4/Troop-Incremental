@@ -99,26 +99,10 @@ Layout.SHOP_HEIGHT = 16 + Layout.SHOP_HEADER_HEIGHT + 6 + Layout.SHOP_CONTENT_HE
 local DESKTOP_MENU: { [string]: Slot } = {
 	Menu = { top = 234, index = 1, count = 2 },
 	Settings = { top = 234, index = 2, count = 2 },
-	Store = { top = 234, index = 2, count = 2 },
-	War = { top = 280, index = 1, count = 3 },
-	Clan = { top = 280, index = 2, count = 3 },
-	Top = { top = 280, index = 3, count = 3 },
-	Quests = { top = 326, index = 1, count = 2 },
-	Wardrobe = { top = 326, index = 2, count = 2 },
-	Army = { top = 372, index = 1, count = 2 },
-	Adventure = { top = 372, index = 2, count = 2 },
 }
 local COMPACT_MENU: { [string]: Slot } = {
 	Menu = { top = 126, index = 1, count = 2 },
-	Quests = { top = 126, index = 1, count = 2 },
-	Store = { top = 126, index = 2, count = 2 },
-	War = { top = 174, index = 1, count = 2 },
-	Clan = { top = 174, index = 2, count = 2 },
-	Top = { top = 222, index = 1, count = 2 },
 	Settings = { top = 126, index = 2, count = 2 },
-	Wardrobe = { top = 270, index = 1, count = 2 },
-	Army = { top = 270, index = 2, count = 2 },
-	Adventure = { top = 318, index = 1, count = 1 },
 }
 
 -- Position of something in the right column: `x` pixels from the column's left edge,
@@ -127,8 +111,7 @@ function Layout.columnPosition(x: number, top: number): UDim2
 	return UDim2.new(1, -(Layout.MARGIN + Layout.COLUMN_WIDTH) + x, 0, top)
 end
 
--- (Position, Size) of a menu button: "Settings", "Store", "War", "Clan", "Top", "Quests",
--- "Wardrobe", "Army" or "Adventure".
+-- (Position, Size) of a menu button: "Menu" or "Settings" (everything else is a camp sign).
 function Layout.menuSlot(name: string): (UDim2, UDim2)
 	local slot = (if compact then COMPACT_MENU else DESKTOP_MENU)[name]
 	assert(slot ~= nil, `Unknown menu button {name}`)

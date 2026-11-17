@@ -80,9 +80,19 @@ spawnText = function(text: string, color: Color3, size: number)
 	label.Parent = billboard
 	billboard.Parent = part
 
+	-- Pop in (small -> overshoot -> normal); big numbers also start tilted and straighten.
+	local pop = Instance.new("UIScale")
+	pop.Scale = 0.3
+	pop.Parent = label
+	TweenService:Create(pop, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	if size >= 28 then
+		label.Rotation = if math.random() < 0.5 then -14 else 14
+		TweenService:Create(label, TweenInfo.new(0.35, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
+	end
+
 	local info = TweenInfo.new(LIFETIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	TweenService:Create(billboard, info, {
-		StudsOffsetWorldSpace = billboard.StudsOffsetWorldSpace + Vector3.new(0, 3, 0),
+		StudsOffsetWorldSpace = billboard.StudsOffsetWorldSpace + Vector3.new(math.random(-10, 10) / 10, 3, 0),
 	}):Play()
 	local fade = TweenService:Create(label, info, { TextTransparency = 1, TextStrokeTransparency = 1 })
 	fade.Completed:Connect(function()
@@ -97,6 +107,7 @@ function DamageNumbersController.start()
 	Remotes.waitForEvent(Remotes.Events.Crit).OnClientEvent:Connect(function(damage: any)
 		if typeof(damage) == "table" then
 			spawnText(`CRIT! {NumberFormat.big(damage)}`, CRIT_COLOR, 30)
+			BattlefieldController.kick(0.3)
 		end
 	end)
 	-- Golden enemy down: floating text instead of a popup (they can come often late on).
@@ -125,7 +136,10 @@ function DamageNumbersController.start()
 		for _, troopId in TroopConfig.ORDER do
 			local before = TroopModels.tierFor(previous.troops[troopId] or 0)
 			if TroopModels.tierFor(snapshot.troops[troopId] or 0) > before and (previous.troops[troopId] or 0) > 0 then
-				spawnText(`{TroopConfig.TROOPS[troopId].displayName}s got new armor!`, PACK_COLOR, 26)
+				local name = TroopConfig.TROOPS[troopId].displayName
+				task.delay(0.5, function() -- after the milestone text (JuiceUI); the tiers sit on milestones
+					spawnText(`{name}s got new armor!`, PACK_COLOR, 26)
+				end)
 			end
 		end
 	end)

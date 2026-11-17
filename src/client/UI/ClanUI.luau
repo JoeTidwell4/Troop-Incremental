@@ -1,5 +1,5 @@
 --!strict
--- The clan window. A "CLAN" button under the WAR button opens it.
+-- The clan window, opened from the Clan sign in the camp (CampController) or MENU.
 --   * Not in a clan: create one (name + tag), or browse/search open clans and join.
 --   * In a clan: header with name/tag, Leave, Open/Closed (leader), and tabs:
 --     Members | Bank | Raid.
@@ -83,19 +83,6 @@ function ClanUI.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}) :: ScreenGui
 
-	-- "CLAN" button: left column, menu row (War | Clan | Top).
-	local clanPosition, clanSize = Layout.menuSlot("Clan")
-	local clanButton = UIKit.button({
-		Name = "ClanButton",
-		Text = "CLAN",
-		TextSize = Layout.MENU_TEXT_SIZE,
-		Position = clanPosition,
-		Size = clanSize,
-		BackgroundColor3 = Theme.Accent,
-		Parent = gui,
-	})
-	Spotlight.register("Menu:Clan", clanButton)
-
 	local overlay = UIKit.create("Frame", {
 		Name = "Overlay",
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -120,10 +107,8 @@ function ClanUI.start()
 		UIKit.create("UISizeConstraint", { MaxSize = Vector2.new(620, 430) }),
 	}) :: Frame
 
-	local title = UIKit.label({
-		Text = "Clans",
-		Font = Theme.FontBold,
-		TextSize = 22,
+	local title = UIKit.windowTitle({
+		Text = "CLANS",
 		Size = UDim2.new(1, -120, 0, 26),
 		Parent = window,
 	})
@@ -601,7 +586,7 @@ function ClanUI.start()
 		inClan.Visible = hasClan
 
 		if not hasClan or view == nil then
-			title.Text = "Clans"
+			title.Text = "CLANS"
 			title.TextColor3 = Theme.Text
 			editButton.Visible = false
 			editPanel.Visible = false
@@ -680,7 +665,6 @@ function ClanUI.start()
 			browse()
 		end
 	end
-	clanButton.Activated:Connect(openClan)
 	Spotlight.registerOpener("Menu:Clan", openClan)
 	closeButton.Activated:Connect(function()
 		overlay.Visible = false
