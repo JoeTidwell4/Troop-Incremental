@@ -76,7 +76,7 @@ local Layout = {
 	SHOP_TAB_WIDTH = 66,
 	SHOP_MODE_WIDTH = 52,
 	-- Content area: 3 troop rows on desktop; compact shows ~2.7 and scrolls.
-	SHOP_CONTENT_HEIGHT = if compact then 156 else 180,
+	SHOP_CONTENT_HEIGHT = if compact then 112 else 180, -- compact: ~2 troop rows, keeps the fight visible
 	-- Compact: space kept free on each side of the shop (ability column / menu column).
 	SHOP_LEFT = 10 + 64 + 10,
 	SHOP_RIGHT = 10 + 200 + 10,

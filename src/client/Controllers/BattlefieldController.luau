@@ -35,6 +35,7 @@ local EnemyModels = require(Visuals:WaitForChild("EnemyModels"))
 local Effects = require(Visuals:WaitForChild("Effects"))
 local Quality = require(Visuals:WaitForChild("Quality"))
 local BossAnimator = require(Visuals:WaitForChild("BossAnimator"))
+local Layout = require(Client.UI.Layout)
 local StateController = require(Controllers.StateController)
 local InputController = require(Controllers.InputController)
 local AudioController = require(Controllers.AudioController)
@@ -664,7 +665,8 @@ end
 
 local function setupCamera()
 	local camera = workspace.CurrentCamera
-	cameraBase = CFrame.lookAt(origin + VisualConfig.CAMERA_OFFSET, origin + VisualConfig.CAMERA_LOOK_OFFSET)
+	local look = if Layout.compact then VisualConfig.CAMERA_LOOK_OFFSET_COMPACT else VisualConfig.CAMERA_LOOK_OFFSET
+	cameraBase = CFrame.lookAt(origin + VisualConfig.CAMERA_OFFSET, origin + look)
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.CFrame = cameraBase
 	-- Roblox's default camera scripts can reset this on load; put it back if they do.

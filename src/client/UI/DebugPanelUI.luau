@@ -38,7 +38,7 @@ function DebugPanelUI.start()
 		Text = "TEST",
 		TextSize = 14,
 		BackgroundColor3 = TEST_COLOR,
-		Position = UDim2.new(0, 8, 0, 6),
+		Position = if Layout.compact then UDim2.new(0.5, -70, 0, 6) else UDim2.new(0, 8, 0, 6), -- phones: the stage panel is top-left
 		Size = UDim2.fromOffset(64, 28),
 		Parent = gui,
 	})

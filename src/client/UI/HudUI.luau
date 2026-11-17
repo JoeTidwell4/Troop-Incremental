@@ -238,13 +238,14 @@ function HudUI.start()
 	end)
 	Spotlight.register("Ascend", ascendButton)
 
-	-- Center column: stage panel, then the stage button, then the hint.
+	-- Center column: stage panel, then the stage button, then the hint. On phones it moves
+	-- to the top-left (right of the abilities) so it doesn't hide the fight.
 	local column = UIKit.create("Frame", {
 		Name = "Center",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 12),
-		Size = UDim2.new(0, 420, 0, 220),
+		AnchorPoint = if compact then Vector2.new(0, 0) else Vector2.new(0.5, 0),
+		Position = if compact then UDim2.new(0, Layout.SHOP_LEFT, 0, 6) else UDim2.new(0.5, 0, 0, 12),
+		Size = if compact then UDim2.new(0, 300, 0, 220) else UDim2.new(0, 420, 0, 220),
 		Parent = gui,
 	}, {
 		UIKit.create("UIListLayout", {
@@ -318,7 +319,9 @@ function HudUI.start()
 		TextSize = 18,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextStrokeTransparency = 0.4,
-		Size = UDim2.new(1, 0, 0, 24),
+		TextWrapped = compact,
+		TextTruncate = if compact then Enum.TextTruncate.None else Enum.TextTruncate.AtEnd,
+		Size = UDim2.new(1, 0, 0, if compact then 34 else 24),
 		Parent = column,
 	})
 
@@ -533,7 +536,7 @@ function HudUI.start()
 			spotlight = nil
 		end
 		hint.Visible = tip ~= nil
-		hint.TextSize = if snapshot.towerFloor > 0 then 15 else 18
+		hint.TextSize = if compact then 13 elseif snapshot.towerFloor > 0 then 15 else 18
 		hint.Size = UDim2.new(1, 0, 0, if snapshot.towerFloor > 0 then 40 else 24)
 		if tip ~= nil then
 			hint.Text = tip

@@ -14,6 +14,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Config = Shared:WaitForChild("Config")
 local PromoConfig = require(Config:WaitForChild("PromoConfig"))
 local MonetizationConfig = require(Config:WaitForChild("MonetizationConfig"))
+local Layout = require(script.Parent.Layout)
 local UIKit = require(script.Parent.UIKit)
 
 local Theme = UIKit.Theme
@@ -74,7 +75,7 @@ function AdminUI.start()
 		Text = "ADMIN",
 		TextSize = 14,
 		BackgroundColor3 = ADMIN_COLOR,
-		Position = UDim2.new(0, 78, 0, 6),
+		Position = if Layout.compact then UDim2.new(0.5, 0, 0, 6) else UDim2.new(0, 78, 0, 6), -- phones: the stage panel is top-left
 		Size = UDim2.fromOffset(70, 28),
 		Parent = gui,
 	})
