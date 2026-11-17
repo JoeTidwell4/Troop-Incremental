@@ -40,6 +40,11 @@ local HOLLOW = Color3.fromRGB(120, 70, 190)
 
 local StoryConfig = {
 	BONUS_PER_CHAPTER = 0.02, -- +2% damage per cleared chapter (all ten: +20%)
+	-- The prologue (Arrive_1) waits until a new player has reached this stage (about a
+	-- minute of play), so they're fighting and killing things before any cutscene. Added
+	-- after the first ad run: the ad system judges the first minutes, and a cutscene on
+	-- join is the first thing new players hit.
+	PROLOGUE_STAGE = 3,
 	-- One-time reward per cleared chapter (DailyService.grant) plus Relic Dust.
 	REWARD = { goldMinutes = 20, scrolls = 2, honorShare = 0.05, honor = 5 },
 	REWARD_DUST = 60,

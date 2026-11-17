@@ -5,6 +5,9 @@
 
 local Cinematic = {
 	active = false,
+	-- A tutorial card is on screen (TutorialUI sets it). Arrival scenes wait for it, so the
+	-- prologue never cuts into the first lesson.
+	tutorialOpen = false,
 }
 
 return Cinematic

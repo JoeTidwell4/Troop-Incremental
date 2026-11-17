@@ -22,6 +22,7 @@ local BigNum = require(Shared:WaitForChild("BigNum"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local StoryConfig = require(Shared:WaitForChild("Config"):WaitForChild("StoryConfig"))
 local StateController = require(script.Parent.StateController)
+local Cinematic = require(script.Parent.Cinematic)
 local CutsceneUI = require(Client.UI.CutsceneUI)
 local ChestRevealUI = require(Client.UI.ChestRevealUI)
 
@@ -89,7 +90,8 @@ local function check(snapshot: Snapshot)
 	end
 	local land = Areas.numberForStage(snapshot.stage)
 	if land >= 1 and land <= #StoryConfig.CHAPTERS then
-		if snapshot.encounter == "Normal" and not seen(snapshot, `Arrive_{land}`) then
+		local prologueWaits = land == 1 and snapshot.bestStage < StoryConfig.PROLOGUE_STAGE
+		if snapshot.encounter == "Normal" and not prologueWaits and not seen(snapshot, `Arrive_{land}`) then
 			enqueue(`Arrive_{land}`, false)
 		elseif snapshot.encounter == "Boss" and snapshot.stage == land * 10 and not seen(snapshot, `Boss_{land}`) then
 			enqueue(`Boss_{land}`, true, 0.8) -- let the boss land first
@@ -136,6 +138,12 @@ local function playNext()
 	-- A boss scene only makes sense while that boss is still up.
 	local scene = StoryConfig.SCENES[entry.id]
 	if not entry.replay and scene.kind == "Boss" and (snapshot == nil or snapshot.encounter ~= "Boss") then
+		return
+	end
+	if not entry.replay and scene.kind == "Arrive" and Cinematic.tutorialOpen then
+		entry.notBefore = os.clock() + 1 -- a lesson is on screen: try again in a moment
+		table.insert(queue, 1, entry)
+		queued[entry.id] = true
 		return
 	end
 	if not entry.replay and (scene.kind == "Arrive" or scene.kind == "Final") and (snapshot == nil or snapshot.encounter ~= "Normal") then

@@ -27,6 +27,7 @@ local StateController = require(Client.Controllers.StateController)
 local ClanController = require(Client.Controllers.ClanController)
 local RelicController = require(Client.Controllers.RelicController)
 local StoryController = require(Client.Controllers.StoryController)
+local Cinematic = require(Client.Controllers.Cinematic)
 
 type Snapshot = Types.Snapshot
 type Lesson = Types.TutorialLesson
@@ -275,6 +276,7 @@ function TutorialUI.start()
 				end
 			end
 		end
+		Cinematic.tutorialOpen = card.Visible
 		if card.Visible and current ~= nil then
 			local data = current.steps[step]
 			local target = if data.spotlight ~= nil then Spotlight.targetOf(data.spotlight) else nil
