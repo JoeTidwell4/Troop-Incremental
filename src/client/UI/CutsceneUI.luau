@@ -211,7 +211,7 @@ function CutsceneUI.play(scene: Scene, onDone: () -> ())
 	speaker.Parent = box
 	local body = Instance.new("TextLabel")
 	body.BackgroundTransparency = 1
-	body.Font = Enum.Font.GothamMedium
+	body.Font = Enum.Font.BuilderSansMedium
 	body.TextSize = textSize - 2
 	body.TextColor3 = Color3.fromRGB(240, 240, 245)
 	body.TextWrapped = true
@@ -402,7 +402,7 @@ function CutsceneUI.play(scene: Scene, onDone: () -> ())
 		speaker.TextColor3 = cast.color
 		stroke.Color = cast.color
 		speaker.Visible = name ~= ""
-		body.Font = if line.who == "Narrator" then Enum.Font.GothamMedium else Enum.Font.Gotham
+		body.Font = if line.who == "Narrator" then Enum.Font.BuilderSansMedium else Enum.Font.BuilderSans
 		box.Visible = true
 		-- Type it out.
 		advance = false

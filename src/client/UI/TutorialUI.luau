@@ -78,9 +78,17 @@ local function trigger(snapshot: Snapshot?, when: string)
 	end
 end
 
+-- Time-sensitive lessons (about what's happening in this fight) skip the gap.
+local URGENT: { [string]: boolean } = {
+	boss = true, bossShield = true, bossEnrage = true, bossMinions = true, farming = true,
+	golden = true, inTower = true, inChallenge = true, freePack = true,
+}
+local lastClosedAt = -math.huge
+
 local function finish(markSeen: boolean)
 	local lesson = current
 	current = nil
+	lastClosedAt = os.clock()
 	Spotlight.override(nil)
 	if lesson ~= nil and markSeen and not replaying then
 		seenLocally[lesson.id] = true
@@ -265,18 +273,36 @@ function TutorialUI.start()
 			if waitingSince == 0 then
 				waitingSince = now
 			elseif now - waitingSince >= TutorialConfig.SHOW_DELAY then
-				waitingSince = 0
-				local lessonId = table.remove(queue, 1) :: string
-				queued[lessonId] = nil
-				if not isSeen(StateController.get(), lessonId) then
-					current = TutorialConfig.BY_ID[lessonId]
-					step = 1
-					replaying = false
-					showStep()
+				-- Urgent lessons first; the rest wait MIN_GAP after the last one closed, so a
+				-- new player gets one thing at a time.
+				local pick = 0
+				for index, id in queue do
+					local lesson = TutorialConfig.BY_ID[id]
+					if lesson ~= nil and URGENT[lesson.when] then
+						pick = index
+						break
+					end
+				end
+				if pick == 0 and now - lastClosedAt >= TutorialConfig.MIN_GAP then
+					pick = 1
+				end
+				if pick > 0 then
+					waitingSince = 0
+					local lessonId = table.remove(queue, pick) :: string
+					queued[lessonId] = nil
+					if not isSeen(StateController.get(), lessonId) then
+						current = TutorialConfig.BY_ID[lessonId]
+						step = 1
+						replaying = false
+						showStep()
+					end
 				end
 			end
 		end
 		Cinematic.tutorialOpen = card.Visible
+		if card.Visible then
+			Cinematic.busyAt = now
+		end
 		if card.Visible and current ~= nil then
 			local data = current.steps[step]
 			local target = if data.spotlight ~= nil then Spotlight.targetOf(data.spotlight) else nil

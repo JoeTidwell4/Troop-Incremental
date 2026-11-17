@@ -80,6 +80,7 @@ end
 local function leave(player: Player): Result
 	climbing[player] = nil
 	StageService.leaveTower(player)
+	DataService.markChanged(player) -- the HUD's STOP CLIMBING button goes away
 	return { ok = true }
 end
 
@@ -235,8 +236,9 @@ function TowerService.start()
 		return { damage = bonus, gold = bonus }
 	end)
 
-	SyncService.addSnapshotFields(function(_player: Player, data: PlayerData): { [string]: any }
+	SyncService.addSnapshotFields(function(player: Player, data: PlayerData): { [string]: any }
 		return {
+			towerClimbing = climbing[player] == true,
 			towerBest = data.tower.best,
 			towerTributeReady = data.tower.best >= 1 and data.tower.tributeDay ~= today(),
 		}

@@ -24,6 +24,7 @@ local Spotlight = require(script.Parent.Spotlight)
 local Layout = require(script.Parent.Layout)
 local StateController = require(Client.Controllers.StateController)
 local FactionController = require(Client.Controllers.FactionController)
+local Cinematic = require(Client.Controllers.Cinematic)
 
 type Snapshot = Types.Snapshot
 type WarState = Types.WarState
@@ -529,7 +530,7 @@ function FactionUI.start()
 			view = "War"
 		end
 		-- Offer the picker once per session after the first boss.
-		if not promptedThisSession and snapshot.faction == "" and snapshot.bestStage > FactionConfig.PROMPT_AFTER_STAGE then
+		if not promptedThisSession and snapshot.faction == "" and snapshot.bestStage > FactionConfig.PROMPT_AFTER_STAGE and Cinematic.calm() then
 			promptedThisSession = true
 			open("Picker")
 		end

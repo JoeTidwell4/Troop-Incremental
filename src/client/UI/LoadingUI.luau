@@ -50,8 +50,8 @@ function LoadingUI.start()
 	cover.Parent = gui
 
 	local title = label(cover, "TROOP INCREMENTAL", Enum.Font.FredokaOne, 44, GOLD, -50)
-	local status = label(cover, "Loading your army", Enum.Font.GothamMedium, 20, Color3.new(1, 1, 1), 10)
-	local hint = label(cover, "", Enum.Font.GothamMedium, 15, MUTED, 50)
+	local status = label(cover, "Loading your army", Enum.Font.BuilderSansMedium, 20, Color3.new(1, 1, 1), 10)
+	local hint = label(cover, "", Enum.Font.BuilderSansMedium, 15, MUTED, 50)
 
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 

@@ -10,6 +10,7 @@ adds the systems players collect over time, each grown from what actually feeds 
   tower      best floor ~ (highest boss beaten - 58) / 2 -> +2% damage/gold per 10 floors
   gear       commander items unlocked by best stage / Ascends (no chests)
   extras     crits (+24% clicks), golden enemies (+19% gold), clan/faction (CLAN)
+  story      +2% damage per cleared chapter (+5% final battle), group +10% gold
 
 Usage: python tools/balance_v3.py [hours] [idle] [off]    (off = Phase 13 systems off)
        python tools/balance_v3.py sweep                    (several horizons, on vs off)
@@ -47,7 +48,7 @@ def level_for(xp):
     return level
 
 
-DISABLED = set()   # systems left out: "skills", "generals", "relics", "tower", "gear", "extras"
+DISABLED = set()   # systems left out: "skills", "generals", "relics", "tower", "gear", "extras", "story", "group"
 
 
 class State:
@@ -159,6 +160,13 @@ class State:
         if "extras" not in DISABLED: tap *= 1.24; g *= 1.19
         if best >= 40:
             d *= CLAN["damage"]; hp *= CLAN["hp"]; g *= CLAN["gold"]
+        # story mode: +2% damage per land whose boss is beaten (10 lands), +5% for the
+        # final battle (assumed won ~15 stages after 100); group members +10% gold
+        if "story" not in DISABLED:
+            chapters = min(10, max(0, (best - 1) // 10))
+            d *= 1 + .02 * chapters + (.05 if best >= 115 else 0)
+        if "group" not in DISABLED:
+            g *= 1.1
         return dict(damage=d, hp=hp, gold=g, tap=tap, boss=boss, bossTime=btime, honor=honor)
 
 
@@ -201,7 +209,7 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if "each" in args:
         print("all on:", best_at(campaign(6), 120), best_at(campaign(6), 360))
-        for system in ("skills", "generals", "relics", "tower", "gear", "extras"):
+        for system in ("skills", "generals", "relics", "tower", "gear", "extras", "story", "group"):
             DISABLED.clear(); DISABLED.add(system)
             rows = campaign(6)
             print(f"without {system:8s}: 2h {best_at(rows, 120)}  6h {best_at(rows, 360)}")

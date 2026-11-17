@@ -84,7 +84,10 @@ local StoryConfig = {
 	-- The final battle (after Outro_10): the Hollow King's true form. A one-off fight (not a
 	-- stage), started from the Final_Intro scene or ADVENTURE > Story; retry any time.
 	FINAL = {
-		HP_MULTIPLIER = 2.5, -- x the stage-100 boss's HP
+		-- x the stage-100 boss's HP. Enemy HP grows x1.17 per stage and he gets twice the normal
+		-- timer, so 10 = about the stage-110 boss (2.5 was only ~stage 101: no fight at all).
+		-- With the -10% per lost try he falls to most players around stage 105-108.
+		HP_MULTIPLIER = 10,
 		DPS_MULTIPLIER = 1.5, -- x the stage-100 boss's damage (still clamped like every boss)
 		BOSS_STAGE = 100,
 		TIME_LIMIT = 60, -- seconds (+ boss timer bonuses)

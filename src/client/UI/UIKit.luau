@@ -19,20 +19,22 @@ UIKit.hooks = {
 	onButtonClick = nil :: (() -> ())?,
 }
 
+-- "War camp" look (UI polish pass): warm dark panels with a gold edge, rich accent colors.
 UIKit.Theme = table.freeze({
-	Panel = Color3.fromRGB(28, 30, 40),
-	PanelLight = Color3.fromRGB(44, 47, 62),
-	Text = Color3.fromRGB(240, 240, 245),
-	Muted = Color3.fromRGB(160, 165, 185),
-	Gold = Color3.fromRGB(255, 205, 70),
-	Accent = Color3.fromRGB(90, 140, 255),
-	Good = Color3.fromRGB(60, 170, 90),
-	Disabled = Color3.fromRGB(70, 72, 85),
-	HpBack = Color3.fromRGB(60, 20, 25),
-	HpFill = Color3.fromRGB(220, 60, 60),
-	Font = Enum.Font.GothamMedium,
+	Panel = Color3.fromRGB(27, 25, 35),
+	PanelLight = Color3.fromRGB(50, 46, 62),
+	Text = Color3.fromRGB(245, 242, 235),
+	Muted = Color3.fromRGB(170, 165, 180),
+	Gold = Color3.fromRGB(255, 198, 64),
+	Accent = Color3.fromRGB(72, 124, 235),
+	Good = Color3.fromRGB(64, 176, 96),
+	Disabled = Color3.fromRGB(72, 70, 82),
+	HpBack = Color3.fromRGB(58, 18, 24),
+	HpFill = Color3.fromRGB(222, 58, 62),
+	Edge = Color3.fromRGB(170, 140, 80), -- panel border (a muted gold)
+	Font = Enum.Font.BuilderSansMedium, -- Roblox's modern UI font: clean and a bit narrower than Gotham
 	FontBold = Enum.Font.FredokaOne, -- chunky game-style font for titles, numbers and buttons
-	PanelTransparency = 0.15,
+	PanelTransparency = 0.12,
 })
 
 -- Creates an instance and sets its properties. "Parent" is applied last, after
@@ -138,16 +140,20 @@ function UIKit.panel(props: { [string]: any }): Frame
 		defaults[key] = value
 	end
 	return UIKit.create("Frame", defaults, {
-		UIKit.corner(10),
+		UIKit.corner(12),
 		UIKit.padding(8),
-		-- Soft top-to-bottom shading and a thin light border.
+		-- Top-to-bottom shading (lit from above) and a thin gold edge.
 		UIKit.create("UIGradient", {
-			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(205, 205, 215)),
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(225, 222, 230)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 176, 190)),
+			}),
 			Rotation = 90,
 		}),
 		UIKit.create("UIStroke", {
-			Color = Color3.fromRGB(120, 125, 150),
-			Transparency = 0.55,
+			Color = UIKit.Theme.Edge,
+			Transparency = 0.45,
 			Thickness = 1.5,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),
@@ -184,22 +190,38 @@ function UIKit.button(props: { [string]: any }): TextButton
 		defaults[key] = value
 	end
 	local pressScale = UIKit.create("UIScale", { Name = "PressScale" }) :: UIScale
+	local edge = UIKit.create("UIStroke", {
+		Color = Color3.new(0, 0, 0),
+		Transparency = 0.55,
+		Thickness = 1.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}) :: UIStroke
 	local button = UIKit.create("TextButton", defaults, {
-		UIKit.corner(8),
+		UIKit.corner(9),
 		pressScale,
-		-- Lighter at the top, like a raised button.
+		-- A raised bevel: bright top edge, darker bottom.
 		UIKit.create("UIGradient", {
-			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(200, 200, 205)),
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+				ColorSequenceKeypoint.new(0.45, Color3.fromRGB(232, 232, 236)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 165, 178)),
+			}),
 			Rotation = 90,
 		}),
-		UIKit.create("UIStroke", {
-			Color = Color3.new(0, 0, 0),
-			Transparency = 0.7,
-			Thickness = 1,
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		}),
+		edge,
 	}) :: TextButton
-	button.TextStrokeTransparency = 0.75
+	-- A dark outline around the text so it reads on any button color.
+	button.TextStrokeColor3 = Color3.new(0, 0, 0)
+	button.TextStrokeTransparency = 0.6
+
+	-- Hover (mouse): the edge lights up gold.
+	local hoverInfo = TweenInfo.new(0.12)
+	button.MouseEnter:Connect(function()
+		TweenService:Create(edge, hoverInfo, { Color = UIKit.Theme.Gold, Transparency = 0.15 }):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(edge, hoverInfo, { Color = Color3.new(0, 0, 0), Transparency = 0.55 }):Play()
+	end)
 
 	-- Squish slightly while pressed.
 	local pressInfo = TweenInfo.new(0.08)

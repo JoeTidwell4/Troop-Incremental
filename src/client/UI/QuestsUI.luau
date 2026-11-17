@@ -25,6 +25,7 @@ local Layout = require(script.Parent.Layout)
 local ProgressController = require(Client.Controllers.ProgressController)
 local AudioController = require(Client.Controllers.AudioController)
 local StateController = require(Client.Controllers.StateController)
+local Cinematic = require(Client.Controllers.Cinematic)
 
 type ProgressView = Types.ProgressView
 type RewardDef = Types.RewardDef
@@ -500,15 +501,30 @@ function QuestsUI.start()
 		overlay.Visible = false
 	end)
 
-	-- Open the calendar by itself once per session when today's reward is waiting.
+	-- Open the calendar by itself once per session when today's reward is waiting, but not
+	-- for brand-new players (the Quests lesson points at it instead) and never on top of a
+	-- lesson or cutscene.
 	local autoOpened = false
-	ProgressController.Changed:Connect(function(view: ProgressView)
-		if not autoOpened and view.login.canClaim then
-			autoOpened = true
-			activePage = dailyPage
-			UIKit.openModal(overlay, window)
+	local function tryAutoOpen()
+		local view = ProgressController.get()
+		local snapshot = StateController.get()
+		if autoOpened or view == nil or snapshot == nil or not view.login.canClaim then
+			return
 		end
+		if snapshot.bestStage < 15 or not Cinematic.calm() then
+			return
+		end
+		autoOpened = true
+		activePage = dailyPage
+		UIKit.openModal(overlay, window)
 		render()
+	end
+	ProgressController.Changed:Connect(function(_view: ProgressView)
+		tryAutoOpen()
+		render()
+	end)
+	StateController.Changed:Connect(function()
+		tryAutoOpen()
 	end)
 
 	-- Keep the countdowns moving while open.

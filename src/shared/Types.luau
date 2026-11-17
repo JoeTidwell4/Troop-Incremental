@@ -508,6 +508,7 @@ export type Snapshot = {
 	merchant: MerchantState, -- missions that can be away at once
 	towerFloor: number, -- the Tower floor being fought right now (0 = not in the Tower)
 	towerBest: number, -- best Tower floor cleared
+	towerClimbing: boolean, -- auto-climbing (also true in the short gap between floors)
 	storySeen: { [string]: boolean }, -- story scene ids already watched
 	storyCleared: { [string]: boolean }, -- chapter number (as text) -> cleared
 	storyFinalWon: boolean, -- the final battle is won

@@ -329,10 +329,11 @@ function HudUI.start()
 	end)
 
 	local function renderStageButton(snapshot: Snapshot)
-		if snapshot.towerFloor > 0 then
-			-- In the Tower: the button walks out (and stops the climb).
+		if snapshot.towerFloor > 0 or snapshot.towerClimbing then
+			-- In the Tower (or between two floors of a climb): the button walks out and stops
+			-- the climb.
 			stageButton.Visible = true
-			stageButton.Text = "LEAVE THE TOWER"
+			stageButton.Text = if snapshot.towerFloor > 0 then "LEAVE THE TOWER" else "STOP CLIMBING"
 			stageButton.BackgroundColor3 = Theme.PanelLight
 			buttonAction = function()
 				task.spawn(TowerController.request, "Leave")

@@ -49,7 +49,7 @@ local FactionConfig = {
 	} :: { [string]: Types.FactionDef },
 
 	TROOP_BONUS = 1.5, -- x damage and x HP for the faction's troop type
-	PROMPT_AFTER_STAGE = 10, -- offer the faction picker once your best stage passes this
+	PROMPT_AFTER_STAGE = 14, -- offer the faction picker once your best stage passes this (was 10; the first boss + story scenes crowd stage 10-11)
 	SWITCH_COOLDOWN = 7 * 86400, -- seconds between faction changes (first pick is free)
 
 	-- War timing. The war "week" starts Mondays 00:00 UTC (WEEK_ANCHOR is a Monday).

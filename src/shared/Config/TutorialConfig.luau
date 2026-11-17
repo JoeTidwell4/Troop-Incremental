@@ -60,7 +60,7 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
-		id = "FortuneWheel", topic = "Basics", title = "Fortune Wheel", when = "stage", stage = FortuneConfig.UNLOCK_STAGE,
+		id = "FortuneWheel", topic = "Basics", title = "Fortune Wheel", when = "stage", stage = FortuneConfig.UNLOCK_STAGE + 6, -- later than the unlock: stage 10-11 is busy (first boss, story)
 		steps = {
 			{ text = "The Fortune Wheel in your camp gives a free spin every day, plus one for finishing all your daily quests. Spins are never sold.", spotlight = "Menu:Wheel" },
 			{ text = "Every spin wins something: gold, Dust, Honor, scrolls, chests, relics, or the Jackpot. The odds are on the wheel." },
@@ -74,13 +74,13 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
-		id = "Group", topic = "Basics", title = "Join the group", when = "stage", stage = 15,
+		id = "Group", topic = "Basics", title = "Join the group", when = "stage", stage = 22,
 		steps = {
 			{ text = "Join the game's group: +10% gold forever, 3 free gear packs and a Hero Chest, plus a Commander's Pennant to wear. It's in SETTINGS.", open = "Menu:Settings", spotlight = "Settings:Group" },
 		},
 	},
 	{
-		id = "Codes", topic = "Basics", title = "Codes", when = "stage", stage = 4,
+		id = "Codes", topic = "Basics", title = "Codes", when = "stage", stage = 8,
 		steps = {
 			{ text = "Got a code from the group or a friend? Type it in SETTINGS for free rewards. Each code works once per player.", open = "Menu:Settings", spotlight = "Settings:Codes" },
 		},
@@ -101,7 +101,7 @@ local LESSONS: { Lesson } = {
 		steps = { { text = "While you're away, your army keeps fighting and earns gold (a bit slower than live). Honor upgrades and skills raise the cap." } },
 	},
 	{
-		id = "Quests", topic = "Progress", title = "Quests and achievements", when = "stage", stage = 6,
+		id = "Quests", topic = "Progress", title = "Quests and achievements", when = "stage", stage = 7,
 		steps = {
 			{ text = "QUESTS has a daily login reward (come back every day!), 3 daily quests and achievements that pay Honor.", spotlight = "Menu:Quests" },
 			{ text = "A red dot means something is ready to claim. Finishing all 3 daily quests gives a bonus." },
@@ -153,7 +153,7 @@ local LESSONS: { Lesson } = {
 
 	---------------------------------------------------------------- Gear and packs
 	{
-		id = "Gear", topic = "Gear and packs", title = "Gear", when = "stage", stage = 10,
+		id = "Gear", topic = "Gear and packs", title = "Gear", when = "stage", stage = 13,
 		steps = {
 			{ text = "Each troop type has a weapon (damage) and armor (HP). Level them up in the Gear tab.", spotlight = "Tab:Gear", open = "Tab:Gear" },
 			{ text = "Gear rarity (Common to Legendary) multiplies it a lot. You get rarity from gear packs." },
@@ -167,20 +167,20 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
-		id = "Areas", topic = "Troops", title = "Areas and traits", when = "stage", stage = 11,
+		id = "Areas", topic = "Troops", title = "Areas and traits", when = "stage", stage = 12,
 		steps = { { text = "Each boss beaten takes you to a new area. Most areas weaken one troop type by 30% (shown at the top). Mix your army!" } },
 	},
 
 	---------------------------------------------------------------- Clans and factions
 	{
-		id = "Factions", topic = "Clans and factions", title = "Factions", when = "stage", stage = 11,
+		id = "Factions", topic = "Clans and factions", title = "Factions", when = "stage", stage = 15,
 		steps = {
 			{ text = "Pick one of 3 factions: each boosts one troop type's damage and HP by 50%. You can switch later (with a cooldown).", spotlight = "Menu:War" },
 			{ text = "Every week the factions fight a war. Fight on your best stages for points; the winners get a gold bonus all next week." },
 		},
 	},
 	{
-		id = "Clans", topic = "Clans and factions", title = "Clans", when = "stage", stage = 15,
+		id = "Clans", topic = "Clans and factions", title = "Clans", when = "stage", stage = 18,
 		steps = {
 			{ text = "Join a clan (or make one) in CLAN. Clans share a bank, perks for everyone, a weekly raid boss and a weekly Clan War.", spotlight = "Menu:Clan" },
 		},
@@ -194,13 +194,13 @@ local LESSONS: { Lesson } = {
 		},
 	},
 	{
-		id = "Leaderboards", topic = "Progress", title = "Leaderboards", when = "stage", stage = 20,
+		id = "Leaderboards", topic = "Progress", title = "Leaderboards", when = "stage", stage = 24,
 		steps = { { text = "TOP shows the best commanders in the game: highest stage and most Honor.", spotlight = "Menu:Top" } },
 	},
 
 	---------------------------------------------------------------- Progress
 	{
-		id = "Wardrobe", topic = "Progress", title = "Wardrobe", when = "stage", stage = 20,
+		id = "Wardrobe", topic = "Progress", title = "Wardrobe", when = "stage", stage = 26,
 		steps = {
 			{ text = "Your commander can wear a helmet, cape, weapon and back item, each with a bonus. Earn them by playing.", spotlight = "Menu:Wardrobe" },
 			{ text = "Wardrobe Chests (gold) roll for exclusive pieces, with Legendary pity. Find them in WARDROBE > Chests." },
@@ -340,4 +340,5 @@ return table.freeze({
 	BY_ID = BY_ID,
 	-- Seconds to wait after a trigger before showing the lesson (lets popups settle).
 	SHOW_DELAY = 1.2,
+	MIN_GAP = 18, -- seconds between non-urgent lessons (TutorialUI); fight lessons skip it
 })
