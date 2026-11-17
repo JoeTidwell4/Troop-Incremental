@@ -22,6 +22,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
 
 local Client = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -32,6 +33,7 @@ local CampProps = require(Client:WaitForChild("Visuals"):WaitForChild("CampProps
 local Quality = require(Client:WaitForChild("Visuals"):WaitForChild("Quality"))
 local Cinematic = require(script.Parent.Cinematic)
 local Spotlight = require(Client.UI.Spotlight)
+local Layout = require(Client.UI.Layout)
 local BattlefieldController = require(script.Parent.BattlefieldController)
 local AudioController = require(script.Parent.AudioController)
 local ClanController = require(script.Parent.ClanController)
@@ -51,9 +53,17 @@ type Sign = {
 	bounceAt: number,
 	hidden: boolean, -- model parts made invisible (hiddenInClan / onlyWhenMerchant)
 	absent: boolean, -- onlyWhenMerchant and he's not here: no label, no click
+	culled: boolean, -- name label hidden because it would cover the HUD or another label
+	labelWidth: number, -- name label width in pixels
 }
 
 local BOUNCE_SECONDS = 0.35
+-- Name labels: smaller on phones (billboards don't follow the screen UIScale).
+local LABEL_TEXT = if Layout.compact then 13 else 18
+local LABEL_HEIGHT = if Layout.compact then 21 else 28
+local CULL_INTERVAL = 0.2
+-- ScreenGuis that never hide a label (the sign hitboxes themselves, flashes, coins).
+local CULL_IGNORE: { [string]: boolean } = { CampSigns = true, Juice = true }
 
 local CampController = {}
 
@@ -100,21 +110,26 @@ local function visit(sign: Sign)
 	end)
 end
 
--- Screen rectangle (GUI coordinates, below the top bar) of a sign's name label.
-local function labelRect(sign: Sign, camera: Camera, inset: Vector2): (Vector2?, Vector2?)
-	local billboard = sign.label.Parent :: BillboardGui
-	local anchor = billboard.Parent :: BasePart
-	if not billboard.Enabled then
-		return nil, nil
-	end
+-- Where a sign's name label is on screen (GUI coordinates, below the top bar), shown or not.
+local function rectOf(sign: Sign, camera: Camera, inset: Vector2): (Vector2?, Vector2?)
+	local anchor = (sign.label.Parent :: BillboardGui).Parent :: BasePart
 	local point, inFront = camera:WorldToViewportPoint(anchor.Position)
 	if not inFront then
 		return nil, nil
 	end
-	-- The billboard is centred on the anchor; the label sits at its bottom (28 px of 52).
+	-- The billboard is centred on the anchor; the label sits at its bottom.
 	local x, y = point.X - inset.X, point.Y - inset.Y
-	local half = sign.label.AbsoluteSize.X / 2
-	return Vector2.new(x - half, y - 2), Vector2.new(x + half, y + 26)
+	local half = sign.labelWidth / 2
+	return Vector2.new(x - half, y + 26 - LABEL_HEIGHT), Vector2.new(x + half, y + 26)
+end
+
+-- Screen rectangle of a sign's name label while it's shown.
+local function labelRect(sign: Sign, camera: Camera, inset: Vector2): (Vector2?, Vector2?)
+	local billboard = sign.label.Parent :: BillboardGui
+	if not billboard.Enabled then
+		return nil, nil
+	end
+	return rectOf(sign, camera, inset)
 end
 
 local function clickable(sign: Sign): boolean
@@ -233,10 +248,10 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 		label.BackgroundTransparency = 0.25
 		label.AnchorPoint = Vector2.new(0.5, 1)
 		label.Position = UDim2.new(0.5, 0, 1, 0)
-		label.Size = UDim2.fromOffset(0, 28)
+		label.Size = UDim2.fromOffset(0, LABEL_HEIGHT)
 		label.AutomaticSize = Enum.AutomaticSize.X
 		label.Font = Enum.Font.FredokaOne
-		label.TextSize = 18
+		label.TextSize = LABEL_TEXT
 		label.TextColor3 = CampConfig.LABEL_COLOR
 		label.TextStrokeTransparency = 0.5
 		label.Text = def.label
@@ -298,6 +313,8 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 			highlight = highlight,
 			bounceAt = -math.huge,
 			hidden = false,
+			culled = false,
+			labelWidth = TextService:GetTextSize(def.label, LABEL_TEXT, Enum.Font.FredokaOne, Vector2.new(1000, 100)).X + 20,
 			absent = false,
 		}
 		hitbox.MouseEnter:Connect(function()
@@ -318,6 +335,84 @@ local function build(origin: Vector3, folder: Folder, hitboxGui: ScreenGui)
 		end
 		Spotlight.register(def.menu, hitbox)
 		table.insert(signs, sign)
+	end
+end
+
+-- Is any solid piece of HUD / window at this GUI point?
+local function hudAt(playerGui: PlayerGui, point: Vector2, screenArea: number): boolean
+	for _, object in playerGui:GetGuiObjectsAtPosition(point.X, point.Y) do
+		local gui = object:FindFirstAncestorWhichIsA("ScreenGui")
+		if gui == nil or CULL_IGNORE[gui.Name] then
+			continue
+		end
+		local size = object.AbsoluteSize
+		if size.X * size.Y > screenArea * 0.4 then
+			continue -- full-screen layers (they're see-through)
+		end
+		if object.BackgroundTransparency < 0.8 then
+			return true
+		end
+		if object:IsA("TextLabel") and object.Text ~= "" and object.TextTransparency < 0.5 then
+			return true
+		end
+	end
+	return false
+end
+
+-- Hides name labels that would sit on the HUD or on another label (phones especially:
+-- the camp shrinks with the screen, the labels don't). "!" signs go first, then nearer.
+local lastCull = 0
+local function cullLabels(camera: Camera, inset: Vector2)
+	local now = os.clock()
+	if now - lastCull < CULL_INTERVAL then
+		return
+	end
+	lastCull = now
+	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	if playerGui == nil then
+		return
+	end
+	local order: { Sign } = {}
+	for _, sign in signs do
+		if not sign.absent then
+			table.insert(order, sign)
+		end
+	end
+	local from = camera.CFrame.Position
+	table.sort(order, function(a: Sign, b: Sign): boolean
+		local badgeA, badgeB = badges[a.def.key] == true, badges[b.def.key] == true
+		if badgeA ~= badgeB then
+			return badgeA
+		end
+		return (a.home.Position - from).Magnitude < (b.home.Position - from).Magnitude
+	end)
+	local viewport = camera.ViewportSize
+	local screenArea = viewport.X * viewport.Y
+	local placed: { { Vector2 } } = {}
+	for _, sign in order do
+		local low, high = rectOf(sign, camera, inset)
+		local culled = low == nil
+		if low ~= nil and high ~= nil then
+			for _, other in placed do
+				if low.X < other[2].X + 4 and high.X > other[1].X - 4 and low.Y < other[2].Y + 2 and high.Y > other[1].Y - 2 then
+					culled = true
+					break
+				end
+			end
+			if not culled then
+				local middle = (low + high) / 2
+				for _, point in { middle, Vector2.new(low.X + 4, middle.Y), Vector2.new(high.X - 4, middle.Y), Vector2.new(middle.X, low.Y + 3), Vector2.new(middle.X, high.Y - 3) } do
+					if hudAt(playerGui, point, screenArea) then
+						culled = true
+						break
+					end
+				end
+			end
+			if not culled then
+				table.insert(placed, { low, high })
+			end
+		end
+		sign.culled = culled
 	end
 end
 
@@ -348,6 +443,9 @@ local function update()
 	end
 	local inset = GuiService:GetGuiInset()
 	local away = BattlefieldController.cameraFocus() > 0.01 or busy or Cinematic.active
+	if not away then
+		cullLabels(camera, inset)
+	end
 	local now = os.clock()
 	local clan = ClanController.get()
 	local inClan = clan ~= nil and clan.inClan
@@ -370,7 +468,7 @@ local function update()
 			end
 		end
 		-- No floating name labels in the middle of a story cutscene.
-		(sign.label.Parent :: BillboardGui).Enabled = not Cinematic.active
+		(sign.label.Parent :: BillboardGui).Enabled = not Cinematic.active and not sign.culled
 		-- Bounce: a quick hop and squash when clicked.
 		local t = (now - sign.bounceAt) / BOUNCE_SECONDS
 		if t >= 0 and t <= 1 then
