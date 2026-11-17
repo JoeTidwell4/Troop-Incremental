@@ -389,6 +389,16 @@ local function cullLabels(camera: Camera, inset: Vector2)
 	local viewport = camera.ViewportSize
 	local screenArea = viewport.X * viewport.Y
 	local placed: { { Vector2 } } = {}
+	-- The fight itself is a no-label zone (the enemy, its damage numbers and the army in front).
+	local enemy = BattlefieldController.getEnemyPosition()
+	if enemy ~= nil then
+		local point, inFront = camera:WorldToViewportPoint(enemy)
+		if inFront then
+			local centre = Vector2.new(point.X - inset.X, point.Y - inset.Y)
+			local half = Vector2.new(viewport.X * 0.09, viewport.Y * 0.16)
+			table.insert(placed, { centre - half, centre + half })
+		end
+	end
 	for _, sign in order do
 		local low, high = rectOf(sign, camera, inset)
 		local culled = low == nil
