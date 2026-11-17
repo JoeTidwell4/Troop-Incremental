@@ -383,7 +383,7 @@ src/client  -> StarterPlayer.StarterPlayerScripts.Client   init.client.luau boot
 - `marketing/sounds_needed.md`: the 12 sound slots that matter most + how to grab free Roblox-made sounds from the Toolbox.
 - Not done (honest): phone layout only checked on paper (round 2 below asks the owner for emulator screenshots).
 
-### Polish round 2 (owner: cleanup + game feel + window consistency + phone)
+### Polish round 2 (owner: cleanup + game feel + window consistency + phone; owner confirmed: "looks good", phone pass still waiting on screenshots)
 - Old hidden menu buttons removed (Army, Adventure, Quests, Wardrobe, Clan, Store, Top, War). Windows set their camp "!" with `CampController.setBadge(key, on)` (Army: skill points / scrolls, Adventure: Tribute / team back, Quests: claimable); CampController no longer reads a "Dot". `Layout.menuSlot` only knows Menu + Settings.
 - `UI/JuiceUI`: `JuiceUI.flash(color, strength?, seconds?)` (boss kill, level up, chapter clear, Ascend), new-land title card (AREA n / name / trait; skipped while `StoryController.busy()` or a cutscene plays, only when the area number goes up without an Ascend, not in raid / Tower / final), "<TROOP> DAMAGE x2!" on every milestone (the new-armor text now waits 0.5 s behind it).
 - Damage numbers pop in (UIScale Back) and drift sideways; size >= 28 (crits, golden, milestones) start tilted and straighten. Crits also `BattlefieldController.kick(0.3)` (small camera shake). Gold counter rolls up in log space over 0.35 s (spending snaps down). TroopTab: count bumps + row flashes green on a buy.
